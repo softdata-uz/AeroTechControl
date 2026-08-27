@@ -1,0 +1,139 @@
+"use client";
+
+import { useState } from "react";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Dropdown } from "@/components/ui/Dropdown";
+import type { EquipmentDocument } from "@/lib/types";
+import { useAsync } from "@/hooks/useAsync";
+import { documentsService, equipmentService } from "@/services";
+import type { IconName } from "@/components/icons";
+
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  onCreated: (doc: EquipmentDocument) => void;
+  typeMeta: Record<EquipmentDocument["type"], { label: string; icon: IconName }>;
+}
+
+const emptyForm = {
+  title: "",
+  type: "certificate" as EquipmentDocument["type"],
+  equipmentId: "",
+  author: "",
+  version: "1.0",
+};
+
+export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Props) {
+  const [form, setForm] = useState(emptyForm);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const { data: equipmentPage } = useAsync(
+    () => equipmentService.listEquipment({ pageSize: 1000 }),
+    []
+  );
+  const equipment = equipmentPage?.items ?? [];
+
+  function reset() {
+    setForm(emptyForm);
+    setError(null);
+  }
+
+  function handleClose() {
+    reset();
+    onClose();
+  }
+
+  async function handleSubmit() {
+    if (!form.title || !form.author) {
+      setError("Заполните обязательные поля: название, автор.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const doc = await documentsService.createDocument({
+        equipmentId: form.equipmentId || null,
+        title: form.title,
+        type: form.type,
+        status: "active",
+        author: form.author,
+        version: form.version || "1.0",
+      });
+      onCreated(doc);
+      reset();
+      onClose();
+    } catch {
+      setError("Не удалось загрузить документ. Попробуйте ещё раз.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <Modal
+      open={open}
+      onClose={handleClose}
+      title="Загрузить документ"
+      description="Документ будет зарегистрирован со статусом «Действителен»"
+      footer={
+        <>
+          <Button hierarchy="secondary" size="sm" onClick={handleClose}>
+            Отмена
+          </Button>
+          <Button hierarchy="primary" size="sm" icon="upload" onClick={handleSubmit} disabled={submitting}>
+            {submitting ? "Загрузка…" : "Загрузить"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {error && (
+          <p className="rounded-md border border-(--chip-error-border) bg-(--chip-error-bg) px-3 py-2 text-xs text-(--chip-error-text)">
+            {error}
+          </p>
+        )}
+
+        <Input
+          label="Название документа"
+          required
+          placeholder="Акт периодической проверки"
+          value={form.title}
+          onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <Dropdown
+            label="Тип документа"
+            value={form.type}
+            onChange={(v) => setForm((f) => ({ ...f, type: v as EquipmentDocument["type"] }))}
+            options={Object.entries(typeMeta).map(([key, m]) => ({ value: key, label: m.label, icon: m.icon }))}
+          />
+          <Input
+            label="Версия"
+            value={form.version}
+            onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
+          />
+        </div>
+
+        <Dropdown
+          label="Оборудование"
+          placeholder="Общий документ (не привязан)"
+          value={form.equipmentId}
+          onChange={(v) => setForm((f) => ({ ...f, equipmentId: v }))}
+          options={equipment.map((eq) => ({ value: eq.id, label: `${eq.name} · ${eq.code}` }))}
+        />
+
+        <Input
+          label="Автор"
+          required
+          placeholder="ФИО или подразделение"
+          value={form.author}
+          onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
+        />
+      </div>
+    </Modal>
+  );
+}

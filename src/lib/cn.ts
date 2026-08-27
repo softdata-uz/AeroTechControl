@@ -1,0 +1,17 @@
+type ClassValue = string | number | null | undefined | false | ClassValue[];
+
+function flatten(input: ClassValue, out: string[]) {
+  if (!input) return;
+  if (Array.isArray(input)) {
+    input.forEach((v) => flatten(v, out));
+    return;
+  }
+  out.push(String(input));
+}
+
+/** Minimal classnames combinator — avoids pulling in a dependency. */
+export function cn(...inputs: ClassValue[]): string {
+  const out: string[] = [];
+  flatten(inputs, out);
+  return out.join(" ");
+}

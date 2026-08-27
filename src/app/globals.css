@@ -1,0 +1,503 @@
+@import "tailwindcss";
+
+/* =========================================================================
+   DESIGN TOKENS
+   Source of truth: Figma "Green" file (Untitled UI system) — exported
+   variable collections: _Primitives, 1. Color modes, 2. Radius,
+   3. Spacing, 6. Typography. Brand primitive is green per product
+   direction (file is literally named "Green").
+   :root holds the dark-mode values (default/primary theme, matching the
+   original product spec). [data-theme="light"] below overrides the
+   semantic bg/text/border tokens for the light theme added on request —
+   the primitive ramps (brand/success/warning/error/purple/gray) stay the
+   same in both themes; only which stops the semantic tokens point to
+   changes.
+   ========================================================================= */
+
+:root {
+  /* ---- Base / Gray (dark mode) scale -------------------------------- */
+  --color-gray-25: #fafafa;
+  --color-gray-50: #f7f7f7;
+  --color-gray-100: #f0f1f1;
+  --color-gray-200: #ececed;
+  --color-gray-300: #cecfd2;
+  --color-gray-400: #94979c;
+  --color-gray-500: #85888e;
+  --color-gray-600: #61656c;
+  --color-gray-700: #373a41;
+  --color-gray-800: #22262f;
+  --color-gray-900: #13161b;
+  --color-gray-950: #0c0e12;
+
+  /* ---- Brand / Green primitive scale ----------------------------------
+     Muted emerald rather than a saturated "traffic-light" green — keeps
+     solid fills (active nav, primary buttons) calm on a near-black
+     surface instead of glowing, per CLAUDE.md §7 ("calm, serious"). */
+  --color-brand-25: #f6fefa;
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d3f4e4;
+  --color-brand-200: #a8e8c8;
+  --color-brand-300: #7cd5aa;
+  --color-brand-400: #52bd8b;
+  --color-brand-500: #339969;
+  --color-brand-600: #257a52;
+  --color-brand-700: #1e6244;
+  --color-brand-800: #1b4e38;
+  --color-brand-900: #17402f;
+  --color-brand-950: #0c241a;
+
+  /* ---- Success / Green ------------------------------------------------*/
+  --color-success-50: #ecfdf3;
+  --color-success-100: #dcfae6;
+  --color-success-200: #abefc6;
+  --color-success-300: #75e0a7;
+  --color-success-400: #47cd89;
+  --color-success-500: #17b26a;
+  --color-success-600: #079455;
+  --color-success-700: #067647;
+  --color-success-800: #085d3a;
+  --color-success-900: #074d31;
+  --color-success-950: #053321;
+
+  /* ---- Warning / Orange -------------------------------------------- */
+  --color-warning-50: #fffaeb;
+  --color-warning-100: #fef0c7;
+  --color-warning-200: #fedf89;
+  --color-warning-300: #fec84b;
+  --color-warning-400: #fdb022;
+  --color-warning-500: #f79009;
+  --color-warning-600: #dc6803;
+  --color-warning-700: #b54708;
+  --color-warning-800: #93370d;
+  --color-warning-900: #7a2e0e;
+  --color-warning-950: #4e1d09;
+
+  /* ---- Error / Red ----------------------------------------------------*/
+  --color-error-50: #fef3f2;
+  --color-error-100: #fee4e2;
+  --color-error-200: #fecdca;
+  --color-error-300: #fda29b;
+  --color-error-400: #f97066;
+  --color-error-500: #f04438;
+  --color-error-600: #d92d20;
+  --color-error-700: #b42318;
+  --color-error-800: #912018;
+  --color-error-900: #7a271a;
+  --color-error-950: #55160c;
+
+  /* ---- Purple / informational (scheduled, planning) ------------------*/
+  --color-purple-50: #f4f3ff;
+  --color-purple-100: #ebe9fe;
+  --color-purple-200: #d9d6fe;
+  --color-purple-300: #bdb4fe;
+  --color-purple-400: #9b8afb;
+  --color-purple-500: #7a5af8;
+  --color-purple-600: #6938ef;
+  --color-purple-700: #5925dc;
+  --color-purple-800: #4a1fb8;
+  --color-purple-900: #3e1c96;
+  --color-purple-950: #1d1a3d;
+
+  /* ---- Status/tone "chip" tokens (StatusBadge, KPICard icon tiles) ----
+     Theme-aware on purpose: dark mode wants a near-black tint + bright
+     text (glows just enough to read); the same literal classes on a
+     white light-mode card would be a muddy, low-contrast smear. Config
+     files (equipmentStatus.config.ts etc.) and KPICard reference these
+     via bg-(--chip-x-bg) / text-(--chip-x-text) / border-(--chip-x-border)
+     instead of hardcoded bg-success-950 etc., so one class list works in
+     both themes. */
+  --chip-success-bg: var(--color-success-950);
+  --chip-success-text: var(--color-success-400);
+  --chip-success-border: var(--color-success-800);
+  --chip-warning-bg: var(--color-warning-950);
+  --chip-warning-text: var(--color-warning-400);
+  --chip-warning-border: var(--color-warning-800);
+  --chip-error-bg: var(--color-error-950);
+  --chip-error-text: var(--color-error-400);
+  --chip-error-border: var(--color-error-800);
+  --chip-brand-bg: var(--color-brand-950);
+  --chip-brand-text: var(--color-brand-300);
+  --chip-brand-border: var(--color-brand-800);
+  --chip-purple-bg: var(--color-purple-950);
+  --chip-purple-text: var(--color-purple-400);
+  --chip-purple-border: var(--color-purple-800);
+  --chip-gray-bg: var(--color-gray-800);
+  --chip-gray-text: var(--color-gray-400);
+  --chip-gray-border: var(--color-gray-700);
+
+  /* ---- Semantic surface / text / border tokens (dark mode) ---------- */
+  --bg-primary: var(--color-gray-950);
+  --bg-secondary: var(--color-gray-900);
+  --bg-tertiary: var(--color-gray-800);
+  --bg-quaternary: var(--color-gray-700);
+  --bg-active: var(--color-gray-800);
+  --bg-disabled: var(--color-gray-800);
+  --bg-overlay: var(--color-gray-800);
+
+  --bg-brand-primary: var(--color-brand-500);
+  --bg-brand-secondary: var(--color-brand-600);
+  --bg-brand-solid: var(--color-brand-600);
+
+  --bg-success-primary: var(--color-success-950);
+  --bg-success-secondary: var(--color-success-600);
+  --bg-success-solid: var(--color-success-600);
+
+  --bg-warning-primary: var(--color-warning-950);
+  --bg-warning-secondary: var(--color-warning-600);
+  --bg-warning-solid: var(--color-warning-600);
+
+  --bg-error-primary: var(--color-error-950);
+  --bg-error-secondary: var(--color-error-600);
+  --bg-error-solid: var(--color-error-600);
+
+  --text-primary: var(--color-gray-100);
+  --text-secondary: var(--color-gray-300);
+  --text-tertiary: var(--color-gray-400);
+  --text-quaternary: var(--color-gray-400);
+  --text-placeholder: var(--color-gray-500);
+  --text-disabled: var(--color-gray-500);
+  --text-white: #ffffff;
+
+  --text-brand-primary: var(--color-gray-50);
+  --text-brand-secondary: var(--color-gray-300);
+  --text-success-primary: var(--color-success-400);
+  --text-warning-primary: var(--color-warning-400);
+  --text-error-primary: var(--color-error-400);
+
+  --border-primary: var(--color-gray-700);
+  --border-secondary: var(--color-gray-800);
+  --border-tertiary: var(--color-gray-800);
+  --border-brand: var(--color-brand-400);
+  --border-error: var(--color-error-400);
+  --border-disabled: var(--color-gray-700);
+
+  --fg-brand-primary: var(--color-brand-500);
+  --fg-error-primary: var(--color-error-500);
+  --fg-warning-primary: var(--color-warning-500);
+  --fg-success-primary: var(--color-success-500);
+
+  /* ---- Radius (2. Radius) ------------------------------------------- */
+  --radius-none: 0px;
+  --radius-xxs: 2px;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-3xl: 20px;
+  --radius-4xl: 24px;
+  --radius-full: 9999px;
+
+  /* ---- Typography (6. Typography) ------------------------------------*/
+  --font-family-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+
+  /* Project-wide floor: no text renders below 15px, even the smallest
+     token — xs/sm bumped from the original 12/14px scale; md and up were
+     already ≥15px so they're untouched. */
+  --text-xs-size: 15px;
+  --text-xs-lh: 20px;
+  --text-sm-size: 16px;
+  --text-sm-lh: 22px;
+  --text-md-size: 16px;
+  --text-md-lh: 24px;
+  --text-lg-size: 18px;
+  --text-lg-lh: 28px;
+  --text-xl-size: 20px;
+  --text-xl-lh: 30px;
+  --display-xs-size: 24px;
+  --display-xs-lh: 32px;
+  --display-sm-size: 30px;
+  --display-sm-lh: 38px;
+  --display-md-size: 36px;
+  --display-md-lh: 44px;
+
+  /* ---- Shadows ---------------------------------------------------------*/
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px -2px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 16px -4px rgba(0, 0, 0, 0.45), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+}
+
+/* ---- Light theme — semantic token overrides ---------------------------
+   Same primitive ramps as dark (gray/brand/success/warning/error/purple),
+   only the semantic bg/text/border assignments flip. Applied via
+   [data-theme="light"] on <html>, set by ThemeProvider (src/lib/theme-
+   context.tsx) before paint, so there is no flash of the wrong theme. */
+:root[data-theme="light"] {
+  /* Off-white rather than pure #fff, and a dark-gray (not black) primary
+     text — softens the bg/text contrast jump so the light theme reads as
+     calm as the dark one instead of glaring. */
+  --bg-primary: var(--color-gray-25);
+  --bg-secondary: #ffffff;
+  --bg-tertiary: var(--color-gray-50);
+  --bg-quaternary: var(--color-gray-100);
+  --bg-active: var(--color-gray-50);
+  --bg-disabled: var(--color-gray-50);
+  --bg-overlay: var(--color-gray-800);
+
+  --bg-brand-primary: var(--color-brand-50);
+  --bg-brand-secondary: var(--color-brand-600);
+  --bg-brand-solid: var(--color-brand-600);
+
+  --bg-success-primary: var(--color-success-50);
+  --bg-success-secondary: var(--color-success-600);
+  --bg-success-solid: var(--color-success-600);
+
+  --bg-warning-primary: var(--color-warning-50);
+  --bg-warning-secondary: var(--color-warning-600);
+  --bg-warning-solid: var(--color-warning-600);
+
+  --bg-error-primary: var(--color-error-50);
+  --bg-error-secondary: var(--color-error-600);
+  --bg-error-solid: var(--color-error-600);
+
+  --text-primary: var(--color-gray-800);
+  --text-secondary: var(--color-gray-600);
+  --text-tertiary: var(--color-gray-500);
+  --text-quaternary: var(--color-gray-500);
+  --text-placeholder: var(--color-gray-400);
+  --text-disabled: var(--color-gray-400);
+  --text-white: #ffffff;
+
+  --text-brand-primary: var(--color-gray-800);
+  --text-brand-secondary: var(--color-gray-600);
+  --text-success-primary: var(--color-success-700);
+  --text-warning-primary: var(--color-warning-700);
+  --text-error-primary: var(--color-error-700);
+
+  --border-primary: var(--color-gray-200);
+  --border-secondary: var(--color-gray-100);
+  --border-tertiary: var(--color-gray-100);
+  --border-brand: var(--color-brand-400);
+  --border-error: var(--color-error-400);
+  --border-disabled: var(--color-gray-200);
+
+  --fg-brand-primary: var(--color-brand-600);
+  --fg-error-primary: var(--color-error-600);
+  --fg-warning-primary: var(--color-warning-600);
+  --fg-success-primary: var(--color-success-600);
+
+  /* Pastel bg + dark text instead of dark mode's near-black bg + bright
+     text — the near-black chip read as a muddy, low-contrast smear on a
+     white card. */
+  --chip-success-bg: var(--color-success-50);
+  --chip-success-text: var(--color-success-700);
+  --chip-success-border: var(--color-success-300);
+  --chip-warning-bg: var(--color-warning-50);
+  --chip-warning-text: var(--color-warning-700);
+  --chip-warning-border: var(--color-warning-300);
+  --chip-error-bg: var(--color-error-50);
+  --chip-error-text: var(--color-error-700);
+  --chip-error-border: var(--color-error-300);
+  --chip-brand-bg: var(--color-brand-50);
+  --chip-brand-text: var(--color-brand-700);
+  --chip-brand-border: var(--color-brand-300);
+  --chip-purple-bg: var(--color-purple-50);
+  --chip-purple-text: var(--color-purple-700);
+  --chip-purple-border: var(--color-purple-300);
+  --chip-gray-bg: var(--color-gray-100);
+  --chip-gray-text: var(--color-gray-600);
+  --chip-gray-border: var(--color-gray-300);
+
+  --shadow-xs: 0 1px 2px 0 rgba(16, 24, 40, 0.06);
+  --shadow-sm: 0 1px 3px 0 rgba(16, 24, 40, 0.1), 0 1px 2px -1px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.1), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+}
+
+@theme inline {
+  --font-sans: var(--font-family-body);
+
+  /* Registers our pixel scale as Tailwind's actual text-xs/sm/lg/xl
+     utilities (Tailwind's built-in 12px/14px defaults were previously
+     unaffected by --text-xs-size et al. below — those custom vars had no
+     @theme mapping, so every `text-xs`/`text-sm` in the app was silently
+     using Tailwind's stock scale instead of ours). text-md isn't a stock
+     Tailwind size — added here as an alias for the existing token so it
+     works if ever used, but nothing in the codebase does yet. */
+  --text-xs: var(--text-xs-size);
+  --text-xs--line-height: var(--text-xs-lh);
+  --text-sm: var(--text-sm-size);
+  --text-sm--line-height: var(--text-sm-lh);
+  --text-md: var(--text-md-size);
+  --text-md--line-height: var(--text-md-lh);
+  --text-lg: var(--text-lg-size);
+  --text-lg--line-height: var(--text-lg-lh);
+  --text-xl: var(--text-xl-size);
+  --text-xl--line-height: var(--text-xl-lh);
+
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-quaternary: var(--bg-quaternary);
+  --color-bg-active: var(--bg-active);
+  --color-bg-disabled: var(--bg-disabled);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-bg-brand-primary: var(--bg-brand-primary);
+  --color-bg-brand-secondary: var(--bg-brand-secondary);
+  --color-bg-brand-solid: var(--bg-brand-solid);
+  --color-bg-success-primary: var(--bg-success-primary);
+  --color-bg-success-secondary: var(--bg-success-secondary);
+  --color-bg-success-solid: var(--bg-success-solid);
+  --color-bg-warning-primary: var(--bg-warning-primary);
+  --color-bg-warning-secondary: var(--bg-warning-secondary);
+  --color-bg-warning-solid: var(--bg-warning-solid);
+  --color-bg-error-primary: var(--bg-error-primary);
+  --color-bg-error-secondary: var(--bg-error-secondary);
+  --color-bg-error-solid: var(--bg-error-solid);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-quaternary: var(--text-quaternary);
+  --color-text-placeholder: var(--text-placeholder);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-white: var(--text-white);
+  --color-text-brand-primary: var(--text-brand-primary);
+  --color-text-brand-secondary: var(--text-brand-secondary);
+  --color-text-success-primary: var(--text-success-primary);
+  --color-text-warning-primary: var(--text-warning-primary);
+  --color-text-error-primary: var(--text-error-primary);
+
+  --color-border-primary: var(--border-primary);
+  --color-border-secondary: var(--border-secondary);
+  --color-border-tertiary: var(--border-tertiary);
+  --color-border-brand: var(--border-brand);
+  --color-border-error: var(--border-error);
+  --color-border-disabled: var(--border-disabled);
+
+  --color-fg-brand-primary: var(--fg-brand-primary);
+  --color-fg-error-primary: var(--fg-error-primary);
+  --color-fg-warning-primary: var(--fg-warning-primary);
+  --color-fg-success-primary: var(--fg-success-primary);
+
+  --color-brand-25: var(--color-brand-25);
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-200: var(--color-brand-200);
+  --color-brand-300: var(--color-brand-300);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand-500: var(--color-brand-500);
+  --color-brand-600: var(--color-brand-600);
+  --color-brand-700: var(--color-brand-700);
+  --color-brand-800: var(--color-brand-800);
+  --color-brand-900: var(--color-brand-900);
+  --color-brand-950: var(--color-brand-950);
+
+  --color-success-50: var(--color-success-50);
+  --color-success-100: var(--color-success-100);
+  --color-success-400: var(--color-success-400);
+  --color-success-500: var(--color-success-500);
+  --color-success-600: var(--color-success-600);
+  --color-success-950: var(--color-success-950);
+
+  --color-warning-50: var(--color-warning-50);
+  --color-warning-100: var(--color-warning-100);
+  --color-warning-400: var(--color-warning-400);
+  --color-warning-500: var(--color-warning-500);
+  --color-warning-600: var(--color-warning-600);
+  --color-warning-950: var(--color-warning-950);
+
+  --color-error-50: var(--color-error-50);
+  --color-error-100: var(--color-error-100);
+  --color-error-400: var(--color-error-400);
+  --color-error-500: var(--color-error-500);
+  --color-error-600: var(--color-error-600);
+  --color-error-950: var(--color-error-950);
+
+  --color-purple-50: var(--color-purple-50);
+  --color-purple-100: var(--color-purple-100);
+  --color-purple-300: var(--color-purple-300);
+  --color-purple-400: var(--color-purple-400);
+  --color-purple-500: var(--color-purple-500);
+  --color-purple-600: var(--color-purple-600);
+  --color-purple-700: var(--color-purple-700);
+  --color-purple-950: var(--color-purple-950);
+
+  --color-gray-25: var(--color-gray-25);
+  --color-gray-50: var(--color-gray-50);
+  --color-gray-100: var(--color-gray-100);
+  --color-gray-200: var(--color-gray-200);
+  --color-gray-300: var(--color-gray-300);
+  --color-gray-400: var(--color-gray-400);
+  --color-gray-500: var(--color-gray-500);
+  --color-gray-600: var(--color-gray-600);
+  --color-gray-700: var(--color-gray-700);
+  --color-gray-800: var(--color-gray-800);
+  --color-gray-900: var(--color-gray-900);
+  --color-gray-950: var(--color-gray-950);
+
+  --radius-xxs: var(--radius-xxs);
+  --radius-xs: var(--radius-xs);
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: var(--radius-2xl);
+  --radius-3xl: var(--radius-3xl);
+  --radius-4xl: var(--radius-4xl);
+
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+html {
+  color-scheme: dark;
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--text-sm-size);
+  line-height: var(--text-sm-lh);
+}
+
+* {
+  border-color: var(--border-primary);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-gray-700);
+  border-radius: var(--radius-full);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-drawer-in {
+  animation: drawer-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drawer-in {
+    animation: none;
+  }
+}
