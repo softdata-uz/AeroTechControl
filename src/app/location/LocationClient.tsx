@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
+import { TerminalMap } from "./TerminalMap";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
@@ -28,9 +29,6 @@ const STATUS_ORDER: EquipmentStatus[] = [
   "reserve",
   "decommissioned",
 ];
-
-const MARKER_SIZE = { compact: "h-2.5 w-2.5", normal: "h-3.5 w-3.5", large: "h-5 w-5" } as const;
-type ZoomLevel = keyof typeof MARKER_SIZE;
 
 function countByStatus(items: Equipment[]) {
   const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0])) as Record<EquipmentStatus, number>;
@@ -54,7 +52,6 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
   );
 
   const [zoneId, setZoneId] = useState<string | null>(terminalZones[0]?.id ?? null);
-  const [zoom, setZoom] = useState<ZoomLevel>("normal");
 
   function selectAirport(id: string) {
     setAirportId(id);
@@ -69,9 +66,6 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
     const firstZone = zones.find((z) => z.terminalId === id) ?? null;
     setZoneId(firstZone?.id ?? null);
   }
-
-  const zoomLevels: ZoomLevel[] = ["compact", "normal", "large"];
-  const zoomIndex = zoomLevels.indexOf(zoom);
 
   const terminalEquipment = useMemo(
     () => equipment.filter((e) => e.terminalId === terminalId),
@@ -196,75 +190,19 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
               </p>
               <p className="text-xs text-text-tertiary">{t("location.schematicPlan")}</p>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                aria-label={t("location.zoomOut")}
-                disabled={zoomIndex === 0}
-                onClick={() => setZoom(zoomLevels[Math.max(0, zoomIndex - 1)])}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-border-primary text-text-tertiary hover:bg-bg-tertiary disabled:opacity-30"
-              >
-                −
-              </button>
-              <span className="w-10 text-center text-xs text-text-quaternary">
-                {zoomIndex === 0 ? "S" : zoomIndex === 1 ? "M" : "L"}
-              </span>
-              <button
-                aria-label={t("location.zoomIn")}
-                disabled={zoomIndex === zoomLevels.length - 1}
-                onClick={() => setZoom(zoomLevels[Math.min(zoomLevels.length - 1, zoomIndex + 1)])}
-                className="flex h-7 w-7 items-center justify-center rounded-md border border-border-primary text-text-tertiary hover:bg-bg-tertiary disabled:opacity-30"
-              >
-                +
-              </button>
-            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
-            {terminalZones.length === 0 && (
-              <p className="py-10 text-center text-sm text-text-tertiary sm:col-span-2">
-                {t("location.noZones")}
-              </p>
-            )}
-            {terminalZones.map((zone) => {
-              const items = equipment.filter((e) => e.zoneId === zone.id);
-              const isActive = zone.id === zoneId;
-              return (
-                <button
-                  key={zone.id}
-                  onClick={() => setZoneId(zone.id)}
-                  className={cn(
-                    "rounded-lg border p-3 text-left transition-colors",
-                    isActive
-                      ? "border-brand-600 bg-(--chip-brand-bg)"
-                      : "border-border-primary bg-bg-primary hover:border-border-secondary"
-                  )}
-                >
-                  <div className="mb-2 flex items-center justify-between">
-                    <p className="truncate text-sm font-medium text-text-primary">{zone.name}</p>
-                    <span className="shrink-0 text-xs text-text-quaternary">
-                      {equipment.filter((e) => e.zoneId === zone.id).length} {t("location.unitsSuffix")}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {items.length === 0 && (
-                      <span className="text-xs text-text-quaternary">{t("location.hiddenOrEmpty")}</span>
-                    )}
-                    {items.map((eq) => (
-                      <span
-                        key={eq.id}
-                        title={`${eq.name} · ${equipmentStatusConfig[eq.status].label}`}
-                        className={cn(
-                          "rounded-sm",
-                          MARKER_SIZE[zoom],
-                          equipmentStatusConfig[eq.status].dot
-                        )}
-                      />
-                    ))}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {terminalZones.length === 0 ? (
+            <p className="py-16 text-center text-sm text-text-tertiary">{t("location.noZones")}</p>
+          ) : (
+            <TerminalMap
+              zones={terminalZones}
+              equipment={terminalEquipment}
+              selectedZoneId={zoneId}
+              onSelectZone={setZoneId}
+              statusConfig={equipmentStatusConfig}
+            />
+          )}
         </Card>
 
         {/* INSPECT */}

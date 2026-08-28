@@ -51,6 +51,7 @@ const paths = {
   minus: "M4 10h12",
   "calendar-date": "M5 3.5v3M15 3.5v3M3 8.2h14M4.5 5.2h11a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V6.2a1 1 0 0 1 1-1Z",
   globe: "M17.5 10a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0ZM2.5 10h15M10 2.5a11.4 11.4 0 0 1 0 15M10 2.5a11.4 11.4 0 0 0 0 15",
+  maximize: "M3 7.5V4.5A1.5 1.5 0 0 1 4.5 3h3M17 7.5V4.5A1.5 1.5 0 0 0 15.5 3h-3M3 12.5v3A1.5 1.5 0 0 0 4.5 17h3M17 12.5v3a1.5 1.5 0 0 1-1.5 1.5h-3",
 } as const;
 
 export type IconName = keyof typeof paths;
