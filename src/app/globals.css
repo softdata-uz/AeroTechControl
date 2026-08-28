@@ -4,8 +4,8 @@
    DESIGN TOKENS
    Source of truth: Figma "Green" file (Untitled UI system) — exported
    variable collections: _Primitives, 1. Color modes, 2. Radius,
-   3. Spacing, 6. Typography. Brand primitive is green per product
-   direction (file is literally named "Green").
+   3. Spacing, 6. Typography. Brand primitive is blue per the approved
+   reference screenshots (primary buttons, active nav, focus rings).
    :root holds the dark-mode values (default/primary theme, matching the
    original product spec). [data-theme="light"] below overrides the
    semantic bg/text/border tokens for the light theme added on request —
@@ -29,22 +29,22 @@
   --color-gray-900: #13161b;
   --color-gray-950: #0c0e12;
 
-  /* ---- Brand / Green primitive scale ----------------------------------
-     Muted emerald rather than a saturated "traffic-light" green — keeps
-     solid fills (active nav, primary buttons) calm on a near-black
-     surface instead of glowing, per CLAUDE.md §7 ("calm, serious"). */
-  --color-brand-25: #f6fefa;
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d3f4e4;
-  --color-brand-200: #a8e8c8;
-  --color-brand-300: #7cd5aa;
-  --color-brand-400: #52bd8b;
-  --color-brand-500: #339969;
-  --color-brand-600: #257a52;
-  --color-brand-700: #1e6244;
-  --color-brand-800: #1b4e38;
-  --color-brand-900: #17402f;
-  --color-brand-950: #0c241a;
+  /* ---- Brand / Blue primitive scale ------------------------------------
+     Matches the approved reference screenshots: active sidebar item,
+     primary buttons, links and focus rings all use this blue ramp. Kept
+     calm/deep rather than neon per CLAUDE.md §7 ("calm, serious"). */
+  --color-brand-25: #f5f8ff;
+  --color-brand-50: #eff4ff;
+  --color-brand-100: #d1e0ff;
+  --color-brand-200: #b2ccff;
+  --color-brand-300: #84adff;
+  --color-brand-400: #528bff;
+  --color-brand-500: #2970ff;
+  --color-brand-600: #155eef;
+  --color-brand-700: #004eeb;
+  --color-brand-800: #0040c1;
+  --color-brand-900: #00359e;
+  --color-brand-950: #002266;
 
   /* ---- Success / Green ------------------------------------------------*/
   --color-success-50: #ecfdf3;
@@ -304,6 +304,86 @@
   --shadow-sm: 0 1px 3px 0 rgba(16, 24, 40, 0.1), 0 1px 2px -1px rgba(16, 24, 40, 0.06);
   --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, 0.1), 0 2px 4px -2px rgba(16, 24, 40, 0.06);
   --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, 0.08), 0 4px 6px -2px rgba(16, 24, 40, 0.03);
+}
+
+/* ---- Forced-dark scope --------------------------------------------------
+   The sidebar must stay dark regardless of the app-wide theme toggle
+   (product identity per CLAUDE.md §9). Re-declaring the semantic tokens on
+   an element wins over the inherited [data-theme="light"] root values, no
+   matter the light rule's specificity — inheritance always loses to any
+   rule matching the element itself. Values are a straight copy of the
+   :root (dark) block above; keep the two in sync if tokens change. */
+[data-force-theme="dark"] {
+  --bg-primary: var(--color-gray-950);
+  --bg-secondary: var(--color-gray-900);
+  --bg-tertiary: var(--color-gray-800);
+  --bg-quaternary: var(--color-gray-700);
+  --bg-active: var(--color-gray-800);
+  --bg-disabled: var(--color-gray-800);
+  --bg-overlay: var(--color-gray-800);
+
+  --bg-brand-primary: var(--color-brand-500);
+  --bg-brand-secondary: var(--color-brand-600);
+  --bg-brand-solid: var(--color-brand-600);
+
+  --bg-success-primary: var(--color-success-950);
+  --bg-success-secondary: var(--color-success-600);
+  --bg-success-solid: var(--color-success-600);
+
+  --bg-warning-primary: var(--color-warning-950);
+  --bg-warning-secondary: var(--color-warning-600);
+  --bg-warning-solid: var(--color-warning-600);
+
+  --bg-error-primary: var(--color-error-950);
+  --bg-error-secondary: var(--color-error-600);
+  --bg-error-solid: var(--color-error-600);
+
+  --text-primary: var(--color-gray-100);
+  --text-secondary: var(--color-gray-300);
+  --text-tertiary: var(--color-gray-400);
+  --text-quaternary: var(--color-gray-400);
+  --text-placeholder: var(--color-gray-500);
+  --text-disabled: var(--color-gray-500);
+  --text-white: #ffffff;
+
+  --text-brand-primary: var(--color-gray-50);
+  --text-brand-secondary: var(--color-gray-300);
+  --text-success-primary: var(--color-success-400);
+  --text-warning-primary: var(--color-warning-400);
+  --text-error-primary: var(--color-error-400);
+
+  --border-primary: var(--color-gray-700);
+  --border-secondary: var(--color-gray-800);
+  --border-tertiary: var(--color-gray-800);
+  --border-brand: var(--color-brand-400);
+  --border-error: var(--color-error-400);
+  --border-disabled: var(--color-gray-700);
+
+  --fg-brand-primary: var(--color-brand-500);
+  --fg-error-primary: var(--color-error-500);
+  --fg-warning-primary: var(--color-warning-500);
+  --fg-success-primary: var(--color-success-500);
+
+  --chip-success-bg: var(--color-success-950);
+  --chip-success-text: var(--color-success-400);
+  --chip-success-border: var(--color-success-800);
+  --chip-warning-bg: var(--color-warning-950);
+  --chip-warning-text: var(--color-warning-400);
+  --chip-warning-border: var(--color-warning-800);
+  --chip-error-bg: var(--color-error-950);
+  --chip-error-text: var(--color-error-400);
+  --chip-error-border: var(--color-error-800);
+  --chip-brand-bg: var(--color-brand-950);
+  --chip-brand-text: var(--color-brand-300);
+  --chip-brand-border: var(--color-brand-800);
+  --chip-purple-bg: var(--color-purple-950);
+  --chip-purple-text: var(--color-purple-400);
+  --chip-purple-border: var(--color-purple-800);
+  --chip-gray-bg: var(--color-gray-800);
+  --chip-gray-text: var(--color-gray-400);
+  --chip-gray-border: var(--color-gray-700);
+
+  color-scheme: dark;
 }
 
 @theme inline {

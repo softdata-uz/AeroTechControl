@@ -22,7 +22,10 @@ export function Sidebar() {
   );
 
   return (
-    <aside className="flex h-screen w-64 shrink-0 flex-col border-r border-border-primary bg-bg-secondary">
+    <aside
+      data-force-theme="dark"
+      className="flex h-screen w-64 shrink-0 flex-col border-r border-border-primary bg-bg-secondary"
+    >
       <div className="flex h-[75px] shrink-0 items-center gap-2.5 border-b border-border-primary px-4">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
           <Icon name="shield" size={20} />
