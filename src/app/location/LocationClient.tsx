@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
-import { TerminalMap } from "./TerminalMap";
+import { TerminalMap, loadMarkerOverrides } from "./TerminalMap";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
@@ -53,6 +53,30 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
 
   const [zoneId, setZoneId] = useState<string | null>(terminalZones[0]?.id ?? null);
 
+  // Equipment can be dragged to a different room/zone on the terminal map
+  // (see TerminalMap's zone auto-detection); this local override keeps the
+  // navigation counts, Zone Panel, and equipment table in sync with that
+  // reassignment without mutating the shared mock-data module. Seeded from
+  // the same localStorage record TerminalMap persists positions to, via a
+  // layout effect (SSR has no localStorage — hydration-safe, same pattern
+  // as locale-context.tsx).
+  const [zoneOverrides, setZoneOverrides] = useState<Record<string, string>>({});
+
+  useLayoutEffect(() => {
+    const stored = loadMarkerOverrides();
+    const overrides: Record<string, string> = {};
+    for (const [equipmentId, rec] of Object.entries(stored)) {
+      if (rec.zoneId) overrides[equipmentId] = rec.zoneId;
+    }
+    if (Object.keys(overrides).length > 0) setZoneOverrides(overrides);
+  }, []);
+
+  const resolvedEquipment = useMemo(
+    () =>
+      equipment.map((e) => (zoneOverrides[e.id] ? { ...e, zoneId: zoneOverrides[e.id] } : e)),
+    [equipment, zoneOverrides]
+  );
+
   function selectAirport(id: string) {
     setAirportId(id);
     const firstTerminal = terminals.find((t) => t.airportId === id) ?? null;
@@ -68,14 +92,18 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
   }
 
   const terminalEquipment = useMemo(
-    () => equipment.filter((e) => e.terminalId === terminalId),
-    [equipment, terminalId]
+    () => resolvedEquipment.filter((e) => e.terminalId === terminalId),
+    [resolvedEquipment, terminalId]
   );
   const selectedZone = zones.find((z) => z.id === zoneId) ?? null;
   const zoneEquipment = useMemo(
-    () => (zoneId ? equipment.filter((e) => e.zoneId === zoneId) : []),
-    [equipment, zoneId]
+    () => (zoneId ? resolvedEquipment.filter((e) => e.zoneId === zoneId) : []),
+    [resolvedEquipment, zoneId]
   );
+
+  function handleEquipmentZoneChange(equipmentId: string, newZoneId: string) {
+    setZoneOverrides((prev) => ({ ...prev, [equipmentId]: newZoneId }));
+  }
 
   const tableItems = zoneId ? zoneEquipment : terminalEquipment;
   const selectedAirport = airports.find((a) => a.id === airportId) ?? null;
@@ -200,6 +228,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
               equipment={terminalEquipment}
               selectedZoneId={zoneId}
               onSelectZone={setZoneId}
+              onEquipmentZoneChange={handleEquipmentZoneChange}
               statusConfig={equipmentStatusConfig}
             />
           )}

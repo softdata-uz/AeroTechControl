@@ -4,38 +4,54 @@ import { useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEve
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useTranslations } from "@/lib/locale-context";
+import { useTheme } from "@/lib/theme-context";
 import type { Equipment, EquipmentStatus, Zone } from "@/lib/types";
 import type { StatusVisual } from "@/config/equipmentStatus.config";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 /**
- * Generic architectural terminal cross-section (gates -> waiting area ->
- * passport control -> security screening -> check-in hall -> baggage
- * claim / main entrance), rendered as SVG. No real per-airport floor-plan
- * geometry exists yet, so the room layout is a fixed template; only the
- * Security Screening lanes and equipment markers are data-driven (one
- * lane per zone). See "How to swap in a real airport SVG" in this file's
- * bottom comment for what to replace when real drawings are available.
+ * Real terminal floor-plan drawing (`public/schema.jpg`, sourced from
+ * `src/schema/schema.jpg`) rendered "dark-mode" — inverted + screen-blended
+ * onto the app's dark background so the drawing's white background
+ * disappears and only its line work shows, matching the approved
+ * reference look. Static Cyrillic-style room labels are overlaid at each
+ * band (not tied to real per-pixel room boundaries, since the drawing has
+ * none machine-readable); zones from data are assigned to a band by
+ * keyword and rendered as interactive lanes within it, same as before.
  */
 
-const VB_W = 900;
-const VB_H = 640;
-const MARGIN_X = 40;
-const CONTENT_W = VB_W - MARGIN_X * 2;
+const SCHEMA_IMAGE_SRC = "/schema.jpg";
+const SCHEMA_IMAGE_W = 4977;
+const SCHEMA_IMAGE_H = 1678;
 
-const GATE_LABEL_Y = 22;
-const GATE_CONNECTOR_Y0 = 32;
-const WAITING_Y0 = 60;
-const WAITING_Y1 = 148;
-const PASSPORT_Y0 = 148;
-const PASSPORT_Y1 = 210;
-const SECURITY_Y0 = 210;
-const SECURITY_Y1 = 436;
-const CHECKIN_Y0 = 436;
-const CHECKIN_Y1 = 536;
-const BOTTOM_Y0 = 536;
-const BOTTOM_Y1 = 606;
+const VB_W = 1600;
+const VB_H = Math.round((VB_W * SCHEMA_IMAGE_H) / SCHEMA_IMAGE_W);
 
-const ZOOM_STEPS = [0.75, 1, 1.25, 1.5];
+const MARGIN_X = VB_W * 0.03;
+const CONTENT_X0 = VB_W * 0.14;
+const CONTENT_X1 = VB_W * 0.895;
+
+const GATE_LABEL_Y = VB_H * 0.045;
+const GATE_CONNECTOR_Y0 = VB_H * 0.08;
+const WAITING_Y0 = VB_H * 0.1;
+const WAITING_Y1 = VB_H * 0.3;
+const PASSPORT_Y0 = VB_H * 0.3;
+const PASSPORT_Y1 = VB_H * 0.4;
+const SECURITY_Y0 = VB_H * 0.4;
+const SECURITY_Y1 = VB_H * 0.66;
+const CHECKIN_Y0 = VB_H * 0.66;
+const CHECKIN_Y1 = VB_H * 0.8;
+const BOTTOM_Y0 = VB_H * 0.82;
+const BOTTOM_Y1 = VB_H * 0.96;
+
+// Full interior bounds a marker can be dragged within — the whole
+// building footprint, not just the band it started in.
+const INTERIOR_X0 = VB_W * 0.03;
+const INTERIOR_X1 = VB_W * 0.97;
+const INTERIOR_Y0 = GATE_CONNECTOR_Y0;
+const INTERIOR_Y1 = BOTTOM_Y1;
+
+const ZOOM_STEPS = [0.75, 1, 1.25, 1.5, 2];
 
 const STATUS_FILL: Record<EquipmentStatus, string> = {
   operational: "var(--color-success-500)",
@@ -46,13 +62,25 @@ const STATUS_FILL: Record<EquipmentStatus, string> = {
   decommissioned: "var(--color-gray-500)",
 };
 
-const STORAGE_KEY = "atz-location-marker-positions";
+// Same 20x20 "cpu" glyph used everywhere else in the app for equipment
+// (icons.tsx) — reused inline here rather than importing, since markers
+// render as raw SVG shapes, not <Icon>.
+const EQUIPMENT_ICON_PATH = "M8 3v2M12 3v2M8 15v2M12 15v2M3 8h2M3 12h2M15 8h2M15 12h2M7 7h6v6H7V7Z";
 
-type Positions = Record<string, { x: number; y: number }>;
+export const MARKER_STORAGE_KEY = "atz-location-marker-positions";
 
-function loadPositions(): Positions {
+export interface MarkerRecord {
+  x: number;
+  y: number;
+  /** Zone the marker was last auto-detected (or started) in. */
+  zoneId?: string;
+}
+
+type Positions = Record<string, MarkerRecord>;
+
+export function loadMarkerOverrides(): Positions {
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(MARKER_STORAGE_KEY);
     return raw ? (JSON.parse(raw) as Positions) : {};
   } catch {
     return {};
@@ -61,7 +89,7 @@ function loadPositions(): Positions {
 
 function savePositions(positions: Positions) {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+    window.localStorage.setItem(MARKER_STORAGE_KEY, JSON.stringify(positions));
   } catch {
     // localStorage unavailable — edits still apply for this session.
   }
@@ -71,16 +99,182 @@ function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
 }
 
+// ---- Room template: every zone is assigned to exactly one of these
+// bands by matching keywords in the zone's name (falls back to Security
+// Screening). Arrivals/Customs have no matching mock zone keywords — they
+// render as static labels only, same as the reference image shows them.
+interface Room {
+  key: string;
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  labelKey: TranslationKey;
+  keywords: string[];
+  /** Static-label-only bands (no zone ever assigns here) skip lane/click rendering. */
+  static?: boolean;
+}
+
+const ROOMS: Room[] = [
+  {
+    key: "waiting",
+    x0: CONTENT_X0,
+    x1: CONTENT_X1,
+    y0: WAITING_Y0,
+    y1: WAITING_Y1,
+    labelKey: "location.waitingArea",
+    keywords: ["вылет", "departure", "ожидан", "kutish", "waiting"],
+  },
+  {
+    key: "passport",
+    x0: CONTENT_X0,
+    x1: CONTENT_X1,
+    y0: PASSPORT_Y0,
+    y1: PASSPORT_Y1,
+    labelKey: "location.passportControl",
+    keywords: ["паспорт", "pasport", "passport"],
+  },
+  {
+    key: "security",
+    x0: CONTENT_X0,
+    x1: CONTENT_X1,
+    y0: SECURITY_Y0,
+    y1: SECURITY_Y1,
+    labelKey: "location.securityScreening",
+    keywords: ["досмотр", "tekshiruv", "screening", "линия", "line"],
+  },
+  {
+    key: "checkin",
+    x0: CONTENT_X0,
+    x1: CONTENT_X1,
+    y0: CHECKIN_Y0,
+    y1: CHECKIN_Y1,
+    labelKey: "location.checkInHall",
+    keywords: ["регистрац", "ro'yxat", "check-in", "checkin"],
+  },
+  {
+    key: "arrivals",
+    x0: MARGIN_X,
+    x1: MARGIN_X + (CONTENT_X1 - CONTENT_X0) * 0.15,
+    y0: BOTTOM_Y0,
+    y1: BOTTOM_Y1,
+    labelKey: "location.arrivalsZone",
+    keywords: ["прилет", "kelish", "arrival"],
+    static: true,
+  },
+  {
+    key: "baggage",
+    x0: MARGIN_X + (CONTENT_X1 - CONTENT_X0) * 0.15,
+    x1: MARGIN_X + (CONTENT_X1 - CONTENT_X0) * 0.3,
+    y0: BOTTOM_Y0,
+    y1: BOTTOM_Y1,
+    labelKey: "location.baggageClaim",
+    keywords: ["багаж", "bagaj", "baggage"],
+  },
+  {
+    key: "entrance",
+    x0: MARGIN_X + (CONTENT_X1 - CONTENT_X0) * 0.3,
+    x1: MARGIN_X + (CONTENT_X1 - CONTENT_X0) * 0.75,
+    y0: BOTTOM_Y0,
+    y1: BOTTOM_Y1,
+    labelKey: "location.mainEntrance",
+    keywords: ["вход", "kirish", "entrance"],
+  },
+  {
+    key: "customs",
+    x0: MARGIN_X + (CONTENT_X1 - CONTENT_X0) * 0.75,
+    x1: CONTENT_X1,
+    y0: BOTTOM_Y0,
+    y1: BOTTOM_Y1,
+    labelKey: "location.customsControl",
+    keywords: ["таможен", "bojxona", "customs"],
+    static: true,
+  },
+];
+
+function assignRoom(zoneName: string): Room {
+  const lower = zoneName.toLowerCase();
+  return ROOMS.find((r) => !r.static && r.keywords.some((kw) => lower.includes(kw))) ?? ROOMS[2]; // default: security
+}
+
+interface Lane {
+  zone: Zone;
+  room: Room;
+  x0: number;
+  width: number;
+  items: Equipment[];
+}
+
+function buildLanes(zones: Zone[], equipment: Equipment[]): Lane[] {
+  const byRoom = new Map<Room, Zone[]>();
+  for (const zone of zones) {
+    const room = assignRoom(zone.name);
+    const list = byRoom.get(room) ?? [];
+    list.push(zone);
+    byRoom.set(room, list);
+  }
+  const lanes: Lane[] = [];
+  for (const [room, roomZones] of byRoom) {
+    const laneWidth = (room.x1 - room.x0) / roomZones.length;
+    roomZones.forEach((zone, i) => {
+      lanes.push({
+        zone,
+        room,
+        x0: room.x0 + i * laneWidth,
+        width: laneWidth,
+        items: equipment.filter((e) => e.zoneId === zone.id),
+      });
+    });
+  }
+  return lanes;
+}
+
+/** Which lane (if any) a full-plan point falls inside — used to
+ * auto-detect the new zone when a marker is dropped somewhere else. */
+function laneAt(lanes: Lane[], x: number, y: number): Lane | null {
+  for (const lane of lanes) {
+    if (x >= lane.x0 && x <= lane.x0 + lane.width && y >= lane.room.y0 && y <= lane.room.y1) {
+      return lane;
+    }
+  }
+  return null;
+}
+
+function defaultPosition(lane: Lane, index: number) {
+  const total = lane.items.length;
+  const cols = total > 4 ? 2 : 1;
+  const rows = Math.ceil(total / cols);
+  const col = index % cols;
+  const row = Math.floor(index / cols);
+  const padX = lane.width * 0.2;
+  const innerW = lane.width - padX * 2;
+  const x = lane.x0 + padX + (cols === 1 ? innerW / 2 : (col / (cols - 1)) * innerW);
+  const areaTop = lane.room.y0 + (lane.room.key === "security" ? 30 : 22);
+  const areaBottom = lane.room.y1 - 10;
+  const innerH = Math.max(areaBottom - areaTop, 1);
+  const y = areaTop + (rows === 1 ? innerH / 2 : (row / (rows - 1)) * innerH);
+  return { x, y };
+}
+
 interface Props {
   zones: Zone[];
   equipment: Equipment[];
   selectedZoneId: string | null;
   onSelectZone: (id: string) => void;
+  onEquipmentZoneChange?: (equipmentId: string, zoneId: string) => void;
   statusConfig: Record<EquipmentStatus, StatusVisual>;
 }
 
-export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, statusConfig }: Props) {
+export function TerminalMap({
+  zones,
+  equipment,
+  selectedZoneId,
+  onSelectZone,
+  onEquipmentZoneChange,
+  statusConfig,
+}: Props) {
   const t = useTranslations();
+  const { theme } = useTheme();
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
@@ -88,8 +282,8 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [editMode, setEditMode] = useState(false);
   // Empty on first render (matches SSR — localStorage doesn't exist
-  // server-side); a layout effect corrects from storage before paint, same
-  // hydration-safe pattern as locale-context.tsx.
+  // server-side); a layout effect corrects from storage before paint,
+  // same hydration-safe pattern as locale-context.tsx.
   const [positions, setPositions] = useState<Positions>({});
   const [openMarkerId, setOpenMarkerId] = useState<string | null>(null);
 
@@ -99,7 +293,7 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
   const [isPanning, setIsPanning] = useState(false);
 
   useLayoutEffect(() => {
-    const stored = loadPositions();
+    const stored = loadMarkerOverrides();
     if (Object.keys(stored).length > 0) setPositions(stored);
   }, []);
 
@@ -118,35 +312,18 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
     return { x: local.x, y: local.y };
   }
 
-  const laneCount = Math.max(zones.length, 1);
-  const laneWidth = CONTENT_W / laneCount;
-  const lanes = zones.map((zone, i) => ({
-    zone,
-    x0: MARGIN_X + i * laneWidth,
-    width: laneWidth,
-    items: equipment.filter((e) => e.zoneId === zone.id),
-  }));
-
-  function defaultPosition(lane: (typeof lanes)[number], index: number) {
-    const total = lane.items.length;
-    const cols = total > 4 ? 2 : 1;
-    const rows = Math.ceil(total / cols);
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    const padX = lane.width * 0.2;
-    const innerW = lane.width - padX * 2;
-    const x = lane.x0 + padX + (cols === 1 ? innerW / 2 : (col / (cols - 1)) * innerW);
-    const areaTop = SECURITY_Y0 + 48;
-    const areaBottom = SECURITY_Y1 - 34;
-    const innerH = areaBottom - areaTop;
-    const y = areaTop + (rows === 1 ? innerH / 2 : (row / (rows - 1)) * innerH);
-    return { x, y };
-  }
+  const lanes = buildLanes(zones, equipment);
 
   function handleMarkerPointerDown(e: ReactPointerEvent<SVGGElement>, eq: Equipment, def: { x: number; y: number }) {
     e.stopPropagation();
     if (!editMode) return;
-    (e.target as Element).setPointerCapture(e.pointerId);
+    try {
+      (e.target as Element).setPointerCapture(e.pointerId);
+    } catch {
+      // No active pointer session to capture (e.g. a synthetic/edge-case
+      // event) — dragging still works via the window-level move/up
+      // listeners below, this only loses capture-outside-bounds tracking.
+    }
     const p = toLocalPoint(e.clientX, e.clientY);
     const current = positions[eq.id] ?? def;
     dragId.current = eq.id;
@@ -163,9 +340,12 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
     if (dragId.current) {
       const p = toLocalPoint(e.clientX, e.clientY);
       const id = dragId.current;
-      const nx = clamp(p.x - dragOffset.current.x, MARGIN_X + 8, VB_W - MARGIN_X - 8);
-      const ny = clamp(p.y - dragOffset.current.y, SECURITY_Y0 + 14, SECURITY_Y1 - 10);
-      setPositions((prev) => ({ ...prev, [id]: { x: nx, y: ny } }));
+      // Full-plan freeform coordinates — clamped to the building footprint,
+      // not to the marker's originating band, so it can be dropped
+      // anywhere on the drawing.
+      const nx = clamp(p.x - dragOffset.current.x, INTERIOR_X0, INTERIOR_X1);
+      const ny = clamp(p.y - dragOffset.current.y, INTERIOR_Y0, INTERIOR_Y1);
+      setPositions((prev) => ({ ...prev, [id]: { ...prev[id], x: nx, y: ny } }));
       return;
     }
     if (panFrom.current) {
@@ -177,11 +357,28 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
 
   function handlePointerUp() {
     if (dragId.current) {
+      const id = dragId.current;
       dragId.current = null;
-      setPositions((prev) => {
-        savePositions(prev);
-        return prev;
-      });
+      // Read from `positions` state (closure) rather than a setState
+      // updater function — pointermove already committed the latest
+      // coordinates in an earlier render, and computing/side-effecting
+      // (localStorage write, calling the parent's setState for zone
+      // reassignment) here, outside any updater, avoids React's "cannot
+      // update a component while rendering a different component" error
+      // that calling `onEquipmentZoneChange` from inside a `setPositions`
+      // updater triggered during testing.
+      const rec = positions[id];
+      if (rec) {
+        // Zone auto-detection: whichever lane rectangle the drop point now
+        // falls inside becomes the marker's zone, regardless of which zone
+        // it started in.
+        const hit = laneAt(lanes, rec.x, rec.y);
+        const nextZoneId = hit ? hit.zone.id : rec.zoneId;
+        const next = { ...positions, [id]: { ...rec, zoneId: nextZoneId } };
+        setPositions(next);
+        savePositions(next);
+        if (hit && hit.zone.id !== rec.zoneId) onEquipmentZoneChange?.(id, hit.zone.id);
+      }
     }
     panFrom.current = null;
     setIsPanning(false);
@@ -192,16 +389,16 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
     setZoomIndex(1);
   }
 
-  const gateXs = [0.18, 0.4, 0.62, 0.84].map((f) => MARGIN_X + CONTENT_W * f);
-  const openMarker = openMarkerId
-    ? equipment.find((e) => e.id === openMarkerId)
-    : null;
+  const gateXs = [0.18, 0.4, 0.62, 0.84].map((f) => CONTENT_X0 + (CONTENT_X1 - CONTENT_X0) * f);
+  const openMarker = openMarkerId ? equipment.find((e) => e.id === openMarkerId) : null;
   const openMarkerLane = openMarker ? lanes.find((l) => l.zone.id === openMarker.zoneId) : null;
   const openMarkerIndex = openMarker && openMarkerLane ? openMarkerLane.items.indexOf(openMarker) : -1;
   const openMarkerPos =
     openMarker && openMarkerLane && openMarkerIndex >= 0
       ? positions[openMarker.id] ?? defaultPosition(openMarkerLane, openMarkerIndex)
-      : null;
+      : openMarker
+        ? positions[openMarker.id]
+        : null;
 
   return (
     <div className="flex flex-col">
@@ -261,16 +458,29 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
           onPointerLeave={handlePointerUp}
         >
           <g ref={gRef} transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
-            {/* Outer terminal shell */}
-            <rect
-              x={MARGIN_X - 14}
-              y={GATE_CONNECTOR_Y0 - 6}
-              width={CONTENT_W + 28}
-              height={BOTTOM_Y1 - GATE_CONNECTOR_Y0 + 16}
-              rx={6}
-              fill="none"
-              stroke="var(--color-border-primary)"
-              strokeWidth={2}
+            {/* The real floor-plan drawing, "extracted" from its own
+                white/paper background in both themes via blend mode —
+                not a filled rectangle sitting on top of whatever's behind
+                it (Card background, page background, etc.). Dark mode:
+                invert (white↔light lines on black) then `screen` blend,
+                which drops the near-black background into whatever's
+                behind it, leaving only the light line work. Light mode:
+                the drawing is already dark-lines-on-white, so `multiply`
+                blend alone drops its white background into whatever's
+                behind it (white multiplied by anything = that thing),
+                leaving only the dark line work — no invert needed. */}
+            <image
+              href={SCHEMA_IMAGE_SRC}
+              x={0}
+              y={0}
+              width={VB_W}
+              height={VB_H}
+              preserveAspectRatio="xMidYMid meet"
+              style={
+                theme === "dark"
+                  ? { filter: "invert(1) brightness(0.82) contrast(1.05)", mixBlendMode: "screen" }
+                  : { mixBlendMode: "multiply" }
+              }
             />
 
             {/* Gates */}
@@ -280,169 +490,107 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
                   x={gx}
                   y={GATE_LABEL_Y}
                   textAnchor="middle"
-                  fill="var(--color-text-quaternary)"
+                  fill="var(--color-text-tertiary)"
                   style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}
                 >
                   {t("location.gate")} {i + 1}
                 </text>
-                <line
-                  x1={gx}
-                  y1={GATE_CONNECTOR_Y0}
-                  x2={gx}
-                  y2={WAITING_Y0}
-                  stroke="var(--color-border-secondary)"
-                  strokeWidth={1.5}
-                />
               </g>
             ))}
 
-            {/* Waiting area */}
-            <RoomBand y0={WAITING_Y0} y1={WAITING_Y1} label={t("location.waitingArea")} />
-            {[0, 1, 2].map((i) => (
-              <g key={i} transform={`translate(${MARGIN_X + 60 + i * ((CONTENT_W - 120) / 2)} ${WAITING_Y0 + 58})`}>
-                {[0, 1, 2, 3, 4].map((s) => (
-                  <rect
-                    key={s}
-                    x={s * 16}
-                    y={0}
-                    width={12}
-                    height={16}
-                    rx={2}
-                    fill="var(--color-bg-tertiary)"
-                    stroke="var(--color-border-secondary)"
-                  />
-                ))}
-              </g>
+            {/* Static architectural labels — one per room, always visible,
+                matching the approved reference. */}
+            {ROOMS.map((room) => (
+              <text
+                key={room.key}
+                x={room.x0 + (room.x1 - room.x0) / 2}
+                y={room.y0 + 14}
+                textAnchor="middle"
+                fill="var(--color-text-secondary)"
+                style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}
+              >
+                {t(room.labelKey).toUpperCase()}
+              </text>
             ))}
 
-            {/* Passport control */}
-            <RoomBand y0={PASSPORT_Y0} y1={PASSPORT_Y1} label={t("location.passportControl")} />
-            {[0, 1, 2, 3].map((i) => (
-              <rect
-                key={i}
-                x={MARGIN_X + 60 + i * ((CONTENT_W - 120) / 3)}
-                y={PASSPORT_Y0 + 30}
-                width={26}
-                height={16}
-                rx={2}
-                fill="var(--color-bg-tertiary)"
-                stroke="var(--color-border-secondary)"
-              />
-            ))}
-
-            {/* Security screening */}
-            <RoomBand y0={SECURITY_Y0} y1={SECURITY_Y1} label={t("location.securityScreening")} />
-            {lanes.map((lane, i) => {
+            {/* Zone lanes — interactive within their assigned room; static
+                rooms (arrivals/customs) never get one since no zone maps
+                there. */}
+            {lanes.map((lane) => {
               const isActive = lane.zone.id === selectedZoneId;
+              const roomLanes = lanes.filter((l) => l.room === lane.room);
+              const laneIdx = roomLanes.indexOf(lane);
               return (
                 <g key={lane.zone.id}>
-                  {i > 0 && (
+                  {laneIdx > 0 && (
                     <line
                       x1={lane.x0}
-                      y1={SECURITY_Y0 + 4}
+                      y1={lane.room.y0 + 4}
                       x2={lane.x0}
-                      y2={SECURITY_Y1 - 4}
+                      y2={lane.room.y1 - 4}
                       stroke="var(--color-border-secondary)"
                       strokeDasharray="3 4"
                     />
                   )}
                   <rect
                     x={lane.x0 + 4}
-                    y={SECURITY_Y0 + 22}
+                    y={lane.room.y0 + 20}
                     width={lane.width - 8}
-                    height={SECURITY_Y1 - SECURITY_Y0 - 32}
+                    height={lane.room.y1 - lane.room.y0 - 26}
                     rx={5}
                     fill={isActive ? "var(--chip-brand-bg)" : "transparent"}
                     stroke={isActive ? "var(--color-brand-500)" : "transparent"}
                     strokeWidth={1.5}
+                    opacity={isActive ? 0.5 : 1}
                     onClick={() => onSelectZone(lane.zone.id)}
                     style={{ cursor: "pointer" }}
-                  />
-                  <text
-                    x={lane.x0 + lane.width / 2}
-                    y={SECURITY_Y0 + 36}
-                    textAnchor="middle"
-                    fill={isActive ? "var(--color-text-primary)" : "var(--color-text-quaternary)"}
-                    style={{ fontSize: 9, fontWeight: 700, letterSpacing: 0.4, cursor: "pointer" }}
-                    onClick={() => onSelectZone(lane.zone.id)}
-                  >
-                    {lane.zone.name.length > 20 ? `${lane.zone.name.slice(0, 19)}…` : lane.zone.name}
-                  </text>
-                  {/* conveyor line */}
-                  <line
-                    x1={lane.x0 + lane.width * 0.18}
-                    y1={SECURITY_Y1 - 22}
-                    x2={lane.x0 + lane.width * 0.82}
-                    y2={SECURITY_Y1 - 22}
-                    stroke="var(--color-border-secondary)"
-                    strokeWidth={3}
-                    strokeLinecap="round"
-                    strokeDasharray="1 6"
                   />
                 </g>
               );
             })}
 
-            {/* Equipment markers */}
-            {lanes.flatMap((lane) =>
-              lane.items.map((eq, idx) => {
-                const def = defaultPosition(lane, idx);
-                const pos = positions[eq.id] ?? def;
-                const radius = editMode ? 8 : 7;
-                return (
-                  <g
-                    key={eq.id}
-                    transform={`translate(${pos.x} ${pos.y})`}
-                    onPointerDown={(e) => handleMarkerPointerDown(e, eq, def)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!editMode) setOpenMarkerId((cur) => (cur === eq.id ? null : eq.id));
-                    }}
-                    style={{ cursor: editMode ? "grab" : "pointer" }}
-                  >
-                    <circle r={radius} fill={STATUS_FILL[eq.status]} stroke="var(--color-bg-secondary)" strokeWidth={2} />
-                  </g>
-                );
-              })
-            )}
-
-            {/* Check-in hall */}
-            <RoomBand y0={CHECKIN_Y0} y1={CHECKIN_Y1} label={t("location.checkInHall")} />
-            {[0, 1].map((group) => (
-              <g key={group} transform={`translate(${MARGIN_X + 60 + group * (CONTENT_W - 120 - 130)} ${CHECKIN_Y0 + 32})`}>
-                {[0, 1, 2, 3, 4, 5].map((s) => (
+            {/* Equipment markers — square badges with the app's standard
+                equipment glyph, matching the reference's marker style. */}
+            {equipment.map((eq) => {
+              const lane = lanes.find((l) => l.zone.id === eq.zoneId);
+              const idx = lane ? lane.items.indexOf(eq) : -1;
+              const def = lane && idx >= 0 ? defaultPosition(lane, idx) : { x: VB_W / 2, y: (SECURITY_Y0 + SECURITY_Y1) / 2 };
+              const pos = positions[eq.id] ?? def;
+              const size = editMode ? 20 : 18;
+              return (
+                <g
+                  key={eq.id}
+                  transform={`translate(${pos.x} ${pos.y})`}
+                  onPointerDown={(e) => handleMarkerPointerDown(e, eq, def)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!editMode) setOpenMarkerId((cur) => (cur === eq.id ? null : eq.id));
+                  }}
+                  style={{ cursor: editMode ? "grab" : "pointer" }}
+                >
                   <rect
-                    key={s}
-                    x={s * 22}
-                    y={0}
-                    width={16}
-                    height={20}
-                    rx={2}
-                    fill="var(--color-bg-tertiary)"
-                    stroke="var(--color-border-secondary)"
+                    x={-size / 2}
+                    y={-size / 2}
+                    width={size}
+                    height={size}
+                    rx={4}
+                    fill={STATUS_FILL[eq.status]}
+                    stroke="var(--color-bg-primary)"
+                    strokeWidth={1.5}
                   />
-                ))}
-              </g>
-            ))}
-
-            {/* Bottom: baggage claim | main entrance */}
-            <line
-              x1={MARGIN_X + CONTENT_W * 0.28}
-              y1={BOTTOM_Y0}
-              x2={MARGIN_X + CONTENT_W * 0.28}
-              y2={BOTTOM_Y1}
-              stroke="var(--color-border-primary)"
-              strokeWidth={2}
-            />
-            <RoomBand y0={BOTTOM_Y0} y1={BOTTOM_Y1} x0={MARGIN_X} x1={MARGIN_X + CONTENT_W * 0.28} label={t("location.baggageClaim")} small />
-            <RoomBand
-              y0={BOTTOM_Y0}
-              y1={BOTTOM_Y1}
-              x0={MARGIN_X + CONTENT_W * 0.28}
-              x1={MARGIN_X + CONTENT_W}
-              label={t("location.mainEntrance")}
-              small
-            />
+                  <g transform={`translate(${-size * 0.32} ${-size * 0.32}) scale(${size * 0.032})`}>
+                    <path
+                      d={EQUIPMENT_ICON_PATH}
+                      fill="none"
+                      stroke="white"
+                      strokeWidth={1.8}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </g>
+                </g>
+              );
+            })}
           </g>
         </svg>
 
@@ -466,37 +614,6 @@ export function TerminalMap({ zones, equipment, selectedZoneId, onSelectZone, st
         ))}
       </div>
     </div>
-  );
-}
-
-function RoomBand({
-  y0,
-  y1,
-  x0 = MARGIN_X,
-  x1 = MARGIN_X + CONTENT_W,
-  label,
-  small,
-}: {
-  y0: number;
-  y1: number;
-  x0?: number;
-  x1?: number;
-  label: string;
-  small?: boolean;
-}) {
-  return (
-    <g>
-      <rect x={x0} y={y0} width={x1 - x0} height={y1 - y0} fill="none" stroke="var(--color-border-primary)" strokeWidth={1.5} />
-      <text
-        x={x0 + (x1 - x0) / 2}
-        y={y0 + (small ? 20 : 16)}
-        textAnchor="middle"
-        fill="var(--color-text-quaternary)"
-        style={{ fontSize: small ? 10 : 10, fontWeight: 700, letterSpacing: 0.6 }}
-      >
-        {label.toUpperCase()}
-      </text>
-    </g>
   );
 }
 
@@ -539,15 +656,11 @@ function MarkerTooltip({
 }
 
 /**
- * HOW TO REPLACE THIS WITH A REAL AIRPORT SVG:
- * 1. Get the real floor-plan SVG (walls, gates, room boundaries) at the
- *    same viewBox proportions (or adjust VB_W/VB_H above to match).
- * 2. Replace the fixed `RoomBand` rects/gate ticks with the real artwork
- *    (import it as a background <image> or inline the real <path>s).
- * 3. Keep the Security Screening lane rects (or replace with real room
- *    polygons per zone) — equipment markers are positioned relative to
- *    `SECURITY_Y0`/`SECURITY_Y1` and each lane's `x0`/`width`; update
- *    `defaultPosition()` to reference the new geometry instead.
- * 4. Marker drag/pan/zoom math (`toLocalPoint`, `handlePointerMove`) is
- *    geometry-agnostic — it works against whatever the <g> contains.
+ * HOW TO RECALIBRATE ONCE REAL ROOM COORDINATES ARE KNOWN:
+ * The `ROOMS` array (top of this file) is the only thing guessing at the
+ * drawing's real geometry — each entry's `{x0,x1,y0,y1}` (as fractions of
+ * `VB_W`/`VB_H`) positions both its static label and, for non-`static`
+ * rooms, where zones assigned there render their lanes. Adjust those
+ * fractions to match the actual room boundaries once confirmed; pan/zoom/
+ * drag math and zone auto-detection (`laneAt`) are agnostic to them.
  */
