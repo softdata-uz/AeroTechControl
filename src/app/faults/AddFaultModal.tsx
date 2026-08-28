@@ -5,10 +5,12 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { faultPriorityConfig } from "@/config/faultStatus.config";
+import { getFaultPriorityConfig } from "@/config/faultStatus.config";
 import type { Fault, FaultPriority } from "@/lib/types";
 import { useAsync } from "@/hooks/useAsync";
 import { equipmentService, faultsService } from "@/services";
+import { useTranslations } from "@/lib/locale-context";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 interface Props {
   open: boolean;
@@ -16,19 +18,28 @@ interface Props {
   onCreated: (fault: Fault) => void;
 }
 
-const CATEGORIES = ["Электроника", "Механика", "Оптика/Датчики", "Электропитание", "Калибровка", "ПО"];
+const CATEGORY_KEYS: TranslationKey[] = [
+  "faults.category.electronics",
+  "faults.category.mechanics",
+  "faults.category.optics",
+  "faults.category.power",
+  "faults.category.calibration",
+  "faults.category.software",
+];
 
 const emptyForm = {
   equipmentId: "",
   title: "",
   description: "",
-  category: CATEGORIES[0],
+  category: "",
   priority: "medium" as FaultPriority,
   reportedBy: "",
 };
 
 export function AddFaultModal({ open, onClose, onCreated }: Props) {
-  const [form, setForm] = useState(emptyForm);
+  const t = useTranslations();
+  const CATEGORIES = CATEGORY_KEYS.map((k) => t(k));
+  const [form, setForm] = useState({ ...emptyForm, category: CATEGORIES[0] });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -37,6 +48,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
     []
   );
   const equipment = equipmentPage?.items ?? [];
+  const faultPriorityConfig = getFaultPriorityConfig(t);
 
   function reset() {
     setForm(emptyForm);
@@ -50,7 +62,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
 
   async function handleSubmit() {
     if (!form.equipmentId || !form.title || !form.reportedBy) {
-      setError("Заполните обязательные поля: оборудование, неисправность, выявил.");
+      setError(t("faults.modal.requiredError"));
       return;
     }
     setSubmitting(true);
@@ -71,7 +83,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
       reset();
       onClose();
     } catch {
-      setError("Не удалось зарегистрировать неисправность. Попробуйте ещё раз.");
+      setError(t("faults.modal.submitError"));
     } finally {
       setSubmitting(false);
     }
@@ -81,15 +93,15 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
     <Modal
       open={open}
       onClose={handleClose}
-      title="Новая неисправность"
-      description="Неисправность будет зарегистрирована со статусом «Обнаружена»"
+      title={t("faults.modal.title")}
+      description={t("faults.modal.description")}
       footer={
         <>
           <Button hierarchy="secondary" size="sm" onClick={handleClose}>
-            Отмена
+            {t("common.cancel")}
           </Button>
           <Button hierarchy="primary" size="sm" icon="plus" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Регистрация…" : "Зарегистрировать"}
+            {submitting ? t("faults.modal.registering") : t("faults.modal.register")}
           </Button>
         </>
       }
@@ -102,42 +114,42 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
         )}
 
         <Dropdown
-          label="Оборудование"
+          label={t("faults.modal.equipment")}
           required
-          placeholder="Выберите оборудование"
+          placeholder={t("faults.modal.equipmentPlaceholder")}
           value={form.equipmentId}
           onChange={(v) => setForm((f) => ({ ...f, equipmentId: v }))}
           options={equipment.map((eq) => ({ value: eq.id, label: `${eq.name} · ${eq.code}` }))}
         />
 
         <Input
-          label="Неисправность"
+          label={t("faults.modal.fault")}
           required
-          placeholder="Не сканирует багаж"
+          placeholder={t("faults.modal.faultPlaceholder")}
           value={form.title}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
         />
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-text-secondary">Описание</label>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">{t("faults.modal.description2")}</label>
           <textarea
             rows={3}
             value={form.description}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            placeholder="Подробное описание проблемы"
+            placeholder={t("faults.modal.descriptionPlaceholder")}
             className="w-full rounded-md border border-border-primary bg-bg-primary px-3 py-2 text-sm text-text-primary shadow-xs outline-none transition-colors placeholder:text-text-placeholder hover:border-border-secondary focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Dropdown
-            label="Категория"
+            label={t("faults.modal.category")}
             value={form.category}
             onChange={(v) => setForm((f) => ({ ...f, category: v }))}
             options={CATEGORIES.map((c) => ({ value: c, label: c }))}
           />
           <Dropdown
-            label="Приоритет"
+            label={t("faults.modal.priority")}
             value={form.priority}
             onChange={(v) => setForm((f) => ({ ...f, priority: v as FaultPriority }))}
             options={Object.entries(faultPriorityConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
@@ -145,9 +157,9 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
         </div>
 
         <Input
-          label="Выявил"
+          label={t("faults.modal.reportedBy")}
           required
-          placeholder="ФИО"
+          placeholder={t("faults.modal.reportedByPlaceholder")}
           value={form.reportedBy}
           onChange={(e) => setForm((f) => ({ ...f, reportedBy: e.target.value }))}
         />

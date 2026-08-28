@@ -1,5 +1,4 @@
 export * from "./http-client";
-export * as calibrationService from "./calibration.service";
 export * as equipmentService from "./equipment.service";
 export * as airportsService from "./airports.service";
 export * as inspectionsService from "./inspections.service";

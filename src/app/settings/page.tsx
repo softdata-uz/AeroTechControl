@@ -7,8 +7,9 @@ import { Toggle } from "@/components/ui/Toggle";
 import { Icon } from "@/components/icons";
 import { useRole } from "@/lib/role-context";
 import { useTheme } from "@/lib/theme-context";
-import { roleLabels } from "@/lib/mock-data";
-import { roleDescriptions } from "@/config/roleAccess.config";
+import { useLocale } from "@/lib/locale-context";
+import { locales, localeLabels, type Locale } from "@/lib/i18n/translations";
+import { roleLabelKeys, roleDescriptionKeys } from "@/config/roleAccess.config";
 import { useDirectorySummary } from "@/hooks/useDirectorySummary";
 import { settingsService } from "@/services";
 import type { NotificationPreferences } from "@/services/settings.service";
@@ -28,6 +29,7 @@ const roleOrder: UserRole[] = [
 export default function SettingsPage() {
   const { role, setRole, user } = useRole();
   const { theme, setTheme } = useTheme();
+  const { locale, setLocale, t } = useLocale();
   const { data: directorySummary, loading: directoryLoading } = useDirectorySummary();
 
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
@@ -51,12 +53,12 @@ export default function SettingsPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader title="Настройки" context="Профиль, ролевой доступ, уведомления, справочники" />
+      <PageHeader title={t("settings.title")} context={t("settings.context")} />
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-5 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Профиль</CardTitle>
+            <CardTitle>{t("settings.profile")}</CardTitle>
           </CardHeader>
           <div className="flex items-center gap-4 p-4">
             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-600 text-lg font-semibold text-white">
@@ -65,30 +67,30 @@ export default function SettingsPage() {
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-text-primary">{user.fullName}</p>
               <p className="truncate text-xs text-text-tertiary">{user.email}</p>
-              <p className="mt-1 text-xs font-medium text-brand-400">{roleLabels[user.role]}</p>
+              <p className="mt-1 text-xs font-medium text-brand-400">{t(roleLabelKeys[user.role])}</p>
             </div>
           </div>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Внешний вид</CardTitle>
+            <CardTitle>{t("settings.appearance")}</CardTitle>
           </CardHeader>
           <div className="grid grid-cols-2 gap-2 p-4">
             <ThemeOption
               value="dark"
               active={theme === "dark"}
               onSelect={setTheme}
-              label="Тёмная"
-              description="По умолчанию, для операторской"
+              label={t("settings.dark")}
+              description={t("settings.darkDescription")}
               icon="moon"
             />
             <ThemeOption
               value="light"
               active={theme === "light"}
               onSelect={setTheme}
-              label="Светлая"
-              description="Для дневного офисного режима"
+              label={t("settings.light")}
+              description={t("settings.lightDescription")}
               icon="sun"
             />
           </div>
@@ -98,11 +100,26 @@ export default function SettingsPage() {
       <div className="px-6 pt-4">
         <Card>
           <CardHeader>
-            <CardTitle>Ролевая симуляция интерфейса</CardTitle>
+            <CardTitle>{t("settings.language")}</CardTitle>
           </CardHeader>
           <p className="border-b border-border-secondary px-4 py-3 text-xs text-text-tertiary">
-            Только для интерфейсной демонстрации — переключение роли меняет видимую навигацию, а не
-            реальные права доступа.
+            {t("settings.languageDescription")}
+          </p>
+          <div className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-3">
+            {locales.map((l) => (
+              <LanguageOption key={l} value={l} active={locale === l} onSelect={setLocale} />
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <div className="px-6 pt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("settings.roleSimulation")}</CardTitle>
+          </CardHeader>
+          <p className="border-b border-border-secondary px-4 py-3 text-xs text-text-tertiary">
+            {t("settings.roleSimulationDescription")}
           </p>
           <div className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-2 xl:grid-cols-3">
             {roleOrder.map((r) => {
@@ -119,10 +136,10 @@ export default function SettingsPage() {
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-text-primary">{roleLabels[r]}</span>
+                    <span className="text-sm font-medium text-text-primary">{t(roleLabelKeys[r])}</span>
                     {active && <Icon name="check-circle" size={16} className="text-brand-400" />}
                   </div>
-                  <p className="mt-1 text-xs text-text-tertiary">{roleDescriptions[r]}</p>
+                  <p className="mt-1 text-xs text-text-tertiary">{t(roleDescriptionKeys[r])}</p>
                 </button>
               );
             })}
@@ -133,31 +150,34 @@ export default function SettingsPage() {
       <div className="px-6 pt-4">
         <Card>
           <CardHeader>
-            <CardTitle>Уведомления</CardTitle>
+            <CardTitle>{t("settings.notifications")}</CardTitle>
           </CardHeader>
           {!preferences ? (
-            <p className="px-4 py-6 text-sm text-text-tertiary">Загрузка настроек…</p>
+            <p className="px-4 py-6 text-sm text-text-tertiary">{t("settings.loadingNotifications")}</p>
           ) : (
             <div className="divide-y divide-border-secondary">
               <NotificationRow
-                label="Email-уведомления"
-                description="Критические неисправности, просроченные проверки"
+                label={t("settings.notifEmail")}
+                description={t("settings.notifEmailDescription")}
                 checked={preferences.email}
                 saving={savingKey === "email"}
+                savingLabel={t("settings.saving")}
                 onChange={(v) => handlePreferenceChange("email", v)}
               />
               <NotificationRow
-                label="Push-уведомления"
-                description="Мгновенные оповещения в браузере"
+                label={t("settings.notifPush")}
+                description={t("settings.notifPushDescription")}
                 checked={preferences.push}
                 saving={savingKey === "push"}
+                savingLabel={t("settings.saving")}
                 onChange={(v) => handlePreferenceChange("push", v)}
               />
               <NotificationRow
-                label="SMS-уведомления"
-                description="Только критические инциденты"
+                label={t("settings.notifSms")}
+                description={t("settings.notifSmsDescription")}
                 checked={preferences.sms}
                 saving={savingKey === "sms"}
+                savingLabel={t("settings.saving")}
                 onChange={(v) => handlePreferenceChange("sms", v)}
               />
             </div>
@@ -168,16 +188,20 @@ export default function SettingsPage() {
       <div className="px-6 pt-4">
         <Card>
           <CardHeader>
-            <CardTitle>Справочники</CardTitle>
+            <CardTitle>{t("settings.directories")}</CardTitle>
           </CardHeader>
           {directoryLoading || !directorySummary ? (
-            <p className="px-4 py-6 text-sm text-text-tertiary">Загрузка справочников…</p>
+            <p className="px-4 py-6 text-sm text-text-tertiary">{t("settings.loadingDirectories")}</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
-              <DirectoryTile icon="map-pin" label="Аэропорты" count={directorySummary.airports} />
-              <DirectoryTile icon="building" label="Терминалы" count={directorySummary.terminals} />
-              <DirectoryTile icon="layers" label="Зоны" count={directorySummary.zones} />
-              <DirectoryTile icon="cpu" label="Типы оборудования" count={directorySummary.equipmentTypes} />
+              <DirectoryTile icon="map-pin" label={t("settings.airports")} count={directorySummary.airports} />
+              <DirectoryTile icon="building" label={t("settings.terminals")} count={directorySummary.terminals} />
+              <DirectoryTile icon="layers" label={t("settings.zones")} count={directorySummary.zones} />
+              <DirectoryTile
+                icon="cpu"
+                label={t("settings.equipmentTypes")}
+                count={directorySummary.equipmentTypes}
+              />
             </div>
           )}
         </Card>
@@ -191,12 +215,14 @@ function NotificationRow({
   description,
   checked,
   saving,
+  savingLabel,
   onChange,
 }: {
   label: string;
   description: string;
   checked: boolean;
   saving?: boolean;
+  savingLabel: string;
   onChange: (v: boolean) => void;
 }) {
   return (
@@ -206,7 +232,7 @@ function NotificationRow({
         <p className="text-xs text-text-tertiary">{description}</p>
       </div>
       <div className="flex items-center gap-2">
-        {saving && <span className="text-xs text-text-quaternary">Сохранение…</span>}
+        {saving && <span className="text-xs text-text-quaternary">{savingLabel}</span>}
         <Toggle checked={checked} onChange={onChange} label={label} disabled={saving} />
       </div>
     </div>
@@ -251,6 +277,42 @@ function ThemeOption({
           {active && <Icon name="check-circle" size={14} className="text-brand-400" />}
         </div>
         <p className="truncate text-xs text-text-tertiary">{description}</p>
+      </div>
+    </button>
+  );
+}
+
+function LanguageOption({
+  value,
+  active,
+  onSelect,
+}: {
+  value: Locale;
+  active: boolean;
+  onSelect: (v: Locale) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelect(value)}
+      aria-pressed={active}
+      className={cn(
+        "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
+        active ? "border-brand-600 bg-bg-tertiary" : "border-border-primary bg-bg-primary hover:bg-bg-tertiary"
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-semibold uppercase",
+          active ? "bg-(--chip-brand-bg) text-(--chip-brand-text)" : "bg-(--chip-gray-bg) text-(--chip-gray-text)"
+        )}
+      >
+        {value}
+      </div>
+      <div className="min-w-0">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-medium text-text-primary">{localeLabels[value]}</p>
+          {active && <Icon name="check-circle" size={14} className="text-brand-400" />}
+        </div>
       </div>
     </button>
   );

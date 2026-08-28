@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
+import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 
 interface ModalProps {
@@ -18,6 +19,7 @@ interface ModalProps {
  * body while open. Reused by every "Add …" flow (AddEquipmentModal,
  * AddFaultModal, …) so the chrome stays identical across the app. */
 export function Modal({ open, onClose, title, description, children, footer, size = "md" }: ModalProps) {
+  const t = useTranslations();
   useEffect(() => {
     if (!open) return;
     const prevOverflow = document.body.style.overflow;
@@ -37,7 +39,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-bg-overlay/70 px-4 py-8 backdrop-blur-[2px]">
       <button
-        aria-label="Закрыть"
+        aria-label={t("common.close")}
         onClick={onClose}
         className="fixed inset-0 -z-10 cursor-default"
         tabIndex={-1}
@@ -60,7 +62,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
           </div>
           <button
             onClick={onClose}
-            aria-label="Закрыть"
+            aria-label={t("common.close")}
             className="shrink-0 rounded-md p-1.5 text-text-quaternary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
           >
             <Icon name="x" size={18} />

@@ -9,6 +9,7 @@ import type { EquipmentDocument } from "@/lib/types";
 import { useAsync } from "@/hooks/useAsync";
 import { documentsService, equipmentService } from "@/services";
 import type { IconName } from "@/components/icons";
+import { useTranslations } from "@/lib/locale-context";
 
 interface Props {
   open: boolean;
@@ -26,6 +27,7 @@ const emptyForm = {
 };
 
 export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Props) {
+  const t = useTranslations();
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -48,7 +50,7 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
 
   async function handleSubmit() {
     if (!form.title || !form.author) {
-      setError("Заполните обязательные поля: название, автор.");
+      setError(t("documents.modal.requiredError"));
       return;
     }
     setSubmitting(true);
@@ -66,7 +68,7 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
       reset();
       onClose();
     } catch {
-      setError("Не удалось загрузить документ. Попробуйте ещё раз.");
+      setError(t("documents.modal.submitError"));
     } finally {
       setSubmitting(false);
     }
@@ -76,15 +78,15 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
     <Modal
       open={open}
       onClose={handleClose}
-      title="Загрузить документ"
-      description="Документ будет зарегистрирован со статусом «Действителен»"
+      title={t("documents.modal.title")}
+      description={t("documents.modal.description")}
       footer={
         <>
           <Button hierarchy="secondary" size="sm" onClick={handleClose}>
-            Отмена
+            {t("common.cancel")}
           </Button>
           <Button hierarchy="primary" size="sm" icon="upload" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Загрузка…" : "Загрузить"}
+            {submitting ? t("documents.modal.uploading") : t("documents.modal.uploadAction")}
           </Button>
         </>
       }
@@ -97,39 +99,39 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
         )}
 
         <Input
-          label="Название документа"
+          label={t("documents.modal.documentTitle")}
           required
-          placeholder="Акт периодической проверки"
+          placeholder={t("documents.modal.titlePlaceholder")}
           value={form.title}
           onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
         />
 
         <div className="grid grid-cols-2 gap-3">
           <Dropdown
-            label="Тип документа"
+            label={t("documents.modal.type")}
             value={form.type}
             onChange={(v) => setForm((f) => ({ ...f, type: v as EquipmentDocument["type"] }))}
             options={Object.entries(typeMeta).map(([key, m]) => ({ value: key, label: m.label, icon: m.icon }))}
           />
           <Input
-            label="Версия"
+            label={t("documents.modal.version")}
             value={form.version}
             onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
           />
         </div>
 
         <Dropdown
-          label="Оборудование"
-          placeholder="Общий документ (не привязан)"
+          label={t("documents.modal.equipment")}
+          placeholder={t("documents.modal.equipmentPlaceholder")}
           value={form.equipmentId}
           onChange={(v) => setForm((f) => ({ ...f, equipmentId: v }))}
           options={equipment.map((eq) => ({ value: eq.id, label: `${eq.name} · ${eq.code}` }))}
         />
 
         <Input
-          label="Автор"
+          label={t("documents.modal.author")}
           required
-          placeholder="ФИО или подразделение"
+          placeholder={t("documents.modal.authorPlaceholder")}
           value={form.author}
           onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
         />

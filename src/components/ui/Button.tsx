@@ -20,14 +20,14 @@ const base =
   "focus-visible:outline-offset-2 focus-visible:outline-brand-500 whitespace-nowrap";
 
 const sizeStyles: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs rounded-md",
-  md: "h-9 px-3.5 text-sm rounded-md",
+  sm: "h-10 px-3 text-xs rounded-md",
+  md: "h-10 px-3.5 text-sm rounded-md",
   lg: "h-10 px-4 text-sm rounded-lg",
 };
 
 const iconOnlySizeStyles: Record<Size, string> = {
-  sm: "h-8 w-8 rounded-md",
-  md: "h-9 w-9 rounded-md",
+  sm: "h-10 w-10 rounded-md",
+  md: "h-10 w-10 rounded-md",
   lg: "h-10 w-10 rounded-lg",
 };
 

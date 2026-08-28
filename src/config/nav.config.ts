@@ -1,27 +1,24 @@
 import type { IconName } from "@/components/icons";
-import { faults, notifications, spareParts, equipment, documents } from "@/lib/mock-data";
-
-const TODAY = "2026-08-25";
+import type { TranslationKey } from "@/lib/i18n/translations";
+import { faults, notifications, documents } from "@/lib/mock-data";
 
 const openFaultsCount = faults.filter((f) => f.stage !== "closed").length;
 const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
-const lowOrOutOfStockCount = spareParts.filter(
-  (p) => p.status === "low_stock" || p.status === "out_of_stock"
-).length;
-const overdueCalibrationCount = equipment.filter(
-  (e) => e.nextInspectionAt && e.nextInspectionAt < TODAY
-).length;
+// Spare Parts nav item is temporarily disabled below — uncomment along with it.
+// const lowOrOutOfStockCount = spareParts.filter(
+//   (p) => p.status === "low_stock" || p.status === "out_of_stock"
+// ).length;
 const attentionDocumentsCount = documents.filter(
   (d) => d.status === "expiring" || d.status === "expired"
 ).length;
 
 export interface NavChild {
-  label: string;
+  labelKey: TranslationKey;
   href: string;
 }
 
 export interface NavItem {
-  label: string;
+  labelKey: TranslationKey;
   href: string;
   icon: IconName;
   badge?: number;
@@ -29,20 +26,17 @@ export interface NavItem {
 }
 
 export const primaryNav: NavItem[] = [
-  { label: "Дашборд", href: "/", icon: "grid" },
-  { label: "Реестр оборудования", href: "/equipment", icon: "cpu" },
-  { label: "Расположение", href: "/location", icon: "map-pin" },
-  // Sub-navigation (Календарь / График ТО / Чек-листы / Акты) is
-  // deferred to Phase 3 — the Phase 2 page covers list + checklist
-  // workflow inline, so no dead links are exposed here yet.
-  { label: "Проверки и ТО", href: "/inspections", icon: "clipboard-check" },
-  { label: "Неисправности", href: "/faults", icon: "alert-triangle", badge: openFaultsCount },
-  { label: "Ремонты", href: "/repairs", icon: "wrench" },
-  { label: "Запасные части", href: "/spare-parts", icon: "package", badge: lowOrOutOfStockCount },
-  { label: "Поверка / Калибровка", href: "/calibration", icon: "gauge", badge: overdueCalibrationCount },
-  { label: "Документы", href: "/documents", icon: "file-text", badge: attentionDocumentsCount },
-  { label: "Отчеты и аналитика", href: "/reports", icon: "bar-chart" },
-  { label: "Уведомления", href: "/notifications", icon: "bell", badge: unreadNotificationsCount },
-  { label: "Пользователи", href: "/users", icon: "users" },
-  { label: "Настройки", href: "/settings", icon: "settings" },
+  { labelKey: "nav.dashboard", href: "/", icon: "grid" },
+  { labelKey: "nav.equipment", href: "/equipment", icon: "cpu" },
+  { labelKey: "nav.location", href: "/location", icon: "map-pin" },
+  { labelKey: "nav.documents", href: "/documents", icon: "file-text", badge: attentionDocumentsCount },
+  // Inspections, Repairs, and Calibration no longer have standalone pages —
+  // their records (acts, repair reports, certificates) live under Documents.
+  { labelKey: "nav.faults", href: "/faults", icon: "alert-triangle", badge: openFaultsCount },
+  // Temporarily disabled — not needed right now. Re-enable by uncommenting.
+  // { labelKey: "nav.spareParts", href: "/spare-parts", icon: "package", badge: lowOrOutOfStockCount },
+  { labelKey: "nav.reports", href: "/reports", icon: "bar-chart" },
+  { labelKey: "nav.notifications", href: "/notifications", icon: "bell", badge: unreadNotificationsCount },
+  { labelKey: "nav.users", href: "/users", icon: "users" },
+  { labelKey: "nav.settings", href: "/settings", icon: "settings" },
 ];

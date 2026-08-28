@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon, type IconName } from "@/components/icons";
+import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 
 export interface DropdownOption {
@@ -41,13 +42,15 @@ export function Dropdown({
   options,
   value,
   onChange,
-  placeholder = "Выберите",
+  placeholder,
   label,
   required,
   disabled,
   error,
   className,
 }: DropdownProps) {
+  const t = useTranslations();
+  const resolvedPlaceholder = placeholder ?? t("common.selectPlaceholder");
   const [open, setOpen] = useState(false);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -102,7 +105,7 @@ export function Dropdown({
       aria-haspopup="listbox"
       aria-expanded={open}
       className={cn(
-        "flex h-9 w-full items-center gap-2 rounded-md border bg-bg-primary px-3 text-left text-sm shadow-xs outline-none transition-colors",
+        "flex h-10 w-full items-center gap-2 rounded-md border bg-bg-primary px-3 text-left text-sm shadow-xs outline-none transition-colors",
         "disabled:cursor-not-allowed disabled:opacity-50",
         destructive
           ? "border-error-400 focus-visible:border-error-500 focus-visible:ring-1 focus-visible:ring-error-500"
@@ -111,7 +114,7 @@ export function Dropdown({
     >
       {selected?.icon && <Icon name={selected.icon} size={16} className="shrink-0 text-text-quaternary" />}
       <span className={cn("flex-1 truncate", selected ? "text-text-primary" : "text-text-placeholder")}>
-        {selected ? selected.label : placeholder}
+        {selected ? selected.label : resolvedPlaceholder}
       </span>
       <Icon name="chevron-down" size={16} className={cn("shrink-0 text-text-quaternary transition-transform", open && "rotate-180")} />
     </button>
@@ -137,7 +140,7 @@ export function Dropdown({
             style={{ position: "fixed", top: coords.top, left: coords.left, minWidth: coords.width }}
             className="z-[60] max-h-72 overflow-y-auto rounded-lg border border-border-primary bg-bg-secondary p-1 shadow-lg"
           >
-            {options.length === 0 && <p className="px-3 py-2 text-xs text-text-quaternary">Нет вариантов</p>}
+            {options.length === 0 && <p className="px-3 py-2 text-xs text-text-quaternary">{t("common.noOptions")}</p>}
             {options.map((opt) => {
               const isSelected = opt.value === value;
               return (

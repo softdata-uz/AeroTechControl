@@ -10,6 +10,7 @@ import { formatDate } from "@/lib/format";
 import type { NotificationItem } from "@/lib/types";
 import { useNotificationsList } from "@/hooks/useNotificationsList";
 import { notificationsService } from "@/services";
+import { useTranslations } from "@/lib/locale-context";
 
 const severityMeta: Record<NotificationItem["severity"], { icon: IconName; className: string }> = {
   critical: { icon: "alert-triangle", className: "text-error-400" },
@@ -25,6 +26,7 @@ const entityHref: Record<NotificationItem["entityType"], (id: string) => string>
 };
 
 export function NotificationsClient() {
+  const t = useTranslations();
   const { data, loading, error, refetch } = useNotificationsList({ pageSize: 100 });
   const items = data?.items ?? [];
   const unreadCount = items.filter((n) => !n.read).length;
@@ -48,12 +50,12 @@ export function NotificationsClient() {
   return (
     <div className="pb-8">
       <PageHeader
-        title="Уведомления"
-        context={unreadCount > 0 ? `Непрочитано: ${unreadCount}` : "Все уведомления прочитаны"}
+        title={t("notifications.title")}
+        context={unreadCount > 0 ? `${t("notifications.unreadPrefix")} ${unreadCount}` : t("notifications.allRead")}
         actions={
           unreadCount > 0 ? (
             <Button hierarchy="secondary" icon="check-circle" size="sm" onClick={markAllRead} disabled={markingAll}>
-              {markingAll ? "Обновление…" : "Отметить все как прочитанные"}
+              {markingAll ? t("notifications.markingAll") : t("notifications.markAllRead")}
             </Button>
           ) : undefined
         }
@@ -63,20 +65,20 @@ export function NotificationsClient() {
         <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">Не удалось загрузить уведомления.</p>
+              <p className="text-sm text-text-secondary">{t("notifications.loadError")}</p>
               <p className="text-xs text-text-tertiary">{error}</p>
               <Button hierarchy="secondary" size="sm" onClick={refetch}>
-                Повторить
+                {t("common.retry")}
               </Button>
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center px-4 py-16 text-sm text-text-tertiary">
-              Загрузка уведомлений…
+              {t("notifications.loading")}
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-text-tertiary">
               <Icon name="bell" size={24} />
-              <p className="text-sm">Уведомлений нет</p>
+              <p className="text-sm">{t("notifications.empty")}</p>
             </div>
           ) : (
             <ul className="divide-y divide-border-secondary">
@@ -105,7 +107,7 @@ export function NotificationsClient() {
                         onClick={() => markRead(n.id)}
                         className="shrink-0 rounded-md px-2 py-1 text-xs font-medium text-brand-400 hover:bg-bg-quaternary"
                       >
-                        Прочитано
+                        {t("notifications.markRead")}
                       </button>
                     )}
                   </li>

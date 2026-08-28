@@ -5,13 +5,18 @@ import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
 import { formatDate } from "@/lib/format";
+import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 
-const WEEKDAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
-const MONTHS = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
-];
+const WEEKDAY_KEYS = [
+  "common.weekdayMon", "common.weekdayTue", "common.weekdayWed", "common.weekdayThu",
+  "common.weekdayFri", "common.weekdaySat", "common.weekdaySun",
+] as const;
+const MONTH_KEYS = [
+  "common.monthJan", "common.monthFeb", "common.monthMar", "common.monthApr",
+  "common.monthMay", "common.monthJun", "common.monthJul", "common.monthAug",
+  "common.monthSep", "common.monthOct", "common.monthNov", "common.monthDec",
+] as const;
 
 function toISO(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -36,6 +41,9 @@ interface CalendarProps {
  * start Monday, out-of-month days are muted, today gets a ring, the
  * selected day is a solid brand-filled circle. */
 export function Calendar({ value, onChange, className }: CalendarProps) {
+  const t = useTranslations();
+  const WEEKDAYS = WEEKDAY_KEYS.map((k) => t(k));
+  const MONTHS = MONTH_KEYS.map((k) => t(k));
   const selected = value ? fromISO(value) : null;
   const today = new Date();
   const [viewYear, setViewYear] = useState(selected?.getFullYear() ?? today.getFullYear());
@@ -76,7 +84,7 @@ export function Calendar({ value, onChange, className }: CalendarProps) {
         <button
           type="button"
           onClick={() => shiftMonth(-1)}
-          aria-label="Предыдущий месяц"
+          aria-label={t("common.previousMonth")}
           className="flex h-8 w-8 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
         >
           <Icon name="chevron-left" size={18} />
@@ -87,7 +95,7 @@ export function Calendar({ value, onChange, className }: CalendarProps) {
         <button
           type="button"
           onClick={() => shiftMonth(1)}
-          aria-label="Следующий месяц"
+          aria-label={t("common.nextMonth")}
           className="flex h-8 w-8 items-center justify-center rounded-md text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
         >
           <Icon name="chevron-right" size={18} />
@@ -140,7 +148,9 @@ interface DatePickerProps {
 /** Input trigger + popover Calendar with Cancel/Apply — Figma "Date picker
  * dropdown" (18666:82818). Draft state means Cancel reverts without
  * committing, matching the reference anatomy. */
-export function DatePicker({ value, onChange, placeholder = "Выберите дату", label, className }: DatePickerProps) {
+export function DatePicker({ value, onChange, placeholder, label, className }: DatePickerProps) {
+  const t = useTranslations();
+  const resolvedPlaceholder = placeholder ?? t("common.selectDate");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
   const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -190,13 +200,13 @@ export function DatePicker({ value, onChange, placeholder = "Выберите д
           setOpen((o) => !o);
         }}
         className={cn(
-          "flex h-9 w-full items-center gap-2 rounded-md border border-border-primary bg-bg-primary px-3 text-left text-sm shadow-xs outline-none transition-colors",
+          "flex h-10 w-full items-center gap-2 rounded-md border border-border-primary bg-bg-primary px-3 text-left text-sm shadow-xs outline-none transition-colors",
           "hover:border-border-secondary focus-visible:border-brand-500 focus-visible:ring-1 focus-visible:ring-brand-500"
         )}
       >
         <Icon name="calendar-date" size={16} className="shrink-0 text-text-quaternary" />
         <span className={cn("flex-1 truncate", value ? "text-text-primary" : "text-text-placeholder")}>
-          {value ? formatDate(value) : placeholder}
+          {value ? formatDate(value) : resolvedPlaceholder}
         </span>
       </button>
 
@@ -214,7 +224,7 @@ export function DatePicker({ value, onChange, placeholder = "Выберите д
             <Calendar value={draft} onChange={setDraft} />
             <div className="mt-3 flex gap-2 border-t border-border-secondary pt-3">
               <Button hierarchy="secondary" size="sm" className="flex-1 justify-center" onClick={() => setOpen(false)}>
-                Отмена
+                {t("common.cancel")}
               </Button>
               <Button
                 hierarchy="primary"
@@ -225,7 +235,7 @@ export function DatePicker({ value, onChange, placeholder = "Выберите д
                   setOpen(false);
                 }}
               >
-                Применить
+                {t("common.apply")}
               </Button>
             </div>
           </div>,

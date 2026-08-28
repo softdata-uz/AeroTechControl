@@ -15,12 +15,20 @@ interface BarChartProps {
   data: BarDatum[];
   height?: number;
   formatValue?: (v: number) => string;
+  /** Series name shown in the hover tooltip — pass a translated string. */
+  seriesName?: string;
   className?: string;
 }
 
 /** Animated column chart (ApexCharts) — real hover tooltips, entrance
  * animation, per-bar color via `distributed` columns. */
-export function BarChart({ data, height = 220, formatValue = (v) => String(v), className }: BarChartProps) {
+export function BarChart({
+  data,
+  height = 220,
+  formatValue = (v) => String(v),
+  seriesName = "Value",
+  className,
+}: BarChartProps) {
   const { tokens, apexTheme } = useChartTokens();
 
   const options = {
@@ -63,7 +71,7 @@ export function BarChart({ data, height = 220, formatValue = (v) => String(v), c
     },
   };
 
-  const series = [{ name: "Значение", data: data.map((d) => d.value) }];
+  const series = [{ name: seriesName, data: data.map((d) => d.value) }];
 
   return (
     <div className={cn("w-full [&_.apexcharts-tooltip]:!shadow-lg", className)}>

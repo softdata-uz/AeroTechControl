@@ -4,13 +4,15 @@ import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EquipmentForm } from "../EquipmentForm";
 import { equipment } from "@/lib/mock-data";
+import { useTranslations } from "@/lib/locale-context";
 
 export default function NewEquipmentPage() {
   const router = useRouter();
+  const t = useTranslations();
 
   return (
     <div className="mx-auto max-w-3xl pb-8">
-      <PageHeader title="Добавить оборудование" context="Реестр оборудования → Новая запись" />
+      <PageHeader title={t("equipment.new.title")} context={t("equipment.new.context")} />
       <div className="px-6 pt-5">
         <EquipmentForm
           mode="add"

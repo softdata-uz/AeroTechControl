@@ -1,17 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/data-display/KPICard";
-import { EquipmentTable } from "@/components/data-display/EquipmentTable";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { PieChart } from "@/components/charts/PieChart";
 import { BarChart } from "@/components/charts/BarChart";
-import { equipment, airports, faults, notifications, airportName } from "@/lib/mock-data";
-import { equipmentStatusConfig } from "@/config/equipmentStatus.config";
-import { faultStatusConfig } from "@/config/faultStatus.config";
+import { equipment, airports, faults, airportName } from "@/lib/mock-data";
+import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
+import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { formatDate } from "@/lib/format";
+import { useTranslations } from "@/lib/locale-context";
 
 const STATUS_CHART_COLOR: Record<string, string> = {
   operational: "var(--color-success-500)",
@@ -22,6 +24,10 @@ const STATUS_CHART_COLOR: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const t = useTranslations();
+  const equipmentStatusConfig = getEquipmentStatusConfig(t);
+  const faultStatusConfig = getFaultStatusConfig(t);
+
   const total = equipment.length;
   const byStatus = {
     operational: equipment.filter((e) => e.status === "operational").length,
@@ -54,47 +60,47 @@ export default function DashboardPage() {
   return (
     <div className="pb-8">
       <PageHeader
-        title="Дашборд"
-        context="25 августа 2026 г."
+        title={t("dashboard.title")}
+        context={t("dashboard.date")}
         actions={
           <Button hierarchy="secondary" icon="refresh" size="sm">
-            Обновить
+            {t("dashboard.refresh")}
           </Button>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-3 xl:grid-cols-6">
-        <KPICard label="Всего оборудования" value={total} meta="единиц" icon="cpu" tone="neutral" />
+        <KPICard label={t("dashboard.totalEquipment")} value={total} meta={t("dashboard.units")} icon="cpu" tone="neutral" />
         <KPICard
-          label="В работе"
+          label={t("dashboard.operational")}
           value={byStatus.operational}
           meta={`${Math.round((byStatus.operational / total) * 100)}%`}
           icon="check-circle"
           tone="success"
         />
         <KPICard
-          label="Неисправно"
+          label={t("dashboard.faulty")}
           value={byStatus.faulty}
           meta={`${Math.round((byStatus.faulty / total) * 100)}%`}
           icon="alert-triangle"
           tone="error"
         />
         <KPICard
-          label="На обслуживании"
+          label={t("dashboard.maintenance")}
           value={byStatus.maintenance}
           meta={`${Math.round((byStatus.maintenance / total) * 100)}%`}
           icon="wrench"
           tone="warning"
         />
         <KPICard
-          label="Резерв"
+          label={t("dashboard.reserve")}
           value={byStatus.reserve}
           meta={`${Math.round((byStatus.reserve / total) * 100)}%`}
           icon="package"
           tone="brand"
         />
         <KPICard
-          label="Требует поверки"
+          label={t("dashboard.requiresInspection")}
           value={byStatus.requires_inspection}
           meta={`${Math.round((byStatus.requires_inspection / total) * 100)}%`}
           icon="gauge"
@@ -105,12 +111,13 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Статус оборудования</CardTitle>
+            <CardTitle>{t("dashboard.equipmentStatus")}</CardTitle>
           </CardHeader>
           <div className="p-4">
             <PieChart
               size={140}
               centerLabel={String(total)}
+              totalLabel={t("common.total")}
               data={(
                 [
                   ["operational", byStatus.operational],
@@ -132,11 +139,12 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Оборудование по типам</CardTitle>
+            <CardTitle>{t("dashboard.equipmentByType")}</CardTitle>
           </CardHeader>
           <div className="p-4">
             <BarChart
               height={160}
+              seriesName={t("common.total")}
               data={byType.slice(0, 5).map(([type, count]) => ({
                 label: type.length > 14 ? type.slice(0, 13) + "…" : type,
                 value: count,
@@ -147,7 +155,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Оборудование по аэропортам</CardTitle>
+            <CardTitle>{t("dashboard.equipmentByAirport")}</CardTitle>
           </CardHeader>
           <div className="space-y-2.5 p-4">
             {byAirport.map(({ airport, count, faulty }) => (
@@ -158,7 +166,11 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="font-medium text-text-primary">{count}</span>
-                  {faulty > 0 && <span className="text-error-400">{faulty} неиспр.</span>}
+                  {faulty > 0 && (
+                    <span className="text-error-400">
+                      {faulty} {t("dashboard.faultySuffix")}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -166,10 +178,10 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-3">
-        <Card className="xl:col-span-1">
+      <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-2">
+        <Card>
           <CardHeader>
-            <CardTitle>Ближайшие проверки</CardTitle>
+            <CardTitle>{t("dashboard.upcomingInspections")}</CardTitle>
           </CardHeader>
           <ul className="divide-y divide-border-secondary">
             {upcoming.map((eq) => (
@@ -188,9 +200,9 @@ export default function DashboardPage() {
           </ul>
         </Card>
 
-        <Card className="xl:col-span-1">
+        <Card>
           <CardHeader>
-            <CardTitle>Неисправности</CardTitle>
+            <CardTitle>{t("dashboard.faults")}</CardTitle>
           </CardHeader>
           <ul className="divide-y divide-border-secondary">
             {activeFaults.map((f) => (
@@ -205,45 +217,6 @@ export default function DashboardPage() {
               </li>
             ))}
           </ul>
-        </Card>
-
-        <Card className="xl:col-span-1">
-          <CardHeader>
-            <CardTitle>Уведомления</CardTitle>
-          </CardHeader>
-          <ul className="divide-y divide-border-secondary">
-            {notifications.map((n) => (
-              <li key={n.id} className="flex items-start gap-3 px-4 py-2.5">
-                <Icon
-                  name={n.severity === "critical" ? "alert-triangle" : n.severity === "warning" ? "clock" : "bell"}
-                  size={16}
-                  className={
-                    n.severity === "critical"
-                      ? "mt-0.5 text-error-400"
-                      : n.severity === "warning"
-                      ? "mt-0.5 text-warning-400"
-                      : "mt-0.5 text-brand-400"
-                  }
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-text-primary">{n.title}</p>
-                  <p className="text-xs text-text-tertiary">{n.description}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      </div>
-
-      <div className="px-6 pt-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Оборудование</CardTitle>
-            <Link href="/equipment" className="text-xs font-medium text-brand-400 hover:text-brand-300">
-              Смотреть весь реестр →
-            </Link>
-          </CardHeader>
-          <EquipmentTable items={equipment.slice(0, 6)} compact />
         </Card>
       </div>
     </div>

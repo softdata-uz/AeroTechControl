@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
-import { equipmentStatusConfig } from "@/config/equipmentStatus.config";
+import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
+import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 import type { Airport, Equipment, EquipmentStatus, Terminal, Zone } from "@/lib/types";
 
@@ -38,6 +39,8 @@ function countByStatus(items: Equipment[]) {
 }
 
 export function LocationClient({ airports, terminals, zones, equipment }: Props) {
+  const t = useTranslations();
+  const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const [airportId, setAirportId] = useState(airports[0]?.id ?? "");
   const airportTerminals = useMemo(
     () => terminals.filter((t) => t.airportId === airportId),
@@ -52,7 +55,6 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
 
   const [zoneId, setZoneId] = useState<string | null>(terminalZones[0]?.id ?? null);
   const [zoom, setZoom] = useState<ZoomLevel>("normal");
-  const [hiddenStatuses, setHiddenStatuses] = useState<Set<EquipmentStatus>>(new Set());
 
   function selectAirport(id: string) {
     setAirportId(id);
@@ -66,15 +68,6 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
     setTerminalId(id);
     const firstZone = zones.find((z) => z.terminalId === id) ?? null;
     setZoneId(firstZone?.id ?? null);
-  }
-
-  function toggleStatus(status: EquipmentStatus) {
-    setHiddenStatuses((prev) => {
-      const next = new Set(prev);
-      if (next.has(status)) next.delete(status);
-      else next.add(status);
-      return next;
-    });
   }
 
   const zoomLevels: ZoomLevel[] = ["compact", "normal", "large"];
@@ -97,11 +90,11 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
   return (
     <div className="pb-8">
       <PageHeader
-        title="Расположение"
-        context="Аэропорт → Терминал → Зона → Оборудование"
+        title={t("location.title")}
+        context={t("location.context")}
         actions={
           <Button hierarchy="secondary" icon="download" size="sm">
-            Экспорт
+            {t("common.export")}
           </Button>
         }
       />
@@ -110,7 +103,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
         {/* NAVIGATE */}
         <Card className="h-fit overflow-hidden">
           <div className="border-b border-border-secondary px-4 py-3">
-            <p className="text-sm font-semibold text-text-primary">Навигация</p>
+            <p className="text-sm font-semibold text-text-primary">{t("location.navigation")}</p>
           </div>
           <div className="max-h-[560px] overflow-y-auto p-2">
             {airports.map((airport) => {
@@ -188,8 +181,8 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
           </div>
 
           <div className="border-t border-border-secondary p-3">
-            <p className="mb-2 text-xs font-medium text-text-quaternary">Статус оборудования (терминал)</p>
-            <StatusSummary counts={countByStatus(terminalEquipment)} />
+            <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.equipmentStatusTerminal")}</p>
+            <StatusSummary counts={countByStatus(terminalEquipment)} statusConfig={equipmentStatusConfig} />
           </div>
         </Card>
 
@@ -201,11 +194,11 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
                 {selectedAirport?.name ?? "—"}
                 {selectedTerminal ? ` · ${selectedTerminal.name}` : ""}
               </p>
-              <p className="text-xs text-text-tertiary">Схематичный план размещения оборудования</p>
+              <p className="text-xs text-text-tertiary">{t("location.schematicPlan")}</p>
             </div>
             <div className="flex items-center gap-1">
               <button
-                aria-label="Уменьшить"
+                aria-label={t("location.zoomOut")}
                 disabled={zoomIndex === 0}
                 onClick={() => setZoom(zoomLevels[Math.max(0, zoomIndex - 1)])}
                 className="flex h-7 w-7 items-center justify-center rounded-md border border-border-primary text-text-tertiary hover:bg-bg-tertiary disabled:opacity-30"
@@ -216,7 +209,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
                 {zoomIndex === 0 ? "S" : zoomIndex === 1 ? "M" : "L"}
               </span>
               <button
-                aria-label="Увеличить"
+                aria-label={t("location.zoomIn")}
                 disabled={zoomIndex === zoomLevels.length - 1}
                 onClick={() => setZoom(zoomLevels[Math.min(zoomLevels.length - 1, zoomIndex + 1)])}
                 className="flex h-7 w-7 items-center justify-center rounded-md border border-border-primary text-text-tertiary hover:bg-bg-tertiary disabled:opacity-30"
@@ -226,40 +219,14 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 border-b border-border-secondary px-4 py-2.5">
-            {STATUS_ORDER.map((status) => {
-              const cfg = equipmentStatusConfig[status];
-              const hidden = hiddenStatuses.has(status);
-              return (
-                <button
-                  key={status}
-                  onClick={() => toggleStatus(status)}
-                  aria-pressed={!hidden}
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition-opacity",
-                    cfg.badgeBg,
-                    cfg.badgeText,
-                    cfg.badgeBorder,
-                    hidden && "opacity-30"
-                  )}
-                >
-                  <span className={cn("h-1.5 w-1.5 rounded-full", cfg.dot)} />
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
-
           <div className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2">
             {terminalZones.length === 0 && (
               <p className="py-10 text-center text-sm text-text-tertiary sm:col-span-2">
-                В этом терминале зоны не заданы.
+                {t("location.noZones")}
               </p>
             )}
             {terminalZones.map((zone) => {
-              const items = equipment.filter(
-                (e) => e.zoneId === zone.id && !hiddenStatuses.has(e.status)
-              );
+              const items = equipment.filter((e) => e.zoneId === zone.id);
               const isActive = zone.id === zoneId;
               return (
                 <button
@@ -275,12 +242,12 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
                   <div className="mb-2 flex items-center justify-between">
                     <p className="truncate text-sm font-medium text-text-primary">{zone.name}</p>
                     <span className="shrink-0 text-xs text-text-quaternary">
-                      {equipment.filter((e) => e.zoneId === zone.id).length} ед.
+                      {equipment.filter((e) => e.zoneId === zone.id).length} {t("location.unitsSuffix")}
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {items.length === 0 && (
-                      <span className="text-xs text-text-quaternary">Скрыто фильтром / нет оборудования</span>
+                      <span className="text-xs text-text-quaternary">{t("location.hiddenOrEmpty")}</span>
                     )}
                     {items.map((eq) => (
                       <span
@@ -306,6 +273,8 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
           airportName={selectedAirport?.name ?? "—"}
           terminalName={selectedTerminal?.name ?? "—"}
           items={zoneEquipment}
+          t={t}
+          statusConfig={equipmentStatusConfig}
         />
       </div>
 
@@ -313,14 +282,17 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-border-secondary px-4 py-3">
             <p className="text-sm font-semibold text-text-primary">
-              Оборудование {zoneId ? `— ${selectedZone?.name}` : `— ${selectedTerminal?.name ?? "терминал"}`}
+              {t("location.equipmentPrefix")}{" "}
+              {zoneId ? `— ${selectedZone?.name}` : `— ${selectedTerminal?.name ?? t("location.terminalFallback")}`}
             </p>
-            <span className="text-xs text-text-quaternary">{tableItems.length} записей</span>
+            <span className="text-xs text-text-quaternary">
+              {tableItems.length} {t("location.records")}
+            </span>
           </div>
           {tableItems.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-14 text-text-tertiary">
               <Icon name="cpu" size={22} />
-              <p className="text-sm">В выбранной области оборудование не найдено.</p>
+              <p className="text-sm">{t("location.noEquipmentFound")}</p>
             </div>
           ) : (
             <EquipmentTable items={tableItems} />
@@ -331,11 +303,17 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
   );
 }
 
-function StatusSummary({ counts }: { counts: Record<EquipmentStatus, number> }) {
+function StatusSummary({
+  counts,
+  statusConfig,
+}: {
+  counts: Record<EquipmentStatus, number>;
+  statusConfig: Record<EquipmentStatus, ReturnType<typeof getEquipmentStatusConfig>[EquipmentStatus]>;
+}) {
   return (
     <div className="space-y-1.5">
       {STATUS_ORDER.map((status) => {
-        const cfg = equipmentStatusConfig[status];
+        const cfg = statusConfig[status];
         const value = counts[status];
         if (value === 0) return null;
         return (
@@ -357,16 +335,20 @@ function ZonePanel({
   airportName,
   terminalName,
   items,
+  t,
+  statusConfig,
 }: {
   zone: Zone | null;
   airportName: string;
   terminalName: string;
   items: Equipment[];
+  t: (key: import("@/lib/i18n/translations").TranslationKey) => string;
+  statusConfig: ReturnType<typeof getEquipmentStatusConfig>;
 }) {
   if (!zone) {
     return (
       <Card className="flex h-fit items-center justify-center p-10 text-center text-sm text-text-tertiary">
-        Выберите зону на плане или в дереве навигации
+        {t("location.selectZoneHint")}
       </Card>
     );
   }
@@ -389,20 +371,20 @@ function ZonePanel({
           </div>
           <div>
             <p className="text-lg font-semibold text-text-primary">{items.length}</p>
-            <p className="text-xs text-text-tertiary">единиц оборудования в зоне</p>
+            <p className="text-xs text-text-tertiary">{t("location.unitsInZone")}</p>
           </div>
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-medium text-text-quaternary">Сводка по статусам</p>
-          <StatusSummary counts={counts} />
+          <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.statusSummary")}</p>
+          <StatusSummary counts={counts} statusConfig={statusConfig} />
         </div>
 
         <div>
-          <p className="mb-2 text-xs font-medium text-text-quaternary">Оборудование</p>
+          <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.equipmentList")}</p>
           <div className="space-y-1.5">
             {items.length === 0 && (
-              <p className="text-xs text-text-quaternary">Нет оборудования в этой зоне.</p>
+              <p className="text-xs text-text-quaternary">{t("location.noEquipmentInZone")}</p>
             )}
             {items.map((eq) => (
               <Link
@@ -411,7 +393,7 @@ function ZonePanel({
                 className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-bg-tertiary"
               >
                 <span className="min-w-0 truncate text-text-secondary">{eq.name}</span>
-                <StatusBadge status={equipmentStatusConfig[eq.status]} />
+                <StatusBadge status={statusConfig[eq.status]} />
               </Link>
             ))}
           </div>

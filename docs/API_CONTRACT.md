@@ -43,9 +43,8 @@ Canonical TypeScript types: `src/lib/types.ts`. Summary:
 | `NotificationItem` | id, title, description, severity, createdAt, entityType, entityId, read | polymorphic (Equipment/Fault/Inspection/SparePart) |
 | `AppUser` | id, fullName, email, role, airportId, active, lastActiveAt | Airport (optional) |
 
-Calibration/verification and Reports/Analytics are not separate stored
-entities — they are derived views over the entities above (see their
-sections below).
+Reports/Analytics is not a separate stored entity — it's a derived view
+over the entities above (see its section below).
 
 Status enums are domain-separated per `CLAUDE.md` §15 — do not merge
 `EquipmentStatus`, `InspectionStatus`, `FaultStage`, `RepairStatus`,
@@ -76,21 +75,15 @@ Status enums are domain-separated per `CLAUDE.md` §15 — do not merge
 
 | Method | Path | Query/Body | Returns |
 |---|---|---|---|
-| GET | `/inspections` | `equipmentId?, status?, page?, pageSize?` | `Page<Inspection>` |
 | GET | `/equipment/:id/inspections` | — | `Inspection[]` |
-| GET | `/inspections/:id` | — | `Inspection` (404) |
-| GET | `/inspections/:id/checklist` | — | `ChecklistItem[]` |
-| PATCH | `/inspections/:id/checklist/:itemId` | `{ result?, comment? }` | `ChecklistItem` |
-| PATCH | `/inspections/:id/complete` | `{ result: "compliant" \| "non_compliant" \| "pending" \| null }` | `Inspection` |
 
-A real backend will likely normalize checklists into
-`templates → versions → steps → answers` (per the module list a
-future NestJS backend would use) so that a checklist template can be
-edited without mutating historical inspection answers. The frontend
-contract above only requires that `GET /inspections/:id/checklist`
-return the *resolved* answer set for that inspection — the backend is
-free to compose it from template + version + step + answer tables
-internally.
+The standalone Inspections page (list + checklist workflow) was removed —
+that record type (inspection acts) now lives under **Documents**
+(`type: "act"`). This is the only inspection endpoint the frontend still
+calls, feeding the Equipment Detail page's Inspection History tab. A real
+backend is free to keep the fuller `templates → versions → steps →
+answers` model internally (per the module list a future NestJS backend
+would use); the frontend just needs the *resolved* history array above.
 
 ### Faults — `src/services/faults.service.ts`
 
@@ -113,10 +106,11 @@ transitions; the mock service does not (it trusts the caller).
 | Method | Path | Query/Body | Returns |
 |---|---|---|---|
 | GET | `/repairs` | `equipmentId?, faultId?, status?, page?, pageSize?` | `Page<Repair>` |
-| GET | `/faults/:id/repairs` | — | `Repair[]` |
-| GET | `/repairs/:id` | — | `Repair` (404) |
-| PATCH | `/repairs/:id/status` | `{ status: RepairStatus }` | `Repair` |
-| PATCH | `/repairs/:id/parts` | `{ partName: string }` | `Repair` |
+
+The standalone Repairs page was removed — that record type (repair
+reports) now lives under **Documents** (`type: "repair_report"`). This
+endpoint is only still called by the Faults page's "waiting for spare
+parts" KPI (`status: "waiting_parts"`).
 
 ### Spare Parts — `src/services/spare-parts.service.ts`
 
@@ -127,21 +121,15 @@ transitions; the mock service does not (it trusts the caller).
 | PATCH | `/spare-parts/:id/reserve` | `{ quantity: number }` | `SparePart` |
 | PATCH | `/spare-parts/:id/consume` | `{ quantity: number }` | `SparePart` |
 
-### Verification / Calibration — `src/services/calibration.service.ts`
+### Verification / Calibration
 
-| Method | Path | Query/Body | Returns |
-|---|---|---|---|
-| GET | `/calibration` | `airportId?, status?, search?, page?, pageSize?` | `Page<CalibrationRecord>` |
-
-`CalibrationRecord` is `{ equipment: Equipment, status: CalibrationStatus, certificate: EquipmentDocument | null }`
-— not a stored entity of its own. Per `CLAUDE.md` §26 it stays derived
-from the equipment lifecycle: `status` (`overdue \| upcoming \| planned`)
-is computed from `Equipment.nextInspectionAt` against today's date and a
-30-day lookahead window, and `certificate` is the equipment's linked
-document of type `certificate`, if any. A real backend can compute this
-the same way (a view/query over `Equipment` + `Document`) rather than
-introducing a new calibration table, unless calibration certificates
-need their own lifecycle independent of the generic document store.
+The standalone Calibration page and `calibration.service.ts` were
+removed — calibration status is no longer tracked as its own derived
+view. Certificates now live under **Documents** (`type: "certificate"`);
+`Equipment.nextInspectionAt` still drives the next-inspection date shown
+on the Equipment Detail page. If calibration overdue/upcoming tracking
+is needed again later, it can be recomputed the same way it was before
+(a view over `Equipment` + `Document`, no new table required).
 
 ### Documents — `src/services/documents.service.ts`
 
@@ -225,19 +213,46 @@ not itself a distinct endpoint.
 `NotificationPreferences` is `{ email: boolean, push: boolean, sms:
 boolean }`, scoped to the current user. The mock keeps this in a
 module-level variable (resets on reload); a real backend should persist
-it per-`AppUser`. Role simulation (`useRole`) and theme (`useTheme`) are
-deliberately **not** covered here — they are client-only UI/demo state
-per `CLAUDE.md` §31, not backend-shaped resources.
+it per-`AppUser`.
+
+Role simulation (`useRole`, `src/lib/role-context.tsx`), theme
+(`useTheme`, `src/lib/theme-context.tsx`), and interface language
+(`useLocale`, `src/lib/locale-context.tsx`) are deliberately **not**
+covered by any service, and a real backend does not need an endpoint
+for any of them:
+
+- **Role** — `useRole` holds the previewed role in React state only,
+  seeded from `currentUser.role`. It resets to the real signed-in role
+  on every reload. This is the "become another role for UI preview"
+  affordance from `CLAUDE.md` §31, not a persisted user preference —
+  it has no server-side equivalent and must not gain one (a backend
+  role-override endpoint would be a privilege-escalation footgun).
+- **Theme** — `useTheme` persists `"dark" | "light"` to
+  `window.localStorage` (`atz-theme`) directly in the browser, applied
+  before first paint via an inline script (`THEME_INIT_SCRIPT`) to
+  avoid a flash of the wrong theme. This is a per-device UI preference,
+  not user account data; it should stay client-only even after a real
+  backend exists, unless the product later wants theme to sync across
+  a user's devices, in which case it would move under `AppUser`
+  preferences rather than `/settings`.
+- **Language** — `useLocale` persists `"ru" | "uz" | "en"` to
+  `window.localStorage` (`atz-locale`) the same way theme does, switched
+  from either the Settings page or the topbar `LanguageMenu`. It is the
+  same per-device UI-preference pattern as theme, not `AppUser` data,
+  for the same reason — unless the product later wants a signed-in
+  user's language to follow them across devices.
 
 ## Coverage status
 
 Every page now reads through `src/services/*` via a hook — there is no
 remaining page importing `src/lib/mock-data.ts` directly for its primary
-data. Two things are still intentionally outside the service layer, by
+data. Three things are still intentionally outside the service layer, by
 design rather than by omission:
 
-- **Role simulation and theme** (`useRole`, `useTheme`) — pure
-  client-side UI/demo state (`CLAUDE.md` §31), not backend resources.
+- **Role simulation, theme, and language** (`useRole`, `useTheme`,
+  `useLocale`) — pure client-side UI/demo state (`CLAUDE.md` §31), not
+  backend resources. See the Settings section above for exactly how
+  each persists today.
 - **Auth** — `POST /auth/login` above is speculative; there is no login
   form or token issuance in this frontend, only `GET /auth/me` and the
   dev-only `switchToUser` helper.

@@ -2,12 +2,7 @@
 
 import { Dropdown } from "@/components/ui/Dropdown";
 import type { ReportPeriod } from "@/services/reports.service";
-
-const PERIOD_OPTIONS = [
-  { value: "30d", label: "Последние 30 дней" },
-  { value: "90d", label: "Последние 90 дней" },
-  { value: "year", label: "Год" },
-];
+import { useTranslations } from "@/lib/locale-context";
 
 interface Props {
   value: ReportPeriod;
@@ -15,12 +10,19 @@ interface Props {
 }
 
 export function PeriodSelect({ value, onChange }: Props) {
+  const t = useTranslations();
+  const periodOptions = [
+    { value: "30d", label: t("reports.periodOption30d") },
+    { value: "90d", label: t("reports.periodOption90d") },
+    { value: "year", label: t("reports.periodOptionYear") },
+  ];
+
   return (
     <Dropdown
       className="w-44"
       value={value}
       onChange={(v) => onChange(v as ReportPeriod)}
-      options={PERIOD_OPTIONS}
+      options={periodOptions}
     />
   );
 }

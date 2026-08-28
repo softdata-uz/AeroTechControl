@@ -4,6 +4,21 @@ import { resolve } from "./http-client";
 
 export type ReportPeriod = "30d" | "90d" | "year";
 
+export interface ComplianceMatrixCell {
+  pct: number;
+  count: number;
+}
+
+export interface ComplianceMatrixRow {
+  airport: Airport;
+  cells: (ComplianceMatrixCell | null)[]; // aligned index-for-index with `ComplianceMatrix.types`
+}
+
+export interface ComplianceMatrix {
+  types: string[];
+  rows: ComplianceMatrixRow[];
+}
+
 export interface ReportsSummary {
   total: number;
   operational: number;
@@ -16,7 +31,7 @@ export interface ReportsSummary {
   mtbfHours: number;
   byTypeFaultCount: [string, number][];
   partsConsumption: [string, number][];
-  complianceByAirport: { airport: Airport; pct: number; count: number }[];
+  complianceMatrix: ComplianceMatrix;
   dailyFaults: { date: string; value: number }[];
   radarSeries: { name: string; values: number[] }[];
 }
@@ -82,18 +97,20 @@ export function getReportsSummary(period: ReportPeriod = "30d"): Promise<Reports
         }, {})
     ).sort((a, b) => b[1] - a[1]) as [string, number][];
 
-    // Compliance by airport — current fleet state, not windowed by period.
-    const complianceByAirport = airports
-      .map((a) => {
-        const items = equipment.filter((e) => e.airportId === a.id);
-        const ok = items.filter((e) => e.status === "operational" || e.status === "reserve").length;
-        return {
-          airport: a,
-          pct: items.length ? Math.round((ok / items.length) * 100) : 0,
-          count: items.length,
-        };
-      })
-      .sort((a, b) => b.pct - a.pct);
+    // Compliance by airport × equipment type — current fleet state, not windowed by period.
+    const complianceTypes = Array.from(new Set(equipment.map((e) => e.type))).sort();
+    const complianceMatrix: ComplianceMatrix = {
+      types: complianceTypes,
+      rows: airports.map((a) => ({
+        airport: a,
+        cells: complianceTypes.map((type) => {
+          const items = equipment.filter((e) => e.airportId === a.id && e.type === type);
+          if (items.length === 0) return null;
+          const ok = items.filter((e) => e.status === "operational" || e.status === "reserve").length;
+          return { pct: Math.round((ok / items.length) * 100), count: items.length };
+        }),
+      })),
+    };
 
     // Daily fault volume across the dates actually present within the period.
     const faultDates = [...new Set(periodFaults.map((f) => f.detectedAt))].sort();
@@ -140,7 +157,7 @@ export function getReportsSummary(period: ReportPeriod = "30d"): Promise<Reports
       mtbfHours,
       byTypeFaultCount,
       partsConsumption,
-      complianceByAirport,
+      complianceMatrix,
       dailyFaults,
       radarSeries,
     };

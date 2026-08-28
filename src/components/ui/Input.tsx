@@ -35,7 +35,7 @@ export function Input({ icon, label, required, hint, error, id, className, ...re
         id={id}
         aria-invalid={destructive || undefined}
         className={cn(
-          "h-9 w-full rounded-md border bg-bg-primary text-sm text-text-primary shadow-xs",
+          "h-10 w-full rounded-md border bg-bg-primary text-sm text-text-primary shadow-xs",
           "placeholder:text-text-placeholder outline-none transition-colors",
           destructive
             ? "border-error-400 focus:border-error-500 focus:ring-1 focus:ring-error-500"
@@ -79,7 +79,7 @@ export function Select({ label, required, hint, error, id, className, children, 
         id={id}
         aria-invalid={destructive || undefined}
         className={cn(
-          "h-9 w-full appearance-none rounded-md border bg-bg-primary pl-3 pr-8 shadow-xs",
+          "h-10 w-full appearance-none rounded-md border bg-bg-primary pl-3 pr-8 shadow-xs",
           "text-sm text-text-secondary outline-none transition-colors",
           destructive
             ? "border-error-400 focus:border-error-500 focus:ring-1 focus:ring-error-500"

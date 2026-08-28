@@ -9,16 +9,19 @@ import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { sparePartStatusConfig } from "@/config/repairStatus.config";
+import { getSparePartStatusConfig } from "@/config/repairStatus.config";
 import { cn } from "@/lib/cn";
 import type { SparePartStatus } from "@/lib/types";
 import { useSparePartsList } from "@/hooks/useSparePartsList";
 import { useAsync } from "@/hooks/useAsync";
 import { sparePartsService } from "@/services";
+import { useTranslations } from "@/lib/locale-context";
 
 type PendingAction = "reserve" | "consume" | null;
 
 export function SparePartsClient() {
+  const t = useTranslations();
+  const sparePartStatusConfig = getSparePartStatusConfig(t);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [warehouseFilter, setWarehouseFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<SparePartStatus | "">("");
@@ -102,38 +105,38 @@ export function SparePartsClient() {
   return (
     <div className="pb-8">
       <PageHeader
-        title="Запасные части"
-        context={`Всего номенклатур: ${kpi.total}`}
+        title={t("spareParts.title")}
+        context={`${t("spareParts.totalNomenclature")} ${kpi.total}`}
         actions={
           <>
             <Button hierarchy="secondary" icon="download" size="sm">
-              Экспорт
+              {t("common.export")}
             </Button>
             <Button hierarchy="primary" icon="plus" size="sm">
-              Добавить номенклатуру
+              {t("spareParts.addNomenclature")}
             </Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4">
-        <KPICard label="В наличии" value={kpi.available} icon="check-circle" tone="success" />
-        <KPICard label="Мало на складе" value={kpi.lowStock} icon="alert-triangle" tone="warning" />
-        <KPICard label="Резерв" value={kpi.reserved} icon="layers" tone="brand" />
-        <KPICard label="Нет в наличии" value={kpi.outOfStock} icon="package" tone="error" />
+        <KPICard label={t("spareParts.kpiAvailable")} value={kpi.available} icon="check-circle" tone="success" />
+        <KPICard label={t("spareParts.kpiLowStock")} value={kpi.lowStock} icon="alert-triangle" tone="warning" />
+        <KPICard label={t("spareParts.kpiReserved")} value={kpi.reserved} icon="layers" tone="brand" />
+        <KPICard label={t("spareParts.kpiOutOfStock")} value={kpi.outOfStock} icon="package" tone="error" />
       </div>
 
       <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
         <Dropdown
-          className="w-44"
-          placeholder="Все склады"
+          className="w-56"
+          placeholder={t("common.allWarehouses")}
           value={warehouseFilter}
           onChange={setWarehouseFilter}
           options={warehouses.map((w) => ({ value: w, label: w }))}
         />
         <Dropdown
-          className="w-44"
-          placeholder="Все статусы"
+          className="w-56"
+          placeholder={t("common.allStatuses")}
           value={statusFilter}
           onChange={(value) => setStatusFilter(value as SparePartStatus | "")}
           options={Object.entries(sparePartStatusConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
@@ -141,7 +144,7 @@ export function SparePartsClient() {
         <div className="flex-1" />
         <Input
           icon="search"
-          placeholder="Поиск по наименованию, артикулу..."
+          placeholder={t("spareParts.searchPlaceholder")}
           className="w-72"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -152,32 +155,32 @@ export function SparePartsClient() {
         <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">Не удалось загрузить запасные части.</p>
+              <p className="text-sm text-text-secondary">{t("spareParts.loadError")}</p>
               <p className="text-xs text-text-tertiary">{error}</p>
               <Button hierarchy="secondary" size="sm" onClick={refetch}>
-                Повторить
+                {t("common.retry")}
               </Button>
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center px-4 py-16 text-sm text-text-tertiary">
-              Загрузка запасных частей…
+              {t("spareParts.loading")}
             </div>
           ) : spareParts.length === 0 ? (
             <div className="flex flex-col items-center gap-1 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">Номенклатуры не найдены.</p>
-              <p className="text-xs text-text-tertiary">Измените параметры поиска или фильтры.</p>
+              <p className="text-sm text-text-secondary">{t("spareParts.notFound")}</p>
+              <p className="text-xs text-text-tertiary">{t("spareParts.changeFilters")}</p>
             </div>
           ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
-                  <th className="px-4 py-2.5">Наименование</th>
-                  <th className="px-4 py-2.5">Артикул</th>
-                  <th className="px-4 py-2.5">Склад</th>
-                  <th className="px-4 py-2.5">Остаток / Мин.</th>
-                  <th className="px-4 py-2.5">Резерв</th>
-                  <th className="px-4 py-2.5">Статус</th>
+                  <th className="px-4 py-2.5">{t("spareParts.colName")}</th>
+                  <th className="px-4 py-2.5">{t("spareParts.colSku")}</th>
+                  <th className="px-4 py-2.5">{t("spareParts.colWarehouse")}</th>
+                  <th className="px-4 py-2.5">{t("spareParts.colStockMin")}</th>
+                  <th className="px-4 py-2.5">{t("spareParts.colReserved")}</th>
+                  <th className="px-4 py-2.5">{t("spareParts.colStatus")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -231,15 +234,15 @@ export function SparePartsClient() {
 
             <div className="space-y-4 p-4 text-sm">
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Склад" value={selected.warehouse} />
-                <Field label="Остаток" value={String(selected.stock)} />
-                <Field label="Минимальный остаток" value={String(selected.minStock)} />
-                <Field label="Резерв" value={String(selected.reserved)} />
+                <Field label={t("spareParts.fieldWarehouse")} value={selected.warehouse} />
+                <Field label={t("spareParts.fieldStock")} value={String(selected.stock)} />
+                <Field label={t("spareParts.fieldMinStock")} value={String(selected.minStock)} />
+                <Field label={t("spareParts.fieldReserved")} value={String(selected.reserved)} />
               </div>
 
               <div className="rounded-lg border border-border-primary bg-bg-primary p-3">
                 <p className="mb-1.5 flex items-center justify-between text-xs text-text-tertiary">
-                  <span>Уровень запаса</span>
+                  <span>{t("spareParts.stockLevel")}</span>
                   <span>
                     {selected.stock} / {selected.minStock * 2}
                   </span>
@@ -262,7 +265,7 @@ export function SparePartsClient() {
               </div>
 
               <div>
-                <p className="mb-1.5 text-xs font-medium text-text-quaternary">Совместимое оборудование</p>
+                <p className="mb-1.5 text-xs font-medium text-text-quaternary">{t("spareParts.compatibleEquipment")}</p>
                 <ul className="space-y-1">
                   {selected.compatibleEquipmentTypes.map((t) => (
                     <li key={t} className="flex items-center gap-2 text-text-secondary">
@@ -276,7 +279,7 @@ export function SparePartsClient() {
 
             <div className="space-y-2 border-t border-border-secondary p-4">
               <Button hierarchy="primary" className="w-full justify-center" size="sm">
-                Оформить заказ
+                {t("spareParts.placeOrder")}
               </Button>
 
               {pendingAction ? (
@@ -294,7 +297,7 @@ export function SparePartsClient() {
                     {submitting ? "…" : "OK"}
                   </Button>
                   <Button hierarchy="secondary" size="sm" onClick={() => setPendingAction(null)}>
-                    Отмена
+                    {t("common.cancel")}
                   </Button>
                 </div>
               ) : (
@@ -305,7 +308,7 @@ export function SparePartsClient() {
                     size="sm"
                     onClick={() => setPendingAction("reserve")}
                   >
-                    Резервировать
+                    {t("spareParts.reserve")}
                   </Button>
                   <Button
                     hierarchy="secondary"
@@ -314,7 +317,7 @@ export function SparePartsClient() {
                     onClick={() => setPendingAction("consume")}
                     disabled={selected.stock === 0}
                   >
-                    Списать
+                    {t("spareParts.writeOff")}
                   </Button>
                 </>
               )}
@@ -322,7 +325,7 @@ export function SparePartsClient() {
           </Card>
         ) : (
           <Card className="flex items-center justify-center p-10 text-sm text-text-tertiary">
-            Выберите номенклатуру из списка
+            {t("spareParts.selectFromList")}
           </Card>
         )}
       </div>

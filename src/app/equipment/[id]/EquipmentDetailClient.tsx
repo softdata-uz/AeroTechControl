@@ -8,23 +8,26 @@ import { Button } from "@/components/ui/Button";
 import { Tabs } from "@/components/ui/Tabs";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { equipmentStatusConfig } from "@/config/equipmentStatus.config";
-import { inspectionStatusConfig } from "@/config/inspectionStatus.config";
-import { faultStatusConfig } from "@/config/faultStatus.config";
-import { repairStatusConfig, documentStatusConfig } from "@/config/repairStatus.config";
+import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
+import { getInspectionStatusConfig } from "@/config/inspectionStatus.config";
+import { getFaultStatusConfig } from "@/config/faultStatus.config";
+import { getRepairStatusConfig, getDocumentStatusConfig } from "@/config/repairStatus.config";
 import { formatDate } from "@/lib/format";
 import { airportName } from "@/lib/mock-data";
+import { useTranslations } from "@/lib/locale-context";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import type { Equipment, Inspection, Fault, Repair, EquipmentDocument } from "@/lib/types";
 
-const tabs = [
-  { key: "info", label: "Информация" },
-  { key: "inspections", label: "История проверок" },
-  { key: "repairs", label: "ТО и ремонты" },
-  { key: "faults", label: "Неисправности" },
-  { key: "documents", label: "Документы" },
-] as const;
+const tabKeys = ["info", "inspections", "repairs", "faults", "documents"] as const;
+const tabLabelKeys: Record<(typeof tabKeys)[number], TranslationKey> = {
+  info: "equipment.detail.tabInfo",
+  inspections: "equipment.detail.tabInspections",
+  repairs: "equipment.detail.tabRepairs",
+  faults: "equipment.detail.tabFaults",
+  documents: "equipment.detail.tabDocuments",
+};
 
-type TabKey = (typeof tabs)[number]["key"];
+type TabKey = (typeof tabKeys)[number];
 
 interface Props {
   equipment: Equipment;
@@ -37,18 +40,25 @@ interface Props {
 
 export function EquipmentDetailClient({ equipment, inspections, faults, repairs, documents }: Props) {
   const router = useRouter();
+  const t = useTranslations();
+  const equipmentStatusConfig = getEquipmentStatusConfig(t);
+  const inspectionStatusConfig = getInspectionStatusConfig(t);
+  const faultStatusConfig = getFaultStatusConfig(t);
+  const repairStatusConfig = getRepairStatusConfig(t);
+  const documentStatusConfig = getDocumentStatusConfig(t);
   const [tab, setTab] = useState<TabKey>("info");
 
-  const tabsWithBadges = tabs.map((t) => ({
-    ...t,
+  const tabsWithBadges = tabKeys.map((key) => ({
+    key,
+    label: t(tabLabelKeys[key]),
     badge:
-      t.key === "inspections"
+      key === "inspections"
         ? inspections.length
-        : t.key === "repairs"
+        : key === "repairs"
           ? repairs.length
-          : t.key === "faults"
+          : key === "faults"
             ? faults.length
-            : t.key === "documents"
+            : key === "documents"
               ? documents.length
               : undefined,
   }));
@@ -61,10 +71,10 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
         actions={
           <>
             <Button hierarchy="secondary" icon="qr-code" size="sm">
-              QR / NFC
+              {t("equipment.detail.qr")}
             </Button>
             <Button hierarchy="secondary" icon="edit" size="sm" onClick={() => router.push(`/equipment/${equipment.id}/edit`)}>
-              Редактировать
+              {t("equipment.detail.edit")}
             </Button>
           </>
         }
@@ -79,14 +89,14 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
             <div>
               <StatusBadge status={equipmentStatusConfig[equipment.status]} />
             </div>
-            <Row label="Аэропорт" value={airportName(equipment.airportId)} />
-            <Row label="Место установки" value={equipment.location} />
-            <Row label="Производитель" value={equipment.manufacturer} />
-            <Row label="Модель" value={equipment.model} />
-            <Row label="Серийный номер" value={equipment.serialNumber} />
-            <Row label="Инв. номер" value={equipment.inventoryNumber} />
-            <Row label="Дата ввода в эксплуатацию" value={formatDate(equipment.commissionedAt)} />
-            <Row label="Следующая проверка" value={formatDate(equipment.nextInspectionAt)} />
+            <Row label={t("equipment.detail.airport")} value={airportName(equipment.airportId)} />
+            <Row label={t("equipment.detail.location")} value={equipment.location} />
+            <Row label={t("equipment.detail.manufacturer")} value={equipment.manufacturer} />
+            <Row label={t("equipment.detail.model")} value={equipment.model} />
+            <Row label={t("equipment.detail.serialNumber")} value={equipment.serialNumber} />
+            <Row label={t("equipment.detail.inventoryNumber")} value={equipment.inventoryNumber} />
+            <Row label={t("equipment.detail.commissionedAt")} value={formatDate(equipment.commissionedAt)} />
+            <Row label={t("equipment.detail.nextInspection")} value={formatDate(equipment.nextInspectionAt)} />
           </div>
         </Card>
 
@@ -97,13 +107,13 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
             {tab === "info" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Технические характеристики</CardTitle>
+                  <CardTitle>{t("equipment.detail.techSpecs")}</CardTitle>
                 </CardHeader>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
-                  <Row label="Тип оборудования" value={equipment.type} />
-                  <Row label="Идентификатор" value={equipment.id} />
-                  <Row label="Терминал / Зона" value={equipment.location} />
-                  <Row label="Статус" value={equipmentStatusConfig[equipment.status].label} />
+                  <Row label={t("equipment.detail.type")} value={equipment.type} />
+                  <Row label={t("equipment.detail.id")} value={equipment.id} />
+                  <Row label={t("equipment.detail.terminalZone")} value={equipment.location} />
+                  <Row label={t("equipment.detail.status")} value={equipmentStatusConfig[equipment.status].label} />
                 </div>
               </Card>
             )}
@@ -111,10 +121,10 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
             {tab === "inspections" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>История проверок</CardTitle>
+                  <CardTitle>{t("equipment.detail.inspectionHistory")}</CardTitle>
                 </CardHeader>
                 {inspections.length === 0 ? (
-                  <EmptyState label="Проверки не найдены" />
+                  <EmptyState label={t("equipment.detail.noInspections")} />
                 ) : (
                   <ul className="divide-y divide-border-secondary">
                     {inspections.map((ins) => (
@@ -141,10 +151,10 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
             {tab === "repairs" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>ТО и ремонты</CardTitle>
+                  <CardTitle>{t("equipment.detail.maintenanceRepairs")}</CardTitle>
                 </CardHeader>
                 {repairs.length === 0 ? (
-                  <EmptyState label="Ремонты не найдены" />
+                  <EmptyState label={t("equipment.detail.noRepairs")} />
                 ) : (
                   <ul className="divide-y divide-border-secondary">
                     {repairs.map((r) => (
@@ -152,7 +162,8 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
                         <div>
                           <p className="font-medium text-text-primary">{r.id}</p>
                           <p className="text-xs text-text-tertiary">
-                            Инженер: {r.engineer} · {r.actualHours ?? r.estimatedHours} ч.
+                            {t("equipment.detail.engineer")} {r.engineer} · {r.actualHours ?? r.estimatedHours}{" "}
+                            {t("equipment.detail.hoursSuffix")}
                           </p>
                         </div>
                         <StatusBadge status={repairStatusConfig[r.status]} />
@@ -166,10 +177,10 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
             {tab === "faults" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Неисправности</CardTitle>
+                  <CardTitle>{t("equipment.detail.faults")}</CardTitle>
                 </CardHeader>
                 {faults.length === 0 ? (
-                  <EmptyState label="Неисправности не найдены" />
+                  <EmptyState label={t("equipment.detail.noFaults")} />
                 ) : (
                   <ul className="divide-y divide-border-secondary">
                     {faults.map((f) => (
@@ -191,10 +202,10 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
             {tab === "documents" && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Документы</CardTitle>
+                  <CardTitle>{t("equipment.detail.documents")}</CardTitle>
                 </CardHeader>
                 {documents.length === 0 ? (
-                  <EmptyState label="Документы не найдены" />
+                  <EmptyState label={t("equipment.detail.noDocuments")} />
                 ) : (
                   <ul className="divide-y divide-border-secondary">
                     {documents.map((d) => (

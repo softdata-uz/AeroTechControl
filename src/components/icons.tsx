@@ -50,6 +50,7 @@ const paths = {
   check: "M4 10.5 8 14.5 16 6",
   minus: "M4 10h12",
   "calendar-date": "M5 3.5v3M15 3.5v3M3 8.2h14M4.5 5.2h11a1 1 0 0 1 1 1V16a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V6.2a1 1 0 0 1 1-1Z",
+  globe: "M17.5 10a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0ZM2.5 10h15M10 2.5a11.4 11.4 0 0 1 0 15M10 2.5a11.4 11.4 0 0 0 0 15",
 } as const;
 
 export type IconName = keyof typeof paths;

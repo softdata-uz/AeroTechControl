@@ -16,12 +16,21 @@ interface PieChartProps {
   size?: number;
   formatValue?: (v: number) => string;
   centerLabel?: string;
+  /** Caption shown above the center total (ApexCharts donut built-in label) — pass a translated string. */
+  totalLabel?: string;
   className?: string;
 }
 
 /** Animated donut (ApexCharts) — hover tooltip with value + share, legend
  * to the side, animated center total. */
-export function PieChart({ data, size = 200, formatValue = (v) => String(v), centerLabel, className }: PieChartProps) {
+export function PieChart({
+  data,
+  size = 200,
+  formatValue = (v) => String(v),
+  centerLabel,
+  totalLabel = "Total",
+  className,
+}: PieChartProps) {
   const { tokens, apexTheme } = useChartTokens();
   const total = data.reduce((s, d) => s + d.value, 0);
 
@@ -62,7 +71,7 @@ export function PieChart({ data, size = 200, formatValue = (v) => String(v), cen
             show: true,
             total: {
               show: true,
-              label: "Всего",
+              label: totalLabel,
               color: tokens["--text-primary"],
               formatter: () => centerLabel ?? String(total),
             },

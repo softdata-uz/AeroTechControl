@@ -1,4 +1,5 @@
 import type { UserRole } from "@/lib/types";
+import type { TranslationKey } from "@/lib/i18n/translations";
 
 /**
  * Frontend-only role-based UI simulation (CLAUDE.md §31) — this is NOT
@@ -7,44 +8,52 @@ import type { UserRole } from "@/lib/types";
  * shown Users/Settings, a Spare Parts Manager isn't shown Reports.
  */
 export const roleNavAccess: Record<UserRole, string[]> = {
-  engineer: ["/", "/equipment", "/location", "/inspections", "/faults", "/repairs"],
+  engineer: ["/", "/equipment", "/location", "/faults"],
   lead_engineer: [
     "/",
     "/equipment",
     "/location",
-    "/inspections",
     "/faults",
-    "/repairs",
     "/spare-parts",
-    "/calibration",
     "/reports",
     "/notifications",
   ],
-  spare_parts_manager: ["/", "/equipment", "/spare-parts", "/repairs", "/notifications"],
+  spare_parts_manager: ["/", "/equipment", "/spare-parts", "/notifications"],
   central_office: ["/", "/equipment", "/location", "/reports", "/documents", "/notifications"],
   administrator: [
     "/",
     "/equipment",
     "/location",
-    "/inspections",
     "/faults",
-    "/repairs",
     "/spare-parts",
-    "/calibration",
     "/documents",
     "/reports",
     "/notifications",
     "/users",
     "/settings",
   ],
-  auditor: ["/", "/equipment", "/inspections", "/faults", "/documents", "/reports"],
+  auditor: ["/", "/equipment", "/faults", "/documents", "/reports"],
 };
 
-export const roleDescriptions: Record<UserRole, string> = {
-  engineer: "Проверки, назначенные неисправности, оборудование, оперативные задачи",
-  lead_engineer: "Утверждения, контроль команды, отчеты, операционный обзор",
-  spare_parts_manager: "Склад, резервирование, движение запасных частей",
-  central_office: "Все аэропорты, консолидированная аналитика, мониторинг",
-  administrator: "Пользователи, справочники, настройки — полный доступ",
-  auditor: "История в режиме только чтения, документы, отчеты",
+// Translation-key variants used by every locale-aware surface that shows a
+// role label or description (Topbar, Settings, Users). `roleLabels` in
+// `lib/mock-data.ts` is a separate, Russian-only export used only where a
+// plain string (not a TranslationKey) is needed, e.g. as a `Record` key
+// source for building filter option lists.
+export const roleLabelKeys: Record<UserRole, TranslationKey> = {
+  engineer: "role.engineer",
+  lead_engineer: "role.leadEngineer",
+  spare_parts_manager: "role.sparePartsManager",
+  central_office: "role.centralOffice",
+  administrator: "role.administrator",
+  auditor: "role.auditor",
+};
+
+export const roleDescriptionKeys: Record<UserRole, TranslationKey> = {
+  engineer: "roleDesc.engineer",
+  lead_engineer: "roleDesc.leadEngineer",
+  spare_parts_manager: "roleDesc.sparePartsManager",
+  central_office: "roleDesc.centralOffice",
+  administrator: "roleDesc.administrator",
+  auditor: "roleDesc.auditor",
 };

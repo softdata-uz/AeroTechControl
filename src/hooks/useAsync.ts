@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiException } from "@/services/http-client";
+import { useTranslations } from "@/lib/locale-context";
 
 export interface AsyncState<T> {
   data: T | null;
@@ -16,6 +17,7 @@ export interface AsyncState<T> {
  * Re-runs whenever `deps` changes, same as the effect dependency array.
  */
 export function useAsync<T>(fetcher: () => Promise<T>, deps: React.DependencyList): AsyncState<T> {
+  const t = useTranslations();
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +33,7 @@ export function useAsync<T>(fetcher: () => Promise<T>, deps: React.DependencyLis
       })
       .catch((err) => {
         if (id === requestId.current) {
-          setError(err instanceof ApiException ? err.message : "Не удалось загрузить данные");
+          setError(err instanceof ApiException ? err.message : t("common.genericLoadError"));
         }
       })
       .finally(() => {

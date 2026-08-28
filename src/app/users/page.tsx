@@ -2,18 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { KPICard } from "@/components/data-display/KPICard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
-import { roleLabels, airportName, airports } from "@/lib/mock-data";
+import { airportName, airports } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { useUsersList } from "@/hooks/useUsersList";
 import { useAsync } from "@/hooks/useAsync";
 import { usersService } from "@/services";
+import { useTranslations } from "@/lib/locale-context";
+import { roleLabelKeys } from "@/config/roleAccess.config";
 
 const roleChipClass: Record<UserRole, string> = {
   administrator: "bg-(--chip-brand-bg) text-(--chip-brand-text) border-(--chip-brand-border)",
@@ -25,6 +26,7 @@ const roleChipClass: Record<UserRole, string> = {
 };
 
 export default function UsersPage() {
+  const t = useTranslations();
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
   const [airportFilter, setAirportFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -46,24 +48,15 @@ export default function UsersPage() {
   const { data, loading, error, refetch } = useUsersList(filters);
   const users = useMemo(() => data?.items ?? [], [data]);
 
-  // KPI cards reflect the full user base, independent of the table filters.
-  const { data: allUsersPage, refetch: refetchKpi } = useAsync(
-    () => usersService.listUsers({ pageSize: 1000 }),
-    []
-  );
-  const kpi = useMemo(() => {
-    const all = allUsersPage?.items ?? [];
-    const total = all.length;
-    const active = all.filter((u) => u.active).length;
-    const admins = all.filter((u) => u.role === "administrator").length;
-    return { total, active, admins, inactive: total - active };
-  }, [allUsersPage]);
+  // Total user count for the page header, independent of the table filters.
+  const { data: allUsersPage } = useAsync(() => usersService.listUsers({ pageSize: 1000 }), []);
+  const totalUsers = allUsersPage?.total ?? 0;
 
   async function handleToggleActive(id: string, active: boolean) {
     setTogglingId(id);
     try {
       await usersService.setUserActive(id, active);
-      await Promise.all([refetch(), refetchKpi()]);
+      await refetch();
     } finally {
       setTogglingId(null);
     }
@@ -72,38 +65,31 @@ export default function UsersPage() {
   return (
     <div className="pb-8">
       <PageHeader
-        title="Пользователи"
-        context={`Всего пользователей: ${kpi.total}`}
+        title={t("users.title")}
+        context={`${t("users.totalSuffix")} ${totalUsers}`}
         actions={
           <>
             <Button hierarchy="secondary" icon="download" size="sm">
-              Экспорт
+              {t("common.export")}
             </Button>
             <Button hierarchy="primary" icon="plus" size="sm">
-              Пригласить пользователя
+              {t("users.invite")}
             </Button>
           </>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4">
-        <KPICard label="Всего" value={kpi.total} icon="users" tone="neutral" />
-        <KPICard label="Активные" value={kpi.active} icon="check-circle" tone="success" />
-        <KPICard label="Неактивные" value={kpi.inactive} icon="clock" tone="warning" />
-        <KPICard label="Администраторы" value={kpi.admins} icon="shield" tone="brand" />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
+      <div className="flex flex-wrap items-center gap-2 px-6 pt-5">
         <Dropdown
-          className="w-44"
-          placeholder="Все роли"
+          className="w-56"
+          placeholder={t("common.allRoles")}
           value={roleFilter}
           onChange={(value) => setRoleFilter(value as UserRole | "")}
-          options={Object.entries(roleLabels).map(([key, label]) => ({ value: key, label }))}
+          options={Object.entries(roleLabelKeys).map(([key, labelKey]) => ({ value: key, label: t(labelKey) }))}
         />
         <Dropdown
-          className="w-44"
-          placeholder="Все аэропорты"
+          className="w-56"
+          placeholder={t("common.allAirports")}
           value={airportFilter}
           onChange={setAirportFilter}
           options={airports.map((a) => ({ value: a.id, label: a.city }))}
@@ -111,7 +97,7 @@ export default function UsersPage() {
         <div className="flex-1" />
         <Input
           icon="search"
-          placeholder="Поиск по имени, email..."
+          placeholder={t("users.searchPlaceholder")}
           className="w-64"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
@@ -122,32 +108,32 @@ export default function UsersPage() {
         <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">Не удалось загрузить пользователей.</p>
+              <p className="text-sm text-text-secondary">{t("users.loadError")}</p>
               <p className="text-xs text-text-tertiary">{error}</p>
               <Button hierarchy="secondary" size="sm" onClick={refetch}>
-                Повторить
+                {t("common.retry")}
               </Button>
             </div>
           ) : loading ? (
             <div className="flex items-center justify-center px-4 py-16 text-sm text-text-tertiary">
-              Загрузка пользователей…
+              {t("users.loading")}
             </div>
           ) : users.length === 0 ? (
             <div className="flex flex-col items-center gap-1 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">Пользователи не найдены.</p>
-              <p className="text-xs text-text-tertiary">Измените параметры поиска или фильтры.</p>
+              <p className="text-sm text-text-secondary">{t("users.notFound")}</p>
+              <p className="text-xs text-text-tertiary">{t("users.changeFilters")}</p>
             </div>
           ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
-                  <th className="px-4 py-2.5">Пользователь</th>
-                  <th className="px-4 py-2.5">Роль</th>
-                  <th className="px-4 py-2.5">Аэропорт</th>
-                  <th className="px-4 py-2.5">Активность</th>
-                  <th className="px-4 py-2.5">Статус</th>
-                  <th className="px-4 py-2.5 text-right">Действия</th>
+                  <th className="px-4 py-2.5">{t("users.colUser")}</th>
+                  <th className="px-4 py-2.5">{t("users.colRole")}</th>
+                  <th className="px-4 py-2.5">{t("users.colAirport")}</th>
+                  <th className="px-4 py-2.5">{t("users.colActivity")}</th>
+                  <th className="px-4 py-2.5">{t("users.colStatus")}</th>
+                  <th className="px-4 py-2.5 text-right">{t("users.colActions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -180,11 +166,11 @@ export default function UsersPage() {
                             roleChipClass[u.role]
                           )}
                         >
-                          {roleLabels[u.role]}
+                          {t(roleLabelKeys[u.role])}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">
-                        {u.airportId ? airportName(u.airportId) : "Все аэропорты"}
+                        {u.airportId ? airportName(u.airportId) : t("users.allAirportsValue")}
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">{formatDate(u.lastActiveAt)}</td>
                       <td className="px-4 py-2.5">
@@ -197,20 +183,20 @@ export default function UsersPage() {
                           )}
                         >
                           <span className={cn("h-1.5 w-1.5 rounded-full", u.active ? "bg-success-500" : "bg-gray-500")} />
-                          {u.active ? "Активен" : "Неактивен"}
+                          {u.active ? t("users.active") : t("users.inactive")}
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
                           <button
-                            aria-label="Редактировать"
+                            aria-label={t("common.edit")}
                             className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                           >
                             <Icon name="edit" size={16} />
                           </button>
                           <button
-                            aria-label={u.active ? "Деактивировать" : "Активировать"}
-                            title={u.active ? "Деактивировать" : "Активировать"}
+                            aria-label={u.active ? t("users.deactivate") : t("users.activate")}
+                            title={u.active ? t("users.deactivate") : t("users.activate")}
                             onClick={() => handleToggleActive(u.id, !u.active)}
                             disabled={togglingId === u.id}
                             className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary disabled:opacity-40"

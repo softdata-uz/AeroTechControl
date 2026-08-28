@@ -1,10 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import type { Equipment } from "@/lib/types";
-import { equipmentStatusConfig } from "@/config/equipmentStatus.config";
+import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Icon } from "@/components/icons";
 import { airportName } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
+import { useTranslations } from "@/lib/locale-context";
 
 interface EquipmentTableProps {
   items: Equipment[];
@@ -12,18 +15,20 @@ interface EquipmentTableProps {
 }
 
 export function EquipmentTable({ items, compact = false }: EquipmentTableProps) {
+  const t = useTranslations();
+  const equipmentStatusConfig = getEquipmentStatusConfig(t);
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[860px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
-            <th className="px-4 py-2.5">ID</th>
-            <th className="px-4 py-2.5">Оборудование</th>
-            <th className="px-4 py-2.5">Тип</th>
-            {!compact && <th className="px-4 py-2.5">Аэропорт</th>}
-            <th className="px-4 py-2.5">Статус</th>
-            {!compact && <th className="px-4 py-2.5">Следующая проверка</th>}
-            <th className="px-4 py-2.5 text-right">Действия</th>
+            <th className="px-4 py-2.5">{t("equipment.colId")}</th>
+            <th className="px-4 py-2.5">{t("equipment.colEquipment")}</th>
+            <th className="px-4 py-2.5">{t("equipment.colType")}</th>
+            {!compact && <th className="px-4 py-2.5">{t("equipment.colAirport")}</th>}
+            <th className="px-4 py-2.5">{t("equipment.colStatus")}</th>
+            {!compact && <th className="px-4 py-2.5">{t("equipment.colNextInspection")}</th>}
+            <th className="px-4 py-2.5 text-right">{t("equipment.colActions")}</th>
           </tr>
         </thead>
         <tbody>
@@ -53,13 +58,13 @@ export function EquipmentTable({ items, compact = false }: EquipmentTableProps) 
                 <div className="flex items-center justify-end gap-1">
                   <Link
                     href={`/equipment/${eq.id}`}
-                    aria-label="Открыть карточку"
+                    aria-label={t("common.view")}
                     className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                   >
                     <Icon name="eye" size={16} />
                   </Link>
                   <button
-                    aria-label="Редактировать"
+                    aria-label={t("common.edit")}
                     className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                   >
                     <Icon name="edit" size={16} />

@@ -11,7 +11,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { Tabs } from "@/components/ui/Tabs";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { faultStatusConfig, faultPriorityConfig, faultStageOrder, faultStageLabels } from "@/config/faultStatus.config";
+import { getFaultStatusConfig, getFaultPriorityConfig, faultStageOrder, getFaultStageLabels } from "@/config/faultStatus.config";
 import { equipmentById, airportName, airports } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -20,17 +20,21 @@ import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
 import { useFaultsList } from "@/hooks/useFaultsList";
 import { useAsync } from "@/hooks/useAsync";
 import { faultsService, repairsService } from "@/services";
+import { useTranslations } from "@/lib/locale-context";
 
 const TODAY = "2026-08-25";
 const PAGE_SIZE = 20;
 
-const viewTabs = [
-  { key: "list", label: "Список неисправностей" },
-  { key: "map", label: "Карта неисправностей" },
-  { key: "charts", label: "Диаграммы" },
-] as const;
-
 export function FaultsClient() {
+  const t = useTranslations();
+  const faultStatusConfig = getFaultStatusConfig(t);
+  const faultPriorityConfig = getFaultPriorityConfig(t);
+  const faultStageLabels = getFaultStageLabels(t);
+  const viewTabs = [
+    { key: "list", label: t("faults.tabList") },
+    { key: "map", label: t("faults.tabMap") },
+    { key: "charts", label: t("faults.tabCharts") },
+  ] as const;
   const [addOpen, setAddOpen] = useState(false);
   const [view, setView] = useState<(typeof viewTabs)[number]["key"]>("list");
   const [airportFilter, setAirportFilter] = useState("");
@@ -111,27 +115,27 @@ export function FaultsClient() {
   return (
     <div className="pb-8">
       <PageHeader
-        title="Неисправности"
+        title={t("faults.title")}
         actions={
           <>
             <Button hierarchy="secondary" icon="download" size="sm">
-              Экспорт
+              {t("common.export")}
             </Button>
             <Button hierarchy="primary" icon="plus" size="sm" onClick={() => setAddOpen(true)}>
-              Новая неисправность
+              {t("faults.newFault")}
             </Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4 xl:grid-cols-7">
-        <KPICard label="Всего неисправностей" value={kpi.total} icon="layers" tone="neutral" />
-        <KPICard label="Открытые" value={kpi.open} icon="alert-triangle" tone="error" />
-        <KPICard label="В работе" value={kpi.inProgress} icon="wrench" tone="warning" />
-        <KPICard label="Ожидают ЗИП" value={kpi.waitingParts} icon="package" tone="brand" />
-        <KPICard label="Устранены" value={kpi.resolved} icon="check-circle" tone="success" />
-        <KPICard label="Закрытые" value={kpi.closed} icon="check-circle" tone="success" />
-        <KPICard label="Просроченные" value={kpi.overdue} icon="clock" tone="error" />
+        <KPICard label={t("faults.kpiTotal")} value={kpi.total} icon="layers" tone="neutral" />
+        <KPICard label={t("faults.kpiOpen")} value={kpi.open} icon="alert-triangle" tone="error" />
+        <KPICard label={t("faults.kpiInProgress")} value={kpi.inProgress} icon="wrench" tone="warning" />
+        <KPICard label={t("faults.kpiWaitingParts")} value={kpi.waitingParts} icon="package" tone="brand" />
+        <KPICard label={t("faults.kpiResolved")} value={kpi.resolved} icon="check-circle" tone="success" />
+        <KPICard label={t("faults.kpiClosed")} value={kpi.closed} icon="check-circle" tone="success" />
+        <KPICard label={t("faults.kpiOverdue")} value={kpi.overdue} icon="clock" tone="error" />
       </div>
 
       <Tabs items={viewTabs} value={view} onChange={setView} className="mt-5 px-6" />
@@ -140,31 +144,31 @@ export function FaultsClient() {
         <div className="mx-6 mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-border-primary bg-bg-secondary py-16 text-text-tertiary">
           <Icon name="layers" size={24} />
           <p className="text-sm">
-            {viewTabs.find((v) => v.key === view)?.label ?? ""} появится в следующей фазе
+            {viewTabs.find((v) => v.key === view)?.label ?? ""} {t("faults.comingSoonSuffix")}
           </p>
         </div>
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
             <Dropdown
-              className="w-40"
-              placeholder="Все аэропорты"
+              className="w-56"
+              placeholder={t("common.allAirports")}
               value={airportFilter}
               onChange={setAirportFilter}
               options={airports.map((a) => ({ value: a.id, label: a.city }))}
             />
-            <Dropdown className="w-40" placeholder="Все терминалы" value="" onChange={() => {}} options={[]} />
-            <Dropdown className="w-48" placeholder="Все типы оборудования" value="" onChange={() => {}} options={[]} />
+            <Dropdown className="w-56" placeholder={t("common.allTerminals")} value="" onChange={() => {}} options={[]} />
+            <Dropdown className="w-56" placeholder={t("common.allTypes")} value="" onChange={() => {}} options={[]} />
             <Dropdown
-              className="w-40"
-              placeholder="Все статусы"
+              className="w-56"
+              placeholder={t("common.allStatuses")}
               value={statusFilter}
               onChange={(value) => setStatusFilter(value as FaultStage | "")}
               options={faultStageOrder.map((stage) => ({ value: stage, label: faultStageLabels[stage] }))}
             />
             <Dropdown
-              className="w-40"
-              placeholder="Все приоритеты"
+              className="w-56"
+              placeholder={t("common.allPriorities")}
               value={priorityFilter}
               onChange={(value) => setPriorityFilter(value as FaultPriority | "")}
               options={Object.entries(faultPriorityConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
@@ -172,13 +176,13 @@ export function FaultsClient() {
             <div className="flex-1" />
             <Input
               icon="search"
-              placeholder="Поиск по оборудованию, неисправности, ID..."
+              placeholder={t("faults.searchPlaceholder")}
               className="w-72"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
             <Button hierarchy="secondary" icon="filter" size="sm">
-              Фильтры
+              {t("common.filters")}
             </Button>
           </div>
 
@@ -186,32 +190,32 @@ export function FaultsClient() {
             <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
               {error ? (
                 <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-                  <p className="text-sm text-text-secondary">Не удалось загрузить неисправности.</p>
+                  <p className="text-sm text-text-secondary">{t("faults.loadError")}</p>
                   <p className="text-xs text-text-tertiary">{error}</p>
                   <Button hierarchy="secondary" size="sm" onClick={refetch}>
-                    Повторить
+                    {t("common.retry")}
                   </Button>
                 </div>
               ) : loading ? (
                 <div className="flex items-center justify-center px-4 py-16 text-sm text-text-tertiary">
-                  Загрузка неисправностей…
+                  {t("faults.loading")}
                 </div>
               ) : faults.length === 0 ? (
                 <div className="flex flex-col items-center gap-1 px-4 py-16 text-center">
-                  <p className="text-sm text-text-secondary">Неисправности не найдены.</p>
-                  <p className="text-xs text-text-tertiary">Измените параметры поиска или фильтры.</p>
+                  <p className="text-sm text-text-secondary">{t("faults.notFound")}</p>
+                  <p className="text-xs text-text-tertiary">{t("faults.changeFilters")}</p>
                 </div>
               ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
-                      <th className="px-4 py-2.5">ID</th>
-                      <th className="px-4 py-2.5">Оборудование</th>
-                      <th className="px-4 py-2.5">Неисправность</th>
-                      <th className="px-4 py-2.5">Статус</th>
-                      <th className="px-4 py-2.5">Приоритет</th>
-                      <th className="px-4 py-2.5">Дата создания</th>
+                      <th className="px-4 py-2.5">{t("faults.colId")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colEquipment")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colFault")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colStatus")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colPriority")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colDate")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -248,10 +252,10 @@ export function FaultsClient() {
               </div>
               )}
               <div className="flex items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
-                <span>Показывать по: {PAGE_SIZE}</span>
+                <span>{t("common.showingPerPage")} {PAGE_SIZE}</span>
                 <div className="flex items-center gap-3">
                   <span>
-                    {rangeStart}–{rangeEnd} из {total} записей
+                    {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
                   </span>
                   <div className="flex items-center gap-1">
                     <Button
@@ -260,7 +264,7 @@ export function FaultsClient() {
                       disabled={page <= 1 || loading}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                     >
-                      Назад
+                      {t("common.back")}
                     </Button>
                     <Button
                       hierarchy="secondary"
@@ -268,14 +272,14 @@ export function FaultsClient() {
                       disabled={page >= totalPages || loading}
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     >
-                      Далее
+                      {t("common.next")}
                     </Button>
                   </div>
                 </div>
               </div>
             </div>
 
-            <FaultDetailPanel fault={selected} />
+            <FaultDetailPanel fault={selected} t={t} faultStatusConfig={faultStatusConfig} faultPriorityConfig={faultPriorityConfig} />
           </div>
         </>
       )}
@@ -285,23 +289,32 @@ export function FaultsClient() {
   );
 }
 
-function FaultDetailPanel({ fault }: { fault: Fault | null }) {
+function FaultDetailPanel({
+  fault,
+  t,
+  faultStatusConfig,
+  faultPriorityConfig,
+}: {
+  fault: Fault | null;
+  t: (key: import("@/lib/i18n/translations").TranslationKey) => string;
+  faultStatusConfig: ReturnType<typeof getFaultStatusConfig>;
+  faultPriorityConfig: ReturnType<typeof getFaultPriorityConfig>;
+}) {
   if (!fault) {
     return (
       <Card className="flex items-center justify-center p-10 text-sm text-text-tertiary">
-        Выберите неисправность из списка
+        {t("faults.selectFromList")}
       </Card>
     );
   }
 
   const eq = equipmentById(fault.equipmentId);
-  const currentStageIndex = faultStageOrder.indexOf(fault.stage);
 
   return (
     <Card className="h-fit">
       <div className="flex items-center justify-between border-b border-border-secondary px-4 py-3">
         <div>
-          <p className="text-sm font-semibold text-text-primary">Детали неисправности</p>
+          <p className="text-sm font-semibold text-text-primary">{t("faults.detailTitle")}</p>
           <p className="text-xs text-text-tertiary">
             {fault.id} · {formatDate(fault.detectedAt)}
           </p>
@@ -328,46 +341,22 @@ function FaultDetailPanel({ fault }: { fault: Fault | null }) {
         )}
 
         <div>
-          <p className="mb-1 text-xs font-medium text-text-quaternary">Описание неисправности</p>
+          <p className="mb-1 text-xs font-medium text-text-quaternary">{t("faults.description")}</p>
           <p className="text-text-secondary">{fault.description}</p>
         </div>
 
-        {/* Lifecycle */}
-        <div>
-          <p className="mb-2 text-xs font-medium text-text-quaternary">Жизненный цикл</p>
-          <div className="flex flex-wrap items-center gap-1">
-            {faultStageOrder.map((stage, i) => (
-              <div key={stage} className="flex items-center gap-1">
-                <span
-                  className={cn(
-                    "rounded-full px-2 py-1 text-xs font-medium",
-                    i <= currentStageIndex
-                      ? "bg-brand-600 text-white"
-                      : "bg-bg-tertiary text-text-quaternary"
-                  )}
-                >
-                  {faultStageLabels[stage]}
-                </span>
-                {i < faultStageOrder.length - 1 && (
-                  <Icon name="chevron-right" size={12} className="text-text-quaternary" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Приоритет">
+          <Field label={t("faults.priority")}>
             <StatusBadge status={faultPriorityConfig[fault.priority]} />
           </Field>
-          <Field label="Категория" value={fault.category} />
-          <Field label="Выявил" value={fault.reportedBy} />
-          <Field label="Назначен на" value={fault.assignee ?? "—"} />
-          <Field label="Плановая дата устранения" value={formatDate(fault.dueAt)} />
+          <Field label={t("faults.category")} value={fault.category} />
+          <Field label={t("faults.reportedBy")} value={fault.reportedBy} />
+          <Field label={t("faults.assignee")} value={fault.assignee ?? "—"} />
+          <Field label={t("faults.dueDate")} value={formatDate(fault.dueAt)} />
         </div>
 
         <div>
-          <p className="mb-1.5 text-xs font-medium text-text-quaternary">Файлы и фото</p>
+          <p className="mb-1.5 text-xs font-medium text-text-quaternary">{t("faults.filesAndPhotos")}</p>
           <div className="flex gap-2">
             {[0, 1, 2].map((i) => (
               <div
@@ -382,19 +371,6 @@ function FaultDetailPanel({ fault }: { fault: Fault | null }) {
             </button>
           </div>
         </div>
-      </div>
-
-      <div className="space-y-2 border-t border-border-secondary p-4">
-        <p className="mb-1 text-xs font-medium text-text-quaternary">Действия</p>
-        <Button hierarchy="primary" className="w-full justify-center" size="sm">
-          Назначить исполнителя
-        </Button>
-        <Button hierarchy="secondary" className="w-full justify-center" size="sm">
-          Создать заказ на ЗИП
-        </Button>
-        <Button hierarchy="destructive" className="w-full justify-center" size="sm">
-          Закрыть неисправность
-        </Button>
       </div>
     </Card>
   );
