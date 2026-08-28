@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import { useTheme } from "@/lib/theme-context";
 
-// ApexCharts needs resolved color strings (not var(--x) — it isn't always
-// applied through a CSS property, so unresolved var() strings silently
-// fail in some places like tooltips/labels). Reading getComputedStyle
-// after mount and re-reading whenever the theme flips keeps charts in
-// sync with dark/light without hardcoding either palette here.
+// Recharts renders plain SVG, so most of the time a `var(--x)` string works
+// fine as a `fill`/`stroke` value directly in the DOM. But a few call sites
+// (Tooltip `contentStyle`, the donut center-label overlay, values read once
+// into JS for math like the legend percentage) need a *resolved* string —
+// unresolved var() text passed into non-CSS contexts renders as literal
+// text or fails silently. Reading getComputedStyle after mount and
+// re-reading whenever the theme flips keeps those cases in sync with
+// dark/light without hardcoding either palette here.
 const VAR_NAMES = [
   "--color-brand-500",
   "--color-brand-400",
@@ -48,9 +51,15 @@ const FALLBACK: Record<VarName, string> = {
   "--bg-tertiary": "#22262f",
 };
 
+const VAR_REF = /^var\((--[a-zA-Z0-9-]+)\)$/;
+
 export function useChartTokens() {
   const { theme } = useTheme();
   const [tokens, setTokens] = useState<Record<VarName, string>>(FALLBACK);
+  // Snapshot of *any* custom property read on demand via `resolveColor`,
+  // for colors that arrive as `var(--x)` strings from callers (status
+  // colors, per-series overrides) rather than from the fixed VAR_NAMES set.
+  const [resolved, setResolved] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     // Deferred to a rAF callback (rather than read+setState inline) so we
@@ -64,9 +73,33 @@ export function useChartTokens() {
         if (value) next[name] = value;
       }
       setTokens(next);
+      setResolved(new Map());
     });
     return () => cancelAnimationFrame(id);
   }, [theme]);
 
-  return { tokens, apexTheme: (theme === "light" ? "light" : "dark") as "light" | "dark" };
+  /** Resolves a `var(--x)` string (or passes through anything else, e.g. an
+   * already-resolved hex/rgb string) to a value SVG fill/stroke/tooltip
+   * styles can render. Falls back to the input unchanged if the browser
+   * can't resolve it (SSR, or a var name outside our design tokens). */
+  function resolveColor(color: string | undefined): string | undefined {
+    if (!color) return color;
+    const match = VAR_REF.exec(color.trim());
+    if (!match) return color;
+    const varName = match[1];
+    if (varName in tokens) return tokens[varName as VarName];
+    const cached = resolved.get(varName);
+    if (cached) return cached;
+    if (typeof document === "undefined") return color;
+    const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    if (value) {
+      // Cache outside render to avoid a setState-during-render loop; the
+      // next paint's effect (or hover) will pick up the cached value.
+      resolved.set(varName, value);
+      return value;
+    }
+    return color;
+  }
+
+  return { tokens, resolveColor, theme: (theme === "light" ? "light" : "dark") as "light" | "dark" };
 }
