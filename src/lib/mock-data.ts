@@ -133,21 +133,33 @@ const faultSeed: Array<{
   category: string;
   priority: Fault["priority"];
   stage: Fault["stage"];
+  detectedVia: Fault["detectedVia"];
   daysAgo: number;
   dueInDays: number | null;
+  attachmentCount: number;
 }> = [
-  { eqIndex: 0, title: "Не сканирует багаж. Ошибка системы генератора.", description: "Не сканирует багаж. Выдается ошибка системы генератора. На экране сообщение: E071.", category: "Электроника", priority: "high", stage: "registered", daysAgo: 1, dueInDays: 3 },
-  { eqIndex: 1, title: "На изображении появляются полосы и помехи.", description: "На выводимом изображении периодически появляются вертикальные полосы, снижающие читаемость.", category: "Оптика/Датчики", priority: "high", stage: "repair", daysAgo: 2, dueInDays: 2 },
-  { eqIndex: 2, title: "Ложные срабатывания без наличия металла.", description: "Арка срабатывает без прохождения металлических предметов, требуется перекалибровка чувствительности.", category: "Калибровка", priority: "medium", stage: "verification", daysAgo: 3, dueInDays: 1 },
-  { eqIndex: 17, title: "Не включается, нет индикации питания.", description: "При включении отсутствует индикация на панели управления, предположительно проблема с блоком питания.", category: "Электропитание", priority: "high", stage: "registered", daysAgo: 4, dueInDays: 2 },
-  { eqIndex: 8, title: "Застревание конвейера при движении.", description: "Конвейерная лента периодически заклинивает при прохождении крупногабаритного багажа.", category: "Механика", priority: "medium", stage: "verification", daysAgo: 5, dueInDays: 1 },
-  { eqIndex: 10, title: "Ошибки калибровки, требуется перекалибровка.", description: "Система выдает регулярные ошибки калибровки при запуске самодиагностики.", category: "Калибровка", priority: "low", stage: "closed", daysAgo: 6, dueInDays: null },
-  { eqIndex: 11, title: "Периодически теряет чувствительность.", description: "Ручной металлодетектор периодически теряет чувствительность обнаружения на дальней дистанции.", category: "Электроника", priority: "low", stage: "closed", daysAgo: 7, dueInDays: null },
-  { eqIndex: 0, title: "Не открывается шторка входа/выхода.", description: "Автоматическая шторка на входе не открывается полностью, требуется осмотр привода.", category: "Механика", priority: "high", stage: "repair", daysAgo: 8, dueInDays: 3 },
+  { eqIndex: 0, title: "Не сканирует багаж. Ошибка системы генератора.", description: "Не сканирует багаж. Выдается ошибка системы генератора. На экране сообщение: E071.", category: "Электроника", priority: "high", stage: "registered", detectedVia: "sensor", daysAgo: 1, dueInDays: 3, attachmentCount: 2 },
+  { eqIndex: 1, title: "На изображении появляются полосы и помехи.", description: "На выводимом изображении периодически появляются вертикальные полосы, снижающие читаемость.", category: "Оптика/Датчики", priority: "high", stage: "repair", detectedVia: "inspection", daysAgo: 2, dueInDays: 2, attachmentCount: 3 },
+  { eqIndex: 2, title: "Ложные срабатывания без наличия металла.", description: "Арка срабатывает без прохождения металлических предметов, требуется перекалибровка чувствительности.", category: "Калибровка", priority: "medium", stage: "verification", detectedVia: "inspection", daysAgo: 3, dueInDays: 1, attachmentCount: 0 },
+  { eqIndex: 17, title: "Не включается, нет индикации питания.", description: "При включении отсутствует индикация на панели управления, предположительно проблема с блоком питания.", category: "Электропитание", priority: "high", stage: "registered", detectedVia: "manual", daysAgo: 4, dueInDays: 2, attachmentCount: 1 },
+  { eqIndex: 8, title: "Застревание конвейера при движении.", description: "Конвейерная лента периодически заклинивает при прохождении крупногабаритного багажа.", category: "Механика", priority: "medium", stage: "verification", detectedVia: "inspection", daysAgo: 5, dueInDays: 1, attachmentCount: 2 },
+  { eqIndex: 10, title: "Ошибки калибровки, требуется перекалибровка.", description: "Система выдает регулярные ошибки калибровки при запуске самодиагностики.", category: "Калибровка", priority: "low", stage: "closed", detectedVia: "inspection", daysAgo: 6, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 11, title: "Периодически теряет чувствительность.", description: "Ручной металлодетектор периодически теряет чувствительность обнаружения на дальней дистанции.", category: "Электроника", priority: "low", stage: "closed", detectedVia: "audit", daysAgo: 7, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 0, title: "Не открывается шторка входа/выхода.", description: "Автоматическая шторка на входе не открывается полностью, требуется осмотр привода.", category: "Механика", priority: "high", stage: "repair", detectedVia: "manual", daysAgo: 8, dueInDays: 3, attachmentCount: 4 },
+  { eqIndex: 5, title: "Задержка формирования изображения при сканировании.", description: "Наблюдается задержка до 3 секунд при формировании изображения крупногабаритного багажа.", category: "ПО", priority: "medium", stage: "diagnosis", detectedVia: "inspection", daysAgo: 3, dueInDays: 4, attachmentCount: 1 },
+  { eqIndex: 6, title: "Индикатор аккумулятора показывает некорректный заряд.", description: "Индикатор заряда аккумулятора ETD300 показывает 100% сразу после включения при разряженной батарее.", category: "Электроника", priority: "low", stage: "assigned", detectedVia: "manual", daysAgo: 2, dueInDays: 5, attachmentCount: 0 },
+  { eqIndex: 3, title: "Ошибка калибровки чувствительности датчика.", description: "При самодиагностике детектор следов взрывчатых веществ сообщает об ошибке калибровки чувствительности.", category: "Калибровка", priority: "medium", stage: "diagnosis", detectedVia: "sensor", daysAgo: 1, dueInDays: 6, attachmentCount: 0 },
+  { eqIndex: 13, title: "Периодическое зависание интерфейса оператора.", description: "Сенсорный интерфейс интроскопа периодически зависает и требует перезагрузки блока управления.", category: "ПО", priority: "high", stage: "detected", detectedVia: "manual", daysAgo: 0, dueInDays: 2, attachmentCount: 1 },
+  { eqIndex: 14, title: "Погрешность показаний дозиметра-радиометра.", description: "Расхождение показаний с контрольным источником превышает допустимую погрешность.", category: "Калибровка", priority: "critical", stage: "registered", detectedVia: "audit", daysAgo: 0, dueInDays: 1, attachmentCount: 0 },
+  { eqIndex: 9, title: "Треск и помехи в динамике оповещения.", description: "При срабатывании тревоги в динамике слышен треск, звук оповещения искажен.", category: "Электроника", priority: "low", stage: "repair", detectedVia: "inspection", daysAgo: 6, dueInDays: 3, attachmentCount: 1 },
+  { eqIndex: 15, title: "Замятие багажа на входе конвейера.", description: "Регулярное замятие мягких сумок на входном ролике конвейера, требуется осмотр механизма.", category: "Механика", priority: "medium", stage: "verification", detectedVia: "inspection", daysAgo: 9, dueInDays: null, attachmentCount: 2 },
+  { eqIndex: 4, title: "Нестабильное срабатывание при низком напряжении сети.", description: "При просадке напряжения сети арка металлодетектора самопроизвольно перезагружается.", category: "Электропитание", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 12, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 16, title: "Не печатает талон по результатам проверки.", description: "Встроенный принтер интроскопа не выводит талон с результатами проверки, лента заправлена корректно.", category: "Механика", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 14, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 7, title: "Сбой авторизации оператора на турникете.", description: "Турникет периодически не распознает карту доступа авторизованного оператора.", category: "ПО", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 15, dueInDays: null, attachmentCount: 0 },
 ];
 
 export const faults: Fault[] = faultSeed.map((f, i) => ({
-  id: `INC-${String(32 - i).padStart(5, "0")}`,
+  id: `INC-${String(faultSeed.length - i).padStart(5, "0")}`,
   equipmentId: equipment[f.eqIndex].id,
   title: f.title,
   description: f.description,
@@ -155,9 +167,11 @@ export const faults: Fault[] = faultSeed.map((f, i) => ({
   priority: f.priority,
   stage: f.stage,
   detectedAt: isoDaysAgo(f.daysAgo),
+  detectedVia: f.detectedVia,
   dueAt: f.dueInDays != null ? isoDaysFromNow(f.dueInDays) : null,
   reportedBy: inspectorNames[i % inspectorNames.length],
-  assignee: f.stage === "registered" ? null : inspectorNames[(i + 1) % inspectorNames.length],
+  assignee: f.stage === "registered" || f.stage === "detected" ? null : inspectorNames[(i + 1) % inspectorNames.length],
+  attachmentCount: f.attachmentCount,
 }));
 
 export const repairs: Repair[] = faults

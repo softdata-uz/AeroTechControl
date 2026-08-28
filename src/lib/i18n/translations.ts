@@ -644,6 +644,74 @@ const ru = {
 
   // Settings — directory summary count units
   "units.count": "ед.",
+
+  // Quick actions — additional contextual sets (Equipment/Location/Dashboard, Inspections)
+  "quickAction.addEquipment": "Добавить оборудование",
+  "quickAction.createInspection": "Создать проверку",
+  "quickAction.addDocument": "Добавить документ",
+  "quickAction.newMaintenance": "Новое ТО",
+  "quickAction.createAct": "Создать акт",
+  "quickAction.uploadPhoto": "Загрузить фото",
+
+  // Sidebar — Inspections sub-navigation
+  "nav.inspectionsCalendar": "Календарь проверок",
+  "nav.maintenanceSchedule": "График ТО",
+  "nav.checklists": "Чек-листы",
+  "nav.actsAndProtocols": "Акты и протоколы",
+
+  // Footer bar (under main content, every page)
+  "footer.copyright": "© 2026 Система учета, контроля и технического обслуживания. Все права защищены.",
+  "footer.version": "Версия 1.0.0",
+
+  // Common — additions
+  "common.add": "Добавить",
+  "common.viewAll": "Смотреть все",
+  "common.list": "Список",
+  "common.map": "Карта",
+  "common.previousPage": "Предыдущая страница",
+  "common.nextPage": "Следующая страница",
+
+  // Faults — detail panel additions
+  "faults.status": "Статус",
+  "faults.detectedVia": "Выявлена при",
+  "faults.detectedVia.inspection": "Проверке",
+  "faults.detectedVia.manual": "Вручную",
+  "faults.detectedVia.sensor": "Датчике",
+  "faults.detectedVia.audit": "Аудите",
+  "faults.notAssigned": "Не назначен",
+  "faults.zipMaterials": "ЗИП / Материалы",
+  "faults.colAirportLocation": "Аэропорт / Место установки",
+  "faults.colAssignee": "Исполнитель",
+  "faults.dateFrom": "С",
+  "faults.dateTo": "По",
+
+  // Equipment Registry — extra columns (full table)
+  "equipment.colManufacturerModel": "Производитель / Модель",
+  "equipment.colSerialNumber": "Серийный номер",
+  "equipment.colInventoryNumber": "Инв. номер",
+  "equipment.colLocation": "Место установки",
+  "equipment.colCommissioned": "Дата ввода в эксплуатацию",
+
+  // Dashboard — additions
+  "dashboard.mapCard": "Оборудование на карте",
+  "dashboard.updatedAt": "Обновлено:",
+  "dashboard.inDaysPrefix": "через",
+  "dashboard.inDaysSuffix": "дн.",
+
+  // Inspections — middle panel tabs / checklist labels
+  "inspections.tabInfo": "Информация",
+  "inspections.scanQr": "Сканировать QR / NFC",
+  "inspections.lastInspection": "Последняя проверка",
+  "inspections.dateTime": "Дата и время",
+  "inspections.inspector": "Проверяющий",
+  "inspections.result": "Результат",
+  "inspections.openAct": "Открыть акт / протокол",
+  "inspections.showAll": "Показать все",
+  "inspections.onlyNonCompliant": "Только с несоответствиями",
+  "inspections.checklistTitle": "Чек-лист проверки",
+  "inspections.colNumber": "№",
+  "inspections.colChecklistItem": "Пункт проверки",
+  "inspections.colChecklistResult": "Результат",
 } as const;
 
 const uz: Record<TranslationKey, string> = {
@@ -1251,6 +1319,66 @@ const uz: Record<TranslationKey, string> = {
   "reports.stock": "Qoldiq:",
 
   "units.count": "dona",
+
+  "quickAction.addEquipment": "Uskuna qo'shish",
+  "quickAction.createInspection": "Tekshiruv yaratish",
+  "quickAction.addDocument": "Hujjat qo'shish",
+  "quickAction.newMaintenance": "Yangi TX",
+  "quickAction.createAct": "Dalolatnoma yaratish",
+  "quickAction.uploadPhoto": "Foto yuklash",
+
+  "nav.inspectionsCalendar": "Tekshiruvlar kalendari",
+  "nav.maintenanceSchedule": "TX jadvali",
+  "nav.checklists": "Nazorat varaqalari",
+  "nav.actsAndProtocols": "Dalolatnomalar va bayonnomalar",
+
+  "footer.copyright": "© 2026 Hisob-kitob, nazorat va texnik xizmat ko'rsatish tizimi. Barcha huquqlar himoyalangan.",
+  "footer.version": "Versiya 1.0.0",
+
+  "common.add": "Qo'shish",
+  "common.viewAll": "Barchasini ko'rish",
+  "common.list": "Ro'yxat",
+  "common.map": "Xarita",
+  "common.previousPage": "Oldingi sahifa",
+  "common.nextPage": "Keyingi sahifa",
+
+  "faults.status": "Holat",
+  "faults.detectedVia": "Aniqlangan joyi",
+  "faults.detectedVia.inspection": "Tekshiruvda",
+  "faults.detectedVia.manual": "Qo'lda",
+  "faults.detectedVia.sensor": "Datchikda",
+  "faults.detectedVia.audit": "Auditda",
+  "faults.notAssigned": "Tayinlanmagan",
+  "faults.zipMaterials": "EHT / Materiallar",
+  "faults.colAirportLocation": "Aeroport / O'rnatish joyi",
+  "faults.colAssignee": "Ijrochi",
+  "faults.dateFrom": "Dan",
+  "faults.dateTo": "Gacha",
+
+  "equipment.colManufacturerModel": "Ishlab chiqaruvchi / Model",
+  "equipment.colSerialNumber": "Seriya raqami",
+  "equipment.colInventoryNumber": "Inventar raqami",
+  "equipment.colLocation": "O'rnatish joyi",
+  "equipment.colCommissioned": "Ishga tushirilgan sana",
+
+  "dashboard.mapCard": "Xaritadagi uskunalar",
+  "dashboard.updatedAt": "Yangilangan:",
+  "dashboard.inDaysPrefix": "yana",
+  "dashboard.inDaysSuffix": "kun",
+
+  "inspections.tabInfo": "Ma'lumot",
+  "inspections.scanQr": "QR / NFC skanerlash",
+  "inspections.lastInspection": "So'nggi tekshiruv",
+  "inspections.dateTime": "Sana va vaqt",
+  "inspections.inspector": "Tekshiruvchi",
+  "inspections.result": "Natija",
+  "inspections.openAct": "Dalolatnoma / bayonnomani ochish",
+  "inspections.showAll": "Barchasini ko'rsatish",
+  "inspections.onlyNonCompliant": "Faqat nomuvofiqlar",
+  "inspections.checklistTitle": "Tekshiruv nazorat varag'i",
+  "inspections.colNumber": "№",
+  "inspections.colChecklistItem": "Tekshiruv bandi",
+  "inspections.colChecklistResult": "Natija",
 };
 
 const en: Record<TranslationKey, string> = {
@@ -1858,6 +1986,66 @@ const en: Record<TranslationKey, string> = {
   "reports.stock": "Stock:",
 
   "units.count": "units",
+
+  "quickAction.addEquipment": "Add Equipment",
+  "quickAction.createInspection": "Create Inspection",
+  "quickAction.addDocument": "Add Document",
+  "quickAction.newMaintenance": "New Maintenance",
+  "quickAction.createAct": "Create Act",
+  "quickAction.uploadPhoto": "Upload Photo",
+
+  "nav.inspectionsCalendar": "Inspection Calendar",
+  "nav.maintenanceSchedule": "Maintenance Schedule",
+  "nav.checklists": "Checklists",
+  "nav.actsAndProtocols": "Acts & Protocols",
+
+  "footer.copyright": "© 2026 Equipment Accounting, Control and Maintenance System. All rights reserved.",
+  "footer.version": "Version 1.0.0",
+
+  "common.add": "Add",
+  "common.viewAll": "View all",
+  "common.list": "List",
+  "common.map": "Map",
+  "common.previousPage": "Previous page",
+  "common.nextPage": "Next page",
+
+  "faults.status": "Status",
+  "faults.detectedVia": "Detected during",
+  "faults.detectedVia.inspection": "Inspection",
+  "faults.detectedVia.manual": "Manual report",
+  "faults.detectedVia.sensor": "Sensor",
+  "faults.detectedVia.audit": "Audit",
+  "faults.notAssigned": "Unassigned",
+  "faults.zipMaterials": "Parts / Materials",
+  "faults.colAirportLocation": "Airport / Location",
+  "faults.colAssignee": "Assignee",
+  "faults.dateFrom": "From",
+  "faults.dateTo": "To",
+
+  "equipment.colManufacturerModel": "Manufacturer / Model",
+  "equipment.colSerialNumber": "Serial Number",
+  "equipment.colInventoryNumber": "Inventory No.",
+  "equipment.colLocation": "Location",
+  "equipment.colCommissioned": "Commissioned",
+
+  "dashboard.mapCard": "Equipment Map",
+  "dashboard.updatedAt": "Updated:",
+  "dashboard.inDaysPrefix": "in",
+  "dashboard.inDaysSuffix": "days",
+
+  "inspections.tabInfo": "Info",
+  "inspections.scanQr": "Scan QR / NFC",
+  "inspections.lastInspection": "Last Inspection",
+  "inspections.dateTime": "Date & Time",
+  "inspections.inspector": "Inspector",
+  "inspections.result": "Result",
+  "inspections.openAct": "Open Act / Protocol",
+  "inspections.showAll": "Show all",
+  "inspections.onlyNonCompliant": "Non-compliant only",
+  "inspections.checklistTitle": "Inspection Checklist",
+  "inspections.colNumber": "No.",
+  "inspections.colChecklistItem": "Checklist Item",
+  "inspections.colChecklistResult": "Result",
 };
 
 export const dictionaries: Record<Locale, Record<TranslationKey, string>> = { ru, uz, en };

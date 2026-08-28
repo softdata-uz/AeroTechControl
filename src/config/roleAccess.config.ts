@@ -8,13 +8,16 @@ import type { TranslationKey } from "@/lib/i18n/translations";
  * shown Users/Settings, a Spare Parts Manager isn't shown Reports.
  */
 export const roleNavAccess: Record<UserRole, string[]> = {
-  engineer: ["/", "/equipment", "/location", "/faults"],
+  engineer: ["/", "/equipment", "/location", "/inspections", "/faults", "/repairs"],
   lead_engineer: [
     "/",
     "/equipment",
     "/location",
+    "/inspections",
     "/faults",
+    "/repairs",
     "/spare-parts",
+    "/calibration",
     "/reports",
     "/notifications",
   ],
@@ -24,8 +27,11 @@ export const roleNavAccess: Record<UserRole, string[]> = {
     "/",
     "/equipment",
     "/location",
+    "/inspections",
     "/faults",
+    "/repairs",
     "/spare-parts",
+    "/calibration",
     "/documents",
     "/reports",
     "/notifications",

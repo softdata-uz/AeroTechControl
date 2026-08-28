@@ -99,6 +99,8 @@ export interface Inspection {
   result: "compliant" | "non_compliant" | "pending" | null;
 }
 
+export type FaultDetectedVia = "inspection" | "manual" | "sensor" | "audit";
+
 export interface Fault {
   id: string; // e.g. INC-00032
   equipmentId: string;
@@ -108,9 +110,11 @@ export interface Fault {
   priority: FaultPriority;
   stage: FaultStage;
   detectedAt: string;
+  detectedVia: FaultDetectedVia;
   dueAt: string | null;
   reportedBy: string;
   assignee: string | null;
+  attachmentCount: number;
 }
 
 export interface Repair {

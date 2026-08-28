@@ -4,6 +4,7 @@ export * as airportsService from "./airports.service";
 export * as inspectionsService from "./inspections.service";
 export * as faultsService from "./faults.service";
 export * as repairsService from "./repairs.service";
+export * as calibrationService from "./calibration.service";
 export * as sparePartsService from "./spare-parts.service";
 export * as documentsService from "./documents.service";
 export * as notificationsService from "./notifications.service";

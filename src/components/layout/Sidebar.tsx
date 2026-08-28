@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Icon } from "@/components/icons";
+import { Icon, type IconName } from "@/components/icons";
 import { CountBadge } from "@/components/ui/Badge";
 import { primaryNav } from "@/config/nav.config";
 import { roleNavAccess } from "@/config/roleAccess.config";
+import { quickActionsFor } from "@/config/quickActions.config";
 import { useRole } from "@/lib/role-context";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
@@ -101,8 +102,28 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border-primary p-3">
-        <p className="px-1 text-xs text-text-quaternary">{t("sidebar.footer")}</p>
+        <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-text-quaternary">
+          {t("sidebar.quickActions")}
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {quickActionsFor(pathname).map((qa) => (
+            <QuickAction key={qa.labelKey} icon={qa.icon} href={qa.href} label={t(qa.labelKey)} />
+          ))}
+        </div>
+        <p className="mt-3 px-1 text-xs text-text-quaternary">{t("sidebar.footer")}</p>
       </div>
     </aside>
+  );
+}
+
+function QuickAction({ icon, href, label }: { icon: IconName; href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1.5 rounded-lg border border-border-primary bg-bg-primary px-2 py-2.5 text-center text-xs font-medium text-text-tertiary transition-colors hover:border-brand-600 hover:text-text-primary"
+    >
+      <Icon name={icon} size={16} />
+      <span className="leading-tight">{label}</span>
+    </Link>
   );
 }
