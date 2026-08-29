@@ -8,39 +8,46 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { DatePicker } from "@/components/ui/DatePicker";
 import { Tabs } from "@/components/ui/Tabs";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { getFaultStatusConfig, getFaultPriorityConfig, faultStageOrder, getFaultStageLabels } from "@/config/faultStatus.config";
-import { equipmentById, airportName, airports } from "@/lib/mock-data";
+import { Pagination } from "@/components/ui/Pagination";
+import { getFaultStatusConfig, getFaultPriorityConfig } from "@/config/faultStatus.config";
+import { equipmentById, airportName, airports, terminalsByAirport } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { AddFaultModal } from "./AddFaultModal";
 import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { useFaultsList } from "@/hooks/useFaultsList";
 import { useAsync } from "@/hooks/useAsync";
-import { faultsService, repairsService } from "@/services";
+import { faultsService, repairsService, equipmentService } from "@/services";
+import { AddFaultModal } from "./AddFaultModal";
 import { useTranslations } from "@/lib/locale-context";
 
 const TODAY = "2026-08-25";
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 export function FaultsClient() {
   const t = useTranslations();
   const faultStatusConfig = getFaultStatusConfig(t);
   const faultPriorityConfig = getFaultPriorityConfig(t);
-  const faultStageLabels = getFaultStageLabels(t);
+
   const viewTabs = [
     { key: "list", label: t("faults.tabList") },
     { key: "map", label: t("faults.tabMap") },
     { key: "charts", label: t("faults.tabCharts") },
   ] as const;
+
   const [addOpen, setAddOpen] = useState(false);
   const [view, setView] = useState<(typeof viewTabs)[number]["key"]>("list");
   const [airportFilter, setAirportFilter] = useState("");
+  const [terminalFilter, setTerminalFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<FaultStage | "">("");
   const [priorityFilter, setPriorityFilter] = useState<FaultPriority | "">("");
+  const [dateFrom, setDateFrom] = useState<string | null>(null);
+  const [dateTo, setDateTo] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -52,11 +59,20 @@ export function FaultsClient() {
   }, [searchInput]);
 
   useEffect(() => {
+    setTerminalFilter("");
+  }, [airportFilter]);
+
+  useEffect(() => {
     setPage(1);
-  }, [airportFilter, statusFilter, priorityFilter, search]);
+  }, [airportFilter, terminalFilter, typeFilter, statusFilter, priorityFilter, search]);
+
+  const { data: typesData } = useAsync(() => equipmentService.listEquipmentTypes(), []);
+  const equipmentTypes = typesData ?? [];
 
   const filters = {
     airportId: airportFilter || undefined,
+    terminalId: terminalFilter || undefined,
+    equipmentType: typeFilter || undefined,
     stage: statusFilter || undefined,
     priority: priorityFilter || undefined,
     search: search || undefined,
@@ -82,7 +98,7 @@ export function FaultsClient() {
     const allFaults = allFaultsPage?.items ?? [];
     const total = allFaults.length;
     const open = allFaults.filter((f) => f.stage === "detected" || f.stage === "registered").length;
-    const inProgress = allFaults.filter((f) => f.stage === "diagnosis" || f.stage === "repair").length;
+    const inProgress = allFaults.filter((f) => f.stage === "diagnosis" || f.stage === "repair" || f.stage === "assigned").length;
     const waitingParts = waitingPartsPage?.total ?? 0;
     const resolved = allFaults.filter((f) => f.stage === "verification").length;
     const closed = allFaults.filter((f) => f.stage === "closed").length;
@@ -90,7 +106,6 @@ export function FaultsClient() {
     return { total, open, inProgress, waitingParts, resolved, closed, overdue };
   }, [allFaultsPage, waitingPartsPage]);
 
-  // Keep a valid selection whenever the visible page of faults changes.
   useEffect(() => {
     if (faults.length === 0) {
       setSelectedId(null);
@@ -135,7 +150,7 @@ export function FaultsClient() {
         <KPICard label={t("faults.kpiInProgress")} value={kpi.inProgress} icon="wrench" tone="warning" />
         <KPICard label={t("faults.kpiWaitingParts")} value={kpi.waitingParts} icon="package" tone="brand" />
         <KPICard label={t("faults.kpiResolved")} value={kpi.resolved} icon="check-circle" tone="success" />
-        <KPICard label={t("faults.kpiClosed")} value={kpi.closed} icon="check-circle" tone="success" />
+        <KPICard label={t("faults.kpiClosed")} value={kpi.closed} icon="package" tone="neutral" />
         <KPICard label={t("faults.kpiOverdue")} value={kpi.overdue} icon="clock" tone="error" />
       </div>
 
@@ -152,28 +167,42 @@ export function FaultsClient() {
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
             <Dropdown
-              className="w-56"
+              className="w-44"
               placeholder={t("common.allAirports")}
               value={airportFilter}
               onChange={setAirportFilter}
               options={airports.map((a) => ({ value: a.id, label: a.city }))}
             />
-            <Dropdown className="w-56" placeholder={t("common.allTerminals")} value="" onChange={() => {}} options={[]} />
-            <Dropdown className="w-56" placeholder={t("common.allTypes")} value="" onChange={() => {}} options={[]} />
             <Dropdown
-              className="w-56"
+              className="w-44"
+              placeholder={t("common.allTerminals")}
+              value={terminalFilter}
+              onChange={setTerminalFilter}
+              options={(airportFilter ? terminalsByAirport(airportFilter) : []).map((tm) => ({ value: tm.id, label: tm.name }))}
+            />
+            <Dropdown
+              className="w-52"
+              placeholder={t("common.allTypes")}
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={equipmentTypes.map((et) => ({ value: et, label: et }))}
+            />
+            <Dropdown
+              className="w-44"
               placeholder={t("common.allStatuses")}
               value={statusFilter}
               onChange={(value) => setStatusFilter(value as FaultStage | "")}
-              options={faultStageOrder.map((stage) => ({ value: stage, label: faultStageLabels[stage] }))}
+              options={Object.entries(faultStatusConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
             />
             <Dropdown
-              className="w-56"
+              className="w-40"
               placeholder={t("common.allPriorities")}
               value={priorityFilter}
               onChange={(value) => setPriorityFilter(value as FaultPriority | "")}
               options={Object.entries(faultPriorityConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
             />
+            <DatePicker className="w-36" value={dateFrom} onChange={setDateFrom} placeholder={t("faults.dateFrom")} />
+            <DatePicker className="w-36" value={dateTo} onChange={setDateTo} placeholder={t("faults.dateTo")} />
             <div className="flex-1" />
             <Input
               icon="search"
@@ -187,7 +216,7 @@ export function FaultsClient() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[1fr_360px]">
+          <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[1fr_380px]">
             <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
               {error ? (
                 <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
@@ -208,7 +237,7 @@ export function FaultsClient() {
                 </div>
               ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] border-collapse text-sm">
+                <table className="w-full min-w-[900px] border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
                       <th className="px-4 py-2.5">{t("faults.colId")}</th>
@@ -216,7 +245,9 @@ export function FaultsClient() {
                       <th className="px-4 py-2.5">{t("faults.colFault")}</th>
                       <th className="px-4 py-2.5">{t("faults.colStatus")}</th>
                       <th className="px-4 py-2.5">{t("faults.colPriority")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colAirportLocation")}</th>
                       <th className="px-4 py-2.5">{t("faults.colDate")}</th>
+                      <th className="px-4 py-2.5">{t("faults.colAssignee")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -234,17 +265,35 @@ export function FaultsClient() {
                         >
                           <td className="px-4 py-2.5 font-medium text-error-400">{f.id}</td>
                           <td className="px-4 py-2.5">
-                            <p className="font-medium text-text-primary">{eq?.name}</p>
-                            <p className="text-xs text-text-tertiary">{eq?.code}</p>
+                            <div className="flex items-center gap-2">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bg-tertiary">
+                                <Icon name="cpu" size={14} className="text-text-quaternary" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="truncate font-medium text-text-primary">{eq?.name}</p>
+                                <p className="truncate text-xs text-text-tertiary">{eq?.code}</p>
+                              </div>
+                            </div>
                           </td>
-                          <td className="max-w-[260px] truncate px-4 py-2.5 text-text-secondary">{f.title}</td>
+                          <td className="max-w-[220px] truncate px-4 py-2.5 text-text-secondary">{f.title}</td>
                           <td className="px-4 py-2.5">
                             <StatusBadge status={faultStatusConfig[f.stage]} />
                           </td>
                           <td className="px-4 py-2.5">
                             <StatusBadge status={faultPriorityConfig[f.priority]} />
                           </td>
+                          <td className="px-4 py-2.5 text-text-secondary">
+                            <p>{eq ? airportName(eq.airportId) : "—"}</p>
+                            <p className="text-xs text-text-tertiary">{eq?.location}</p>
+                          </td>
                           <td className="px-4 py-2.5 text-text-secondary">{formatDate(f.detectedAt)}</td>
+                          <td className="px-4 py-2.5">
+                            {f.assignee ? (
+                              <span className="text-text-secondary">{f.assignee}</span>
+                            ) : (
+                              <span className="text-text-quaternary">{t("faults.notAssigned")}</span>
+                            )}
+                          </td>
                         </tr>
                       );
                     })}
@@ -256,26 +305,9 @@ export function FaultsClient() {
                 <span>{t("common.showingPerPage")} {PAGE_SIZE}</span>
                 <div className="flex items-center gap-3">
                   <span>
-                    {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
+                    {rangeStart}–{rangeEnd} {t("common.of")} {total}
                   </span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      hierarchy="secondary"
-                      size="sm"
-                      disabled={page <= 1 || loading}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      {t("common.back")}
-                    </Button>
-                    <Button
-                      hierarchy="secondary"
-                      size="sm"
-                      disabled={page >= totalPages || loading}
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    >
-                      {t("common.next")}
-                    </Button>
-                  </div>
+                  <Pagination page={page} totalPages={totalPages} onChange={setPage} />
                 </div>
               </div>
             </div>
@@ -297,7 +329,7 @@ function FaultDetailPanel({
   faultPriorityConfig,
 }: {
   fault: Fault | null;
-  t: (key: import("@/lib/i18n/translations").TranslationKey) => string;
+  t: (key: TranslationKey) => string;
   faultStatusConfig: ReturnType<typeof getFaultStatusConfig>;
   faultPriorityConfig: ReturnType<typeof getFaultPriorityConfig>;
 }) {
@@ -310,6 +342,7 @@ function FaultDetailPanel({
   }
 
   const eq = equipmentById(fault.equipmentId);
+  const detectedViaKey = `faults.detectedVia.${fault.detectedVia}` as TranslationKey;
 
   return (
     <Card className="h-fit">
@@ -335,7 +368,7 @@ function FaultDetailPanel({
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-text-primary">{eq.name}</p>
               <p className="truncate text-xs text-text-tertiary">
-                {eq.code} · {airportName(eq.airportId)}
+                {eq.code} · {airportName(eq.airportId)} · {eq.location}
               </p>
             </div>
           </Link>
@@ -351,15 +384,33 @@ function FaultDetailPanel({
             <StatusBadge status={faultPriorityConfig[fault.priority]} />
           </Field>
           <Field label={t("faults.category")} value={t(fault.category as TranslationKey)} />
+          <Field label={t("faults.detectedVia")} value={t(detectedViaKey)} />
           <Field label={t("faults.reportedBy")} value={fault.reportedBy} />
-          <Field label={t("faults.assignee")} value={fault.assignee ?? "—"} />
+          <Field label={t("faults.assignee")}>
+            <div className="flex items-center gap-1.5">
+              <span className={fault.assignee ? "font-medium text-text-primary" : "text-text-quaternary"}>
+                {fault.assignee ?? t("faults.notAssigned")}
+              </span>
+              <button
+                aria-label={t("common.edit")}
+                className="rounded-md p-1 text-text-quaternary hover:bg-bg-tertiary hover:text-text-primary"
+              >
+                <Icon name="edit" size={13} />
+              </button>
+            </div>
+          </Field>
           <Field label={t("faults.dueDate")} value={formatDate(fault.dueAt)} />
         </div>
 
         <div>
+          <p className="mb-1 text-xs font-medium text-text-quaternary">{t("faults.zipMaterials")}</p>
+          <p className="text-text-quaternary">—</p>
+        </div>
+
+        <div>
           <p className="mb-1.5 text-xs font-medium text-text-quaternary">{t("faults.filesAndPhotos")}</p>
-          <div className="flex gap-2">
-            {[0, 1, 2].map((i) => (
+          <div className="flex flex-wrap items-center gap-2">
+            {Array.from({ length: Math.min(fault.attachmentCount, 3) }).map((_, i) => (
               <div
                 key={i}
                 className="flex h-14 w-14 items-center justify-center rounded-md border border-border-primary bg-bg-primary text-text-quaternary"
@@ -367,11 +418,29 @@ function FaultDetailPanel({
                 <Icon name="image" size={18} />
               </div>
             ))}
-            <button className="flex h-14 w-14 items-center justify-center rounded-md border border-dashed border-border-primary text-text-quaternary hover:border-brand-600 hover:text-brand-400">
-              <Icon name="upload" size={16} />
-            </button>
+            {fault.attachmentCount > 3 && (
+              <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border-primary bg-bg-tertiary text-xs font-medium text-text-tertiary">
+                +{fault.attachmentCount - 3}
+              </div>
+            )}
           </div>
+          <Button hierarchy="secondary" size="sm" icon="upload" className="mt-2 w-full justify-center">
+            {t("common.add")}
+          </Button>
         </div>
+      </div>
+
+      <div className="space-y-2 border-t border-border-secondary p-4">
+        <p className="mb-1 text-xs font-medium text-text-quaternary">{t("faults.actions")}</p>
+        <Button hierarchy="primary" className="w-full justify-center" size="sm">
+          {t("faults.assignExecutor")}
+        </Button>
+        <Button hierarchy="secondary" className="w-full justify-center" size="sm">
+          {t("faults.createSparePartOrder")}
+        </Button>
+        <Button hierarchy="destructive" className="w-full justify-center" size="sm">
+          {t("faults.closeFault")}
+        </Button>
       </div>
     </Card>
   );

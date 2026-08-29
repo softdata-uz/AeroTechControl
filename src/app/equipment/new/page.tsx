@@ -11,9 +11,9 @@ export default function NewEquipmentPage() {
   const t = useTranslations();
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <div className="pb-8">
       <PageHeader title={t("equipment.new.title")} context={t("equipment.new.context")} />
-      <div className="px-6 pt-5">
+      <div className="mx-auto max-w-3xl px-6 pt-5">
         <EquipmentForm
           mode="add"
           onCancel={() => router.push("/equipment")}

@@ -74,9 +74,11 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
         category: form.category,
         priority: form.priority,
         stage: "detected",
+        detectedVia: "manual",
         dueAt: null,
         reportedBy: form.reportedBy,
         assignee: null,
+        attachmentCount: 0,
       });
       onCreated(newFault);
       reset();

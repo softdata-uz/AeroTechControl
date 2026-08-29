@@ -5,15 +5,15 @@ export function StatusBadge({ status, className }: { status: StatusVisual; class
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium",
+        "inline-flex max-w-full items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium",
         status.badgeBg,
         status.badgeText,
         status.badgeBorder,
         className
       )}
     >
-      <span className={cn("h-1.5 w-1.5 rounded-full", status.dot)} />
-      {status.label}
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", status.dot)} />
+      <span className="min-w-0 truncate">{status.label}</span>
     </span>
   );
 }

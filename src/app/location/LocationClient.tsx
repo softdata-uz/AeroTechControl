@@ -39,6 +39,7 @@ function countByStatus(items: Equipment[]) {
 export function LocationClient({ airports, terminals, zones, equipment }: Props) {
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
+  const [viewMode, setViewMode] = useState<"list" | "map">("map");
   const [airportId, setAirportId] = useState(airports[0]?.id ?? "");
   const airportTerminals = useMemo(
     () => terminals.filter((t) => t.airportId === airportId),
@@ -115,19 +116,41 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
         title={t("location.title")}
         context={t("location.context")}
         actions={
-          <Button hierarchy="secondary" icon="download" size="sm">
-            {t("common.export")}
-          </Button>
+          <>
+            <div className="flex items-center rounded-md border border-border-primary bg-bg-primary p-0.5">
+              <button
+                onClick={() => setViewMode("list")}
+                className={cn(
+                  "rounded px-3 py-1.5 text-xs font-medium transition-colors",
+                  viewMode === "list" ? "bg-brand-600 text-white" : "text-text-tertiary hover:text-text-primary"
+                )}
+              >
+                {t("common.list")}
+              </button>
+              <button
+                onClick={() => setViewMode("map")}
+                className={cn(
+                  "rounded px-3 py-1.5 text-xs font-medium transition-colors",
+                  viewMode === "map" ? "bg-brand-600 text-white" : "text-text-tertiary hover:text-text-primary"
+                )}
+              >
+                {t("common.map")}
+              </button>
+            </div>
+            <Button hierarchy="secondary" icon="download" size="sm">
+              {t("common.export")}
+            </Button>
+          </>
         }
       />
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[260px_1fr_300px]">
         {/* NAVIGATE */}
-        <Card className="h-fit overflow-hidden">
-          <div className="border-b border-border-secondary px-4 py-3">
+        <Card className="flex h-full flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-border-secondary px-4 py-3">
             <p className="text-sm font-semibold text-text-primary">{t("location.navigation")}</p>
           </div>
-          <div className="max-h-[560px] overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto p-2">
             {airports.map((airport) => {
               const isActiveAirport = airport.id === airportId;
               const count = equipment.filter((e) => e.airportId === airport.id).length;
@@ -202,7 +225,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
             })}
           </div>
 
-          <div className="border-t border-border-secondary p-3">
+          <div className="shrink-0 border-t border-border-secondary p-3">
             <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.equipmentStatusTerminal")}</p>
             <StatusSummary counts={countByStatus(terminalEquipment)} statusConfig={equipmentStatusConfig} />
           </div>
@@ -222,7 +245,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
 
           {terminalZones.length === 0 ? (
             <p className="py-16 text-center text-sm text-text-tertiary">{t("location.noZones")}</p>
-          ) : (
+          ) : viewMode === "map" ? (
             <TerminalMap
               zones={terminalZones}
               equipment={terminalEquipment}
@@ -231,6 +254,8 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
               onEquipmentZoneChange={handleEquipmentZoneChange}
               statusConfig={equipmentStatusConfig}
             />
+          ) : (
+            <EquipmentTable items={terminalEquipment} />
           )}
         </Card>
 
@@ -266,6 +291,28 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
           )}
         </Card>
       </div>
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  tone,
+  dotClassName,
+}: {
+  label: string;
+  value: number;
+  tone?: "neutral";
+  dotClassName?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border-primary bg-bg-primary p-2.5">
+      <div className="flex items-center gap-1.5">
+        {tone !== "neutral" && dotClassName && <span className={cn("h-1.5 w-1.5 rounded-full", dotClassName)} />}
+        <p className="truncate text-xs text-text-tertiary">{label}</p>
+      </div>
+      <p className="mt-1 text-lg font-semibold text-text-primary">{value}</p>
     </div>
   );
 }
@@ -314,7 +361,7 @@ function ZonePanel({
 }) {
   if (!zone) {
     return (
-      <Card className="flex h-fit items-center justify-center p-10 text-center text-sm text-text-tertiary">
+      <Card className="flex h-full items-center justify-center p-10 text-center text-sm text-text-tertiary">
         {t("location.selectZoneHint")}
       </Card>
     );
@@ -323,28 +370,28 @@ function ZonePanel({
   const counts = countByStatus(items);
 
   return (
-    <Card className="h-fit overflow-hidden">
-      <div className="border-b border-border-secondary px-4 py-3">
+    <Card className="flex h-full flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-border-secondary px-4 py-3">
         <p className="text-sm font-semibold text-text-primary">{zone.name}</p>
         <p className="text-xs text-text-tertiary">
           {airportName} · {terminalName}
         </p>
       </div>
 
-      <div className="space-y-4 p-4">
-        <div className="flex items-center gap-3 rounded-lg border border-border-primary bg-bg-primary p-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bg-tertiary">
-            <Icon name="cpu" size={18} className="text-text-tertiary" />
-          </div>
-          <div>
-            <p className="text-lg font-semibold text-text-primary">{items.length}</p>
-            <p className="text-xs text-text-tertiary">{t("location.unitsInZone")}</p>
-          </div>
-        </div>
-
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <div>
           <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.statusSummary")}</p>
-          <StatusSummary counts={counts} statusConfig={statusConfig} />
+          <div className="grid grid-cols-3 gap-2">
+            <StatTile label={t("common.total")} value={items.length} tone="neutral" />
+            {STATUS_ORDER.filter((s) => s !== "decommissioned").map((status) => (
+              <StatTile
+                key={status}
+                label={statusConfig[status].label}
+                value={counts[status]}
+                dotClassName={statusConfig[status].dot}
+              />
+            ))}
+          </div>
         </div>
 
         <div>

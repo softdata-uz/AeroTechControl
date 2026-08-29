@@ -7,6 +7,7 @@ import { EquipmentTable } from "@/components/data-display/EquipmentTable";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { Pagination } from "@/components/ui/Pagination";
 import { airports } from "@/lib/mock-data";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import type { EquipmentStatus } from "@/lib/types";
@@ -132,7 +133,7 @@ export default function EquipmentRegistryPage() {
               <p className="text-xs text-text-tertiary">{t("equipment.changeFilters")}</p>
             </div>
           ) : (
-            <EquipmentTable items={items} />
+            <EquipmentTable items={items} full />
           )}
           <div className="flex items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
             <span>{t("common.showingPerPage")} {PAGE_SIZE}</span>
@@ -140,24 +141,7 @@ export default function EquipmentRegistryPage() {
               <span>
                 {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
               </span>
-              <div className="flex items-center gap-1">
-                <Button
-                  hierarchy="secondary"
-                  size="sm"
-                  disabled={page <= 1 || loading}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  {t("common.back")}
-                </Button>
-                <Button
-                  hierarchy="secondary"
-                  size="sm"
-                  disabled={page >= totalPages || loading}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  {t("common.next")}
-                </Button>
-              </div>
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} showEdges />
             </div>
           </div>
         </div>

@@ -1,9 +1,11 @@
 import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
-import { faults as faultSeed, faultsByEquipment, faultById, equipmentByAirport } from "@/lib/mock-data";
+import { faults as faultSeed, faultsByEquipment, faultById, equipmentByAirport, equipmentById } from "@/lib/mock-data";
 import { resolve, mutate, reject, paginate, type Page } from "./http-client";
 
 export interface FaultFilters {
   airportId?: string;
+  terminalId?: string;
+  equipmentType?: string;
   equipmentId?: string;
   stage?: FaultStage;
   priority?: FaultPriority;
@@ -20,6 +22,8 @@ export function listFaults(filters: FaultFilters = {}): Promise<Page<Fault>> {
       const equipmentIds = new Set(equipmentByAirport(filters.airportId).map((e) => e.id));
       items = items.filter((f) => equipmentIds.has(f.equipmentId));
     }
+    if (filters.terminalId) items = items.filter((f) => equipmentById(f.equipmentId)?.terminalId === filters.terminalId);
+    if (filters.equipmentType) items = items.filter((f) => equipmentById(f.equipmentId)?.type === filters.equipmentType);
     if (filters.equipmentId) items = items.filter((f) => f.equipmentId === filters.equipmentId);
     if (filters.stage) items = items.filter((f) => f.stage === filters.stage);
     if (filters.priority) items = items.filter((f) => f.priority === filters.priority);
