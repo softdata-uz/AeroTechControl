@@ -38,8 +38,7 @@ const emptyForm = {
 
 export function AddFaultModal({ open, onClose, onCreated }: Props) {
   const t = useTranslations();
-  const CATEGORIES = CATEGORY_KEYS.map((k) => t(k));
-  const [form, setForm] = useState({ ...emptyForm, category: CATEGORIES[0] });
+  const [form, setForm] = useState({ ...emptyForm, category: CATEGORY_KEYS[0] as string });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -51,7 +50,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
   const faultPriorityConfig = getFaultPriorityConfig(t);
 
   function reset() {
-    setForm(emptyForm);
+    setForm({ ...emptyForm, category: CATEGORY_KEYS[0] });
     setError(null);
   }
 
@@ -146,7 +145,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
             label={t("faults.modal.category")}
             value={form.category}
             onChange={(v) => setForm((f) => ({ ...f, category: v }))}
-            options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+            options={CATEGORY_KEYS.map((k) => ({ value: k, label: t(k) }))}
           />
           <Dropdown
             label={t("faults.modal.priority")}

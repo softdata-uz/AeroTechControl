@@ -4,28 +4,25 @@ import { useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEve
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useTranslations } from "@/lib/locale-context";
-import { useTheme } from "@/lib/theme-context";
 import type { Equipment, EquipmentStatus, Zone } from "@/lib/types";
 import type { StatusVisual } from "@/config/equipmentStatus.config";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import { BuildingMap, BUILDING_MAP_VB_W, BUILDING_MAP_VB_H } from "./BuildingMap";
 
 /**
- * Real terminal floor-plan drawing (`public/schema.jpg`, sourced from
- * `src/schema/schema.jpg`) rendered "dark-mode" — inverted + screen-blended
- * onto the app's dark background so the drawing's white background
- * disappears and only its line work shows, matching the approved
- * reference look. Static Cyrillic-style room labels are overlaid at each
- * band (not tied to real per-pixel room boundaries, since the drawing has
- * none machine-readable); zones from data are assigned to a band by
- * keyword and rendered as interactive lanes within it, same as before.
+ * Terminal floor-plan: the real extracted vector floor plan
+ * (`public/2d.svg`, rendered via `BuildingMap.tsx`) instead of the
+ * earlier `schema.jpg` photo — no more "extract the drawing from its own
+ * paper background" blend-mode workaround, since the SVG's background is
+ * simply transparent and it themes itself. Static Cyrillic-style room
+ * labels are overlaid at each band (not tied to real per-pixel room
+ * boundaries — the ROOMS fractions below approximate them); zones from
+ * data are assigned to a band by keyword and rendered as interactive
+ * lanes within it.
  */
 
-const SCHEMA_IMAGE_SRC = "/schema.jpg";
-const SCHEMA_IMAGE_W = 4977;
-const SCHEMA_IMAGE_H = 1678;
-
-const VB_W = 1600;
-const VB_H = Math.round((VB_W * SCHEMA_IMAGE_H) / SCHEMA_IMAGE_W);
+const VB_W = BUILDING_MAP_VB_W;
+const VB_H = BUILDING_MAP_VB_H;
 
 const MARGIN_X = VB_W * 0.03;
 const CONTENT_X0 = VB_W * 0.14;
@@ -268,13 +265,11 @@ interface Props {
 export function TerminalMap({
   zones,
   equipment,
-  selectedZoneId,
   onSelectZone,
   onEquipmentZoneChange,
   statusConfig,
 }: Props) {
   const t = useTranslations();
-  const { theme } = useTheme();
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
@@ -458,30 +453,7 @@ export function TerminalMap({
           onPointerLeave={handlePointerUp}
         >
           <g ref={gRef} transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
-            {/* The real floor-plan drawing, "extracted" from its own
-                white/paper background in both themes via blend mode —
-                not a filled rectangle sitting on top of whatever's behind
-                it (Card background, page background, etc.). Dark mode:
-                invert (white↔light lines on black) then `screen` blend,
-                which drops the near-black background into whatever's
-                behind it, leaving only the light line work. Light mode:
-                the drawing is already dark-lines-on-white, so `multiply`
-                blend alone drops its white background into whatever's
-                behind it (white multiplied by anything = that thing),
-                leaving only the dark line work — no invert needed. */}
-            <image
-              href={SCHEMA_IMAGE_SRC}
-              x={0}
-              y={0}
-              width={VB_W}
-              height={VB_H}
-              preserveAspectRatio="xMidYMid meet"
-              style={
-                theme === "dark"
-                  ? { filter: "invert(1) brightness(0.82) contrast(1.05)", mixBlendMode: "screen" }
-                  : { mixBlendMode: "multiply" }
-              }
-            />
+            <BuildingMap />
 
             {/* Gates */}
             {gateXs.map((gx, i) => (
@@ -517,7 +489,6 @@ export function TerminalMap({
                 rooms (arrivals/customs) never get one since no zone maps
                 there. */}
             {lanes.map((lane) => {
-              const isActive = lane.zone.id === selectedZoneId;
               const roomLanes = lanes.filter((l) => l.room === lane.room);
               const laneIdx = roomLanes.indexOf(lane);
               return (
@@ -532,16 +503,18 @@ export function TerminalMap({
                       strokeDasharray="3 4"
                     />
                   )}
+                  {/* Invisible click target for zone selection — no fill/
+                      stroke paint, on purpose: the floor-plan drawing stays
+                      unobstructed. `transparent` (not `none`) so it still
+                      hit-tests clicks. Selection is still shown elsewhere
+                      (Zone panel, equipment table), just not painted here. */}
                   <rect
                     x={lane.x0 + 4}
                     y={lane.room.y0 + 20}
                     width={lane.width - 8}
                     height={lane.room.y1 - lane.room.y0 - 26}
                     rx={5}
-                    fill={isActive ? "var(--chip-brand-bg)" : "transparent"}
-                    stroke={isActive ? "var(--color-brand-500)" : "transparent"}
-                    strokeWidth={1.5}
-                    opacity={isActive ? 0.5 : 1}
+                    fill="transparent"
                     onClick={() => onSelectZone(lane.zone.id)}
                     style={{ cursor: "pointer" }}
                   />
@@ -630,6 +603,7 @@ function MarkerTooltip({
   y: number;
   onClose: () => void;
 }) {
+  const t = useTranslations();
   return (
     <div
       className="pointer-events-none absolute z-10 w-44 -translate-x-1/2 -translate-y-[calc(100%+14px)] rounded-lg border border-border-primary bg-bg-secondary p-2.5 shadow-lg"
@@ -638,7 +612,7 @@ function MarkerTooltip({
       <button
         onClick={onClose}
         className="pointer-events-auto absolute right-1.5 top-1.5 text-text-quaternary hover:text-text-primary"
-        aria-label="Close"
+        aria-label={t("common.close")}
       >
         <Icon name="x" size={12} />
       </button>

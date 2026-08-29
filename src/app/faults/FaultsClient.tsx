@@ -17,6 +17,7 @@ import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { AddFaultModal } from "./AddFaultModal";
 import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
+import type { TranslationKey } from "@/lib/i18n/translations";
 import { useFaultsList } from "@/hooks/useFaultsList";
 import { useAsync } from "@/hooks/useAsync";
 import { faultsService, repairsService } from "@/services";
@@ -349,7 +350,7 @@ function FaultDetailPanel({
           <Field label={t("faults.priority")}>
             <StatusBadge status={faultPriorityConfig[fault.priority]} />
           </Field>
-          <Field label={t("faults.category")} value={fault.category} />
+          <Field label={t("faults.category")} value={t(fault.category as TranslationKey)} />
           <Field label={t("faults.reportedBy")} value={fault.reportedBy} />
           <Field label={t("faults.assignee")} value={fault.assignee ?? "—"} />
           <Field label={t("faults.dueDate")} value={formatDate(fault.dueAt)} />
