@@ -29,6 +29,12 @@
   --color-gray-900: #13161b;
   --color-gray-950: #0c0e12;
 
+  /* Not a Figma-exported stop — sits between gray-800 and gray-700.
+     gray-700 reads as a bright, high-contrast outline against the
+     near-black gray-900/950 card and surface backgrounds; this softened
+     stop is what dark-mode --border-primary actually points to below. */
+  --color-gray-750: #2c3038;
+
   /* ---- Brand / Blue primitive scale ------------------------------------
      Matches the approved reference screenshots: active sidebar item,
      primary buttons, links and focus rings all use this blue ramp. Kept
@@ -164,7 +170,7 @@
   --text-warning-primary: var(--color-warning-400);
   --text-error-primary: var(--color-error-400);
 
-  --border-primary: var(--color-gray-700);
+  --border-primary: var(--color-gray-750);
   --border-secondary: var(--color-gray-800);
   --border-tertiary: var(--color-gray-800);
   --border-brand: var(--color-brand-400);
@@ -192,14 +198,14 @@
   /* ---- Typography (6. Typography) ------------------------------------*/
   --font-family-body: var(--font-inter), "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  /* Project-wide floor: no text renders below 15px, even the smallest
-     token — xs/sm bumped from the original 12/14px scale; md and up were
-     already ≥15px so they're untouched. */
-  --text-xs-size: 15px;
+  /* Project-wide floor: no text renders below 14px. xs/sm/md were
+     previously bumped to 15/16/16px — brought back down to the 14px
+     floor on request; lg and up are untouched. */
+  --text-xs-size: 14px;
   --text-xs-lh: 20px;
-  --text-sm-size: 16px;
+  --text-sm-size: 14px;
   --text-sm-lh: 22px;
-  --text-md-size: 16px;
+  --text-md-size: 14px;
   --text-md-lh: 24px;
   --text-lg-size: 18px;
   --text-lg-lh: 28px;
@@ -352,7 +358,7 @@
   --text-warning-primary: var(--color-warning-400);
   --text-error-primary: var(--color-error-400);
 
-  --border-primary: var(--color-gray-700);
+  --border-primary: var(--color-gray-750);
   --border-secondary: var(--color-gray-800);
   --border-tertiary: var(--color-gray-800);
   --border-brand: var(--color-brand-400);
@@ -389,17 +395,22 @@
 @theme inline {
   --font-sans: var(--font-family-body);
 
-  /* Registers our pixel scale as Tailwind's actual text-xs/sm/lg/xl
-     utilities (Tailwind's built-in 12px/14px defaults were previously
+  /* Registers our pixel scale as Tailwind's actual text-xs/sm/base/lg/xl
+     utilities (Tailwind's built-in 12px/14px/16px defaults were previously
      unaffected by --text-xs-size et al. below — those custom vars had no
-     @theme mapping, so every `text-xs`/`text-sm` in the app was silently
-     using Tailwind's stock scale instead of ours). text-md isn't a stock
-     Tailwind size — added here as an alias for the existing token so it
-     works if ever used, but nothing in the codebase does yet. */
+     @theme mapping, so every `text-xs`/`text-sm`/`text-base` in the app
+     was silently using Tailwind's stock scale instead of ours). text-md
+     isn't a stock Tailwind size — added here as an alias for the existing
+     token so it works if ever used, but nothing in the codebase does yet.
+     text-base is stock Tailwind (defaults to 16px) — the two call sites
+     that use it (Modal/Drawer titles) need to respect the 14px floor too,
+     so it's pinned to the same token as md. */
   --text-xs: var(--text-xs-size);
   --text-xs--line-height: var(--text-xs-lh);
   --text-sm: var(--text-sm-size);
   --text-sm--line-height: var(--text-sm-lh);
+  --text-base: var(--text-md-size);
+  --text-base--line-height: var(--text-md-lh);
   --text-md: var(--text-md-size);
   --text-md--line-height: var(--text-md-lh);
   --text-lg: var(--text-lg-size);

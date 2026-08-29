@@ -57,7 +57,7 @@ export function PieChart({
   }, [centerNumeric, animateCenter]);
 
   return (
-    <div className={cn("flex w-full items-center gap-4", className)}>
+    <div className={cn("flex w-full flex-col items-center gap-4", className)}>
       <div className="relative shrink-0" style={{ width: size, height: size }}>
         <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: size, height: size }}>
           <RePieChart>
@@ -70,9 +70,7 @@ export function PieChart({
               paddingAngle={data.length > 1 ? 2 : 0}
               stroke={tokens["--bg-secondary"]}
               strokeWidth={2}
-              isAnimationActive
-              animationDuration={500}
-              animationEasing="ease-out"
+              isAnimationActive={false}
             >
               {data.map((d, i) => (
                 <Cell key={d.label} fill={resolveColor(d.color ?? categoricalColor(i))} />
@@ -94,7 +92,7 @@ export function PieChart({
         <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-[11px] text-text-tertiary">{totalLabel}</span>
           <motion.span
-            className="text-xl font-semibold text-text-primary"
+            className="text-2xl font-bold text-text-primary"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -104,16 +102,16 @@ export function PieChart({
         </div>
       </div>
 
-      <ul className="flex min-w-0 flex-1 flex-col gap-1.5">
+      <ul className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-2">
         {data.map((d, i) => {
           const pct = total ? Math.round((d.value / total) * 100) : 0;
           return (
-            <li key={d.label} className="flex items-center gap-2 text-xs text-text-secondary">
+            <li key={d.label} className="flex shrink-0 items-center gap-2 text-xs text-text-secondary">
               <span
                 className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: resolveColor(d.color ?? categoricalColor(i)) }}
               />
-              <span className="truncate">
+              <span className="whitespace-nowrap">
                 {d.label}: {formatValue(d.value)} ({pct}%)
               </span>
             </li>

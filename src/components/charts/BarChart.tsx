@@ -23,7 +23,8 @@ export interface BarDatum {
 
 interface BarChartProps {
   data: BarDatum[];
-  height?: number;
+  /** Fixed pixel height, or "100%" to fill a sized flex/grid parent. */
+  height?: number | string;
   formatValue?: (v: number) => string;
   /** Series name shown in the hover tooltip — pass a translated string. */
   seriesName?: string;
@@ -44,7 +45,7 @@ export function BarChart({
 
   return (
     <div className={cn("w-full", className)} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height }}>
+      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: typeof height === "number" ? height : 220 }}>
         <ReBarChart data={data} margin={{ top: 24, right: 8, left: 8, bottom: 0 }}>
           <CartesianGrid stroke={tokens["--border-secondary"]} strokeDasharray="3 3" vertical={false} />
           <XAxis
@@ -67,7 +68,7 @@ export function BarChart({
             }}
             labelStyle={{ color: tokens["--text-secondary"] }}
           />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive animationDuration={500} animationEasing="ease-out">
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={false}>
             {data.map((d, i) => (
               <Cell key={d.label} fill={resolveColor(d.color ?? categoricalColor(i))} />
             ))}

@@ -50,26 +50,28 @@ export function Sidebar() {
 
             return (
               <li key={item.href}>
-                <div className="flex items-center">
+                <div
+                  className={cn(
+                    "flex h-10 items-center gap-0.5 rounded-md pr-1.5 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-brand-600 text-white"
+                      : "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary"
+                  )}
+                >
                   <Link
                     href={item.href}
-                    className={cn(
-                      "flex h-10 flex-1 items-center gap-2.5 rounded-md px-3 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-brand-600 text-white"
-                        : "text-text-secondary hover:bg-bg-tertiary hover:text-text-primary"
-                    )}
+                    className="flex h-full min-w-0 flex-1 items-center gap-2.5 px-3"
                     onClick={() => hasChildren && setOpenGroup(isOpen ? null : item.href)}
                   >
-                    <Icon name={item.icon} size={18} />
-                    <span className="flex-1 truncate">{t(item.labelKey)}</span>
+                    <Icon name={item.icon} size={18} className="shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span>
                     {item.badge ? <CountBadge count={item.badge} /> : null}
                   </Link>
                   {hasChildren && (
                     <button
                       aria-label={t("sidebar.expandSection")}
                       onClick={() => setOpenGroup(isOpen ? null : item.href)}
-                      className="ml-0.5 rounded-md p-1.5 text-text-quaternary hover:bg-bg-tertiary hover:text-text-primary"
+                      className="shrink-0 rounded p-1.5 opacity-70 transition-opacity hover:opacity-100"
                     >
                       <Icon
                         name="chevron-down"

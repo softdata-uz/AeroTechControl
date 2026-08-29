@@ -146,11 +146,11 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[260px_1fr_300px]">
         {/* NAVIGATE */}
-        <Card className="h-fit overflow-hidden">
-          <div className="border-b border-border-secondary px-4 py-3">
+        <Card className="flex h-full flex-col overflow-hidden">
+          <div className="shrink-0 border-b border-border-secondary px-4 py-3">
             <p className="text-sm font-semibold text-text-primary">{t("location.navigation")}</p>
           </div>
-          <div className="max-h-[560px] overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto p-2">
             {airports.map((airport) => {
               const isActiveAirport = airport.id === airportId;
               const count = equipment.filter((e) => e.airportId === airport.id).length;
@@ -225,7 +225,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
             })}
           </div>
 
-          <div className="border-t border-border-secondary p-3">
+          <div className="shrink-0 border-t border-border-secondary p-3">
             <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.equipmentStatusTerminal")}</p>
             <StatusSummary counts={countByStatus(terminalEquipment)} statusConfig={equipmentStatusConfig} />
           </div>
@@ -361,7 +361,7 @@ function ZonePanel({
 }) {
   if (!zone) {
     return (
-      <Card className="flex h-fit items-center justify-center p-10 text-center text-sm text-text-tertiary">
+      <Card className="flex h-full items-center justify-center p-10 text-center text-sm text-text-tertiary">
         {t("location.selectZoneHint")}
       </Card>
     );
@@ -370,15 +370,15 @@ function ZonePanel({
   const counts = countByStatus(items);
 
   return (
-    <Card className="h-fit overflow-hidden">
-      <div className="border-b border-border-secondary px-4 py-3">
+    <Card className="flex h-full flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-border-secondary px-4 py-3">
         <p className="text-sm font-semibold text-text-primary">{zone.name}</p>
         <p className="text-xs text-text-tertiary">
           {airportName} · {terminalName}
         </p>
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
         <div>
           <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.statusSummary")}</p>
           <div className="grid grid-cols-3 gap-2">

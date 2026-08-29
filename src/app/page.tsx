@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/data-display/KPICard";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -13,7 +12,8 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { PieChart } from "@/components/charts/PieChart";
 import { BarChart } from "@/components/charts/BarChart";
-import { equipment, airports, faults, notifications, airportName } from "@/lib/mock-data";
+import { UzbekistanMap } from "@/components/dashboard/UzbekistanMap";
+import { equipment, airports, faults, airportName } from "@/lib/mock-data";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { formatDate } from "@/lib/format";
@@ -28,14 +28,15 @@ const STATUS_CHART_COLOR: Record<string, string> = {
   requires_inspection: "var(--color-purple-500)",
 };
 
-// Stylized pin positions (percent of the map panel) — approximate relative
-// geography of the five airport cities used by this app's mock dataset.
+// Pin positions (percent of the 970×590 Uzbekistan map viewBox) — the
+// centroid of each city's own path in `uzbekistanRegions.ts` (toshkent_sh,
+// samarqand_sh, fargona_sh, buxoro_sh, urganch_sh).
 const CITY_POSITIONS: Record<string, { top: string; left: string }> = {
-  "air-tas": { top: "32%", left: "78%" },
-  "air-skd": { top: "58%", left: "42%" },
-  "air-fef": { top: "30%", left: "88%" },
-  "air-buk": { top: "55%", left: "20%" },
-  "air-uge": { top: "38%", left: "8%" },
+  "air-tas": { top: "52.2%", left: "71.6%" },
+  "air-skd": { top: "65.2%", left: "55.6%" },
+  "air-fef": { top: "35.4%", left: "63.2%" },
+  "air-buk": { top: "61.2%", left: "41.2%" },
+  "air-uge": { top: "26.6%", left: "19.7%" },
 };
 
 function pct(n: number, total: number) {
@@ -48,9 +49,8 @@ export default function DashboardPage() {
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
 
-  const [now, setNow] = useState<Date | null>(null);
+  const [now, setNow] = useState<Date | null>(() => new Date("2026-08-25T10:45:32"));
   useEffect(() => {
-    setNow(new Date("2026-08-25T10:45:32"));
     const id = setInterval(() => setNow((d) => (d ? new Date(d.getTime() + 1000) : d)), 1000);
     return () => clearInterval(id);
   }, []);
@@ -108,23 +108,6 @@ export default function DashboardPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader
-        title={t("dashboard.title")}
-        actions={
-          <>
-            <div className="text-right">
-              <p className="text-sm font-medium text-text-primary">{now ? formatDate(now.toISOString().slice(0, 10)) : ""}</p>
-              <p className="font-mono text-xs text-text-tertiary">
-                {now ? now.toLocaleTimeString("ru-RU", { hour12: false }) : "--:--:--"}
-              </p>
-            </div>
-            <Button hierarchy="secondary" icon="refresh" size="sm">
-              {t("dashboard.refresh")}
-            </Button>
-          </>
-        }
-      />
-
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-3 xl:grid-cols-6">
         <KPICard label={t("dashboard.totalEquipment")} value={total} meta={t("dashboard.units")} icon="cpu" tone="neutral" />
         <KPICard label={t("dashboard.operational")} value={byStatus.operational} meta={pct(byStatus.operational, total)} icon="check-circle" tone="success" />
@@ -135,16 +118,16 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-3">
-        <Card>
+        <Card className="flex h-full flex-col">
           <CardHeader>
             <CardTitle>{t("dashboard.equipmentStatus")}</CardTitle>
             <button className="flex items-center gap-1 text-xs text-text-quaternary hover:text-text-primary">
               <Icon name="refresh" size={13} />
             </button>
           </CardHeader>
-          <div className="p-4">
+          <div className="flex flex-1 items-center justify-center p-4">
             <PieChart
-              size={140}
+              size={180}
               centerLabel={String(total)}
               totalLabel={t("common.total")}
               data={(
@@ -169,24 +152,24 @@ export default function DashboardPage() {
           </p>
         </Card>
 
-        <Card>
+        <Card className="flex h-full flex-col">
           <CardHeader>
             <CardTitle>{t("dashboard.equipmentByType")}</CardTitle>
             <Dropdown className="w-40" placeholder={t("common.allAirports")} value="" onChange={() => {}} options={[]} />
           </CardHeader>
-          <div className="p-4">
+          <div className="flex-1 p-4">
             <BarChart
-              height={160}
-              seriesName={t("common.total")}
-              data={byType.slice(0, 5).map(([type, count]) => ({
-                label: type.length > 14 ? type.slice(0, 13) + "…" : type,
+              data={byType.slice(0, 6).map(([type, count]) => ({
+                label: type.length > 10 ? `${type.slice(0, 9)}…` : type,
                 value: count,
               }))}
+              height="100%"
+              seriesName={t("dashboard.equipmentByType")}
             />
           </div>
         </Card>
 
-        <Card className="overflow-hidden">
+        <Card className="flex h-full flex-col overflow-hidden">
           <CardHeader>
             <CardTitle>{t("dashboard.mapCard")}</CardTitle>
             <div className="flex items-center gap-1">
@@ -198,109 +181,111 @@ export default function DashboardPage() {
               </button>
             </div>
           </CardHeader>
-          <div className="relative h-[220px] bg-[linear-gradient(var(--border-secondary)_1px,transparent_1px),linear-gradient(90deg,var(--border-secondary)_1px,transparent_1px)] bg-[length:16px_16px] bg-bg-primary">
-            {byAirport.map(({ airport, total: t2, operational, faulty, maintenance, reserve }) => {
-              const pos = CITY_POSITIONS[airport.id];
-              if (!pos) return null;
-              const dominant = faulty > 0 ? "bg-error-500" : maintenance > 0 ? "bg-warning-500" : reserve > 0 && operational === 0 ? "bg-brand-400" : "bg-success-500";
-              return (
-                <div key={airport.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={{ top: pos.top, left: pos.left }}>
-                  <div className="flex flex-col items-center gap-1">
-                    <div className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow", dominant)}>
-                      {t2}
-                    </div>
-                    <span className="whitespace-nowrap text-[10px] font-medium text-text-tertiary">{airport.city}</span>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="relative min-h-[220px] flex-1 bg-bg-primary p-3">
+            <UzbekistanMap
+              className="h-full min-h-[196px] w-full"
+              markers={byAirport
+                .filter(({ airport }) => CITY_POSITIONS[airport.id])
+                .map(({ airport, total: t2, operational, faulty, maintenance, reserve }) => {
+                  const pos = CITY_POSITIONS[airport.id];
+                  const dominant = faulty > 0 ? "bg-error-500" : maintenance > 0 ? "bg-warning-500" : reserve > 0 && operational === 0 ? "bg-brand-400" : "bg-success-500";
+                  return {
+                    id: airport.id,
+                    top: pos.top,
+                    left: pos.left,
+                    label: airport.city,
+                    render: () => (
+                      <div className="flex flex-col items-center gap-1">
+                        <div className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow", dominant)}>
+                          {t2}
+                        </div>
+                        <span className="whitespace-nowrap text-[10px] font-medium text-text-tertiary">{airport.city}</span>
+                      </div>
+                    ),
+                  };
+                })}
+            />
           </div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-3">
-        <Card>
+      <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-2">
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>{t("dashboard.upcomingInspections")}</CardTitle>
             <Link href="/inspections" className="text-xs font-medium text-brand-400 hover:text-brand-300">
               {t("common.viewAll")}
             </Link>
           </CardHeader>
-          <ul className="divide-y divide-border-secondary">
-            {upcoming.map((eq) => {
-              const d = daysUntil(eq.nextInspectionAt);
-              return (
-                <li key={eq.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="min-w-0">
-                    <Link href={`/equipment/${eq.id}`} className="truncate text-sm font-medium text-text-primary hover:text-brand-400">
-                      {eq.name}
-                    </Link>
-                    <p className="truncate text-xs text-text-tertiary">{airportName(eq.airportId)}</p>
-                  </div>
-                  <span className="shrink-0 text-xs font-medium text-warning-400">
-                    {d != null && d >= 0
-                      ? `${t("dashboard.inDaysPrefix")} ${d} ${t("dashboard.inDaysSuffix")}`
-                      : formatDate(eq.nextInspectionAt)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
+                  <th className="px-4 py-2.5">{t("equipment.colEquipment")}</th>
+                  <th className="px-4 py-2.5">{t("equipment.colAirport")}</th>
+                  <th className="px-4 py-2.5">{t("equipment.colNextInspection")}</th>
+                  <th className="px-4 py-2.5 text-right">{t("dashboard.inDaysSuffix")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {upcoming.map((eq) => {
+                  const d = daysUntil(eq.nextInspectionAt);
+                  return (
+                    <tr key={eq.id} className="border-b border-border-secondary transition-colors last:border-0 hover:bg-bg-tertiary">
+                      <td className="px-4 py-2.5">
+                        <Link href={`/equipment/${eq.id}`} className="font-medium text-text-primary hover:text-brand-400">
+                          {eq.name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2.5 text-text-secondary">{airportName(eq.airportId)}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{formatDate(eq.nextInspectionAt)}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-warning-400">
+                        {d != null && d >= 0 ? `${t("dashboard.inDaysPrefix")} ${d} ${t("dashboard.inDaysSuffix")}` : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>{t("dashboard.faults")}</CardTitle>
             <Link href="/faults" className="text-xs font-medium text-brand-400 hover:text-brand-300">
               {t("common.viewAll")}
             </Link>
           </CardHeader>
-          <ul className="divide-y divide-border-secondary">
-            {activeFaults.map((f) => {
-              const eq = equipment.find((e) => e.id === f.equipmentId);
-              return (
-                <li key={f.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                  <div className="min-w-0">
-                    <Link href="/faults" className="truncate text-sm font-medium text-text-primary hover:text-brand-400">
-                      {eq?.name ?? f.title}
-                    </Link>
-                    <p className="truncate text-xs text-text-tertiary">{eq ? airportName(eq.airportId) : f.id}</p>
-                  </div>
-                  <StatusBadge status={faultStatusConfig[f.stage]} className="shrink-0" />
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("dashboard.notifications")}</CardTitle>
-            <Link href="/notifications" className="text-xs font-medium text-brand-400 hover:text-brand-300">
-              {t("common.viewAll")}
-            </Link>
-          </CardHeader>
-          <ul className="divide-y divide-border-secondary">
-            {notifications.map((n) => (
-              <li key={n.id} className="flex items-start gap-3 px-4 py-2.5">
-                <Icon
-                  name={n.severity === "critical" ? "alert-triangle" : n.severity === "warning" ? "clock" : "bell"}
-                  size={16}
-                  className={cn(
-                    "mt-0.5 shrink-0",
-                    n.severity === "critical" ? "text-error-400" : n.severity === "warning" ? "text-warning-400" : "text-brand-400"
-                  )}
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-text-primary">{n.title}</p>
-                  <p className="truncate text-xs text-text-tertiary">{n.description}</p>
-                </div>
-                <span className="shrink-0 text-xs text-text-quaternary">
-                  {new Date(`${n.createdAt}T${n.severity === "critical" ? "10:15" : n.severity === "warning" ? "10:30" : "09:45"}:00`).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
+                  <th className="px-4 py-2.5">{t("equipment.colEquipment")}</th>
+                  <th className="px-4 py-2.5">{t("equipment.colAirport")}</th>
+                  <th className="px-4 py-2.5 text-right">{t("equipment.colStatus")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activeFaults.map((f) => {
+                  const eq = equipment.find((e) => e.id === f.equipmentId);
+                  return (
+                    <tr key={f.id} className="border-b border-border-secondary transition-colors last:border-0 hover:bg-bg-tertiary">
+                      <td className="px-4 py-2.5">
+                        <Link href="/faults" className="font-medium text-text-primary hover:text-brand-400">
+                          {eq?.name ?? f.title}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-2.5 text-text-secondary">{eq ? airportName(eq.airportId) : f.id}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <StatusBadge status={faultStatusConfig[f.stage]} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
 

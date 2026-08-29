@@ -16,12 +16,12 @@ export default function EditEquipmentPage({ params }: { params: Promise<{ id: st
   if (!eq) notFound();
 
   return (
-    <div className="mx-auto max-w-3xl pb-8">
+    <div className="pb-8">
       <PageHeader
         title={`${t("equipment.edit.titlePrefix")} ${eq.name}`}
         context={`${eq.code} · ${t("equipment.edit.contextSuffix")}`}
       />
-      <div className="px-6 pt-5">
+      <div className="mx-auto max-w-3xl px-6 pt-5">
         <EquipmentForm
           mode="edit"
           initial={eq}
