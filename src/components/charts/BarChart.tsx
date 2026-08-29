@@ -1,6 +1,16 @@
 "use client";
 
-import ApexChart from "./ApexChart";
+import {
+  BarChart as ReBarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
 import { useChartTokens } from "./useChartTokens";
 import { categoricalColor } from "./palette";
 import { cn } from "@/lib/cn";
@@ -13,15 +23,16 @@ export interface BarDatum {
 
 interface BarChartProps {
   data: BarDatum[];
-  height?: number;
+  /** Fixed pixel height, or "100%" to fill a sized flex/grid parent. */
+  height?: number | string;
   formatValue?: (v: number) => string;
   /** Series name shown in the hover tooltip — pass a translated string. */
   seriesName?: string;
   className?: string;
 }
 
-/** Animated column chart (ApexCharts) — real hover tooltips, entrance
- * animation, per-bar color via `distributed` columns. */
+/** Animated column chart (Recharts) — real hover tooltips, entrance
+ * animation, per-bar color. */
 export function BarChart({
   data,
   height = 220,
@@ -29,53 +40,47 @@ export function BarChart({
   seriesName = "Value",
   className,
 }: BarChartProps) {
-  const { tokens, apexTheme } = useChartTokens();
-
-  const options = {
-    chart: {
-      type: "bar" as const,
-      toolbar: { show: false },
-      animations: { enabled: true, easing: "easeout" as const, speed: 500 },
-      foreColor: tokens["--text-tertiary"],
-      fontFamily: "inherit",
-    },
-    theme: { mode: apexTheme },
-    plotOptions: {
-      bar: { borderRadius: 4, borderRadiusApplication: "end" as const, columnWidth: "55%", distributed: true },
-    },
-    dataLabels: {
-      enabled: true,
-      style: { colors: [tokens["--text-secondary"]], fontSize: "13px", fontWeight: 500 },
-      offsetY: -20,
-      formatter: (v: number) => formatValue(v),
-    },
-    xaxis: {
-      categories: data.map((d) => d.label),
-      labels: { style: { colors: tokens["--text-quaternary"], fontSize: "12px" }, trim: true },
-      axisBorder: { show: false },
-      axisTicks: { show: false },
-    },
-    yaxis: { labels: { show: false }, max: (max: number) => max * 1.25 },
-    grid: {
-      borderColor: tokens["--border-secondary"],
-      strokeDashArray: 3,
-      yaxis: { lines: { show: true } },
-      xaxis: { lines: { show: false } },
-      padding: { left: 8, right: 8 },
-    },
-    colors: data.map((d, i) => d.color ?? categoricalColor(i)),
-    legend: { show: false },
-    tooltip: {
-      theme: apexTheme,
-      y: { formatter: (v: number) => formatValue(v) },
-    },
-  };
-
-  const series = [{ name: seriesName, data: data.map((d) => d.value) }];
+  const { tokens, resolveColor } = useChartTokens();
+  const max = data.reduce((m, d) => Math.max(m, d.value), 0);
 
   return (
-    <div className={cn("w-full [&_.apexcharts-tooltip]:!shadow-lg", className)}>
-      <ApexChart options={options} series={series} type="bar" height={height} width="100%" />
+    <div className={cn("w-full", className)} style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: typeof height === "number" ? height : 220 }}>
+        <ReBarChart data={data} margin={{ top: 24, right: 8, left: 8, bottom: 0 }}>
+          <CartesianGrid stroke={tokens["--border-secondary"]} strokeDasharray="3 3" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: tokens["--text-quaternary"], fontSize: 12 }}
+            interval={0}
+          />
+          <YAxis hide domain={[0, max * 1.25 || "auto"]} />
+          <Tooltip
+            cursor={{ fill: tokens["--bg-tertiary"], opacity: 0.5 }}
+            formatter={(value) => [formatValue(Number(value)), seriesName]}
+            contentStyle={{
+              background: tokens["--bg-tertiary"],
+              border: `1px solid ${tokens["--border-primary"]}`,
+              borderRadius: 8,
+              color: tokens["--text-primary"],
+              fontSize: 13,
+            }}
+            labelStyle={{ color: tokens["--text-secondary"] }}
+          />
+          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={false}>
+            {data.map((d, i) => (
+              <Cell key={d.label} fill={resolveColor(d.color ?? categoricalColor(i))} />
+            ))}
+            <LabelList
+              dataKey="value"
+              position="top"
+              formatter={(value) => formatValue(Number(value))}
+              style={{ fill: tokens["--text-secondary"], fontSize: 13, fontWeight: 500 }}
+            />
+          </Bar>
+        </ReBarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

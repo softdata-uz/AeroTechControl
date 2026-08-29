@@ -1,42 +1,52 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
-import { CountBadge } from "@/components/ui/Badge";
 import { LanguageMenu } from "./LanguageMenu";
-import { notifications } from "@/lib/mock-data";
+import { NotificationsMenu } from "./NotificationsMenu";
 import { useRole } from "@/lib/role-context";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslations } from "@/lib/locale-context";
 import { roleLabelKeys } from "@/config/roleAccess.config";
+import { formatDate } from "@/lib/format";
 
 export function Topbar() {
   const { user } = useRole();
   const { theme, toggleTheme } = useTheme();
   const t = useTranslations();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const pathname = usePathname();
+  const isDashboard = pathname === "/";
   const initials = user.fullName
     .split(" ")
     .map((p) => p[0])
     .join("")
     .slice(0, 2);
 
+  // Dashboard-only live clock, shown in the topbar's left slot. Other pages
+  // keep their own PageHeader.
+  const [now, setNow] = useState<Date | null>(() => new Date("2026-08-25T10:45:32"));
+  useEffect(() => {
+    if (!isDashboard) return;
+    const tick = setInterval(() => setNow((d) => (d ? new Date(d.getTime() + 1000) : d)), 1000);
+    return () => clearInterval(tick);
+  }, [isDashboard]);
+
   return (
     <header className="flex h-[75px] shrink-0 items-center justify-between border-b border-border-primary bg-bg-secondary px-6">
-      <div />
+      {isDashboard ? (
+        <div className="text-left">
+          <p className="text-sm font-medium text-text-primary">{now ? formatDate(now.toISOString().slice(0, 10)) : ""}</p>
+          <p className="font-mono text-xs text-text-tertiary">
+            {now ? now.toLocaleTimeString("ru-RU", { hour12: false }) : "--:--:--"}
+          </p>
+        </div>
+      ) : (
+        <div />
+      )}
       <div className="flex items-center gap-4">
-        <Link
-          href="/notifications"
-          aria-label={t("topbar.notifications")}
-          className="relative flex h-10 w-10 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
-        >
-          <Icon name="bell" size={20} />
-          {unreadCount > 0 && (
-            <span className="absolute right-1 top-1">
-              <CountBadge count={unreadCount} />
-            </span>
-          )}
-        </Link>
+        <NotificationsMenu />
         <button
           aria-label={t("topbar.help")}
           className="flex h-10 w-10 items-center justify-center rounded-lg text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
