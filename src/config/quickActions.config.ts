@@ -16,21 +16,21 @@ export interface QuickAction {
 export const quickActionGroups: Record<string, QuickAction[]> = {
   default: [
     { icon: "cpu", labelKey: "quickAction.addEquipment", href: "/equipment/new" },
-    { icon: "clipboard-check", labelKey: "quickAction.createInspection", href: "/inspections" },
+    { icon: "clipboard-check", labelKey: "quickAction.createInspection", href: "/documents?tab=inspections" },
     { icon: "alert-triangle", labelKey: "quickAction.createFault", href: "/faults" },
     { icon: "file-text", labelKey: "quickAction.addDocument", href: "/documents" },
   ],
-  "/inspections": [
-    { icon: "clipboard-check", labelKey: "inspections.newInspection", href: "/inspections" },
-    { icon: "wrench", labelKey: "quickAction.newMaintenance", href: "/inspections?tab=maintenance" },
+  "/documents": [
+    { icon: "clipboard-check", labelKey: "inspections.newInspection", href: "/documents?tab=inspections" },
+    { icon: "wrench", labelKey: "quickAction.createRepair", href: "/documents?tab=repairs" },
     { icon: "file-text", labelKey: "quickAction.createAct", href: "/documents" },
-    { icon: "camera", labelKey: "quickAction.uploadPhoto", href: "/inspections" },
+    { icon: "camera", labelKey: "quickAction.uploadPhoto", href: "/documents?tab=inspections" },
   ],
   "/faults": [
     { icon: "alert-triangle", labelKey: "quickAction.createFault", href: "/faults" },
     { icon: "users", labelKey: "quickAction.assignExecutor", href: "/faults" },
     { icon: "package", labelKey: "quickAction.createSparePartOrder", href: "/spare-parts" },
-    { icon: "wrench", labelKey: "quickAction.createRepair", href: "/repairs" },
+    { icon: "wrench", labelKey: "quickAction.createRepair", href: "/documents?tab=repairs" },
   ],
 };
 

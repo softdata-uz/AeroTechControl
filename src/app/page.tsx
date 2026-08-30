@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { KPICard } from "@/components/data-display/KPICard";
-import { EquipmentTable } from "@/components/data-display/EquipmentTable";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
@@ -55,9 +52,6 @@ export default function DashboardPage() {
     return () => clearInterval(id);
   }, []);
 
-  const [tableAirportFilter, setTableAirportFilter] = useState("");
-  const [tableSearch, setTableSearch] = useState("");
-
   const total = equipment.length;
   const byStatus = {
     operational: equipment.filter((e) => e.status === "operational").length,
@@ -89,16 +83,6 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const activeFaults = faults.filter((f) => f.stage !== "closed").slice(0, 5);
-
-  const tableItems = useMemo(() => {
-    let items = equipment;
-    if (tableAirportFilter) items = items.filter((e) => e.airportId === tableAirportFilter);
-    if (tableSearch) {
-      const q = tableSearch.toLowerCase();
-      items = items.filter((e) => e.name.toLowerCase().includes(q) || e.code.toLowerCase().includes(q));
-    }
-    return items.slice(0, 8);
-  }, [tableAirportFilter, tableSearch]);
 
   function daysUntil(dateStr: string | null) {
     if (!dateStr || !now) return null;
@@ -213,7 +197,7 @@ export default function DashboardPage() {
         <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>{t("dashboard.upcomingInspections")}</CardTitle>
-            <Link href="/inspections" className="text-xs font-medium text-brand-400 hover:text-brand-300">
+            <Link href="/documents?tab=inspections" className="text-xs font-medium text-brand-400 hover:text-brand-300">
               {t("common.viewAll")}
             </Link>
           </CardHeader>
@@ -286,40 +270,6 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
-        </Card>
-      </div>
-
-      <div className="px-6 pt-4">
-        <Card className="overflow-hidden">
-          <CardHeader>
-            <CardTitle>{t("dashboard.equipment")}</CardTitle>
-            <Link href="/equipment" className="text-xs font-medium text-brand-400 hover:text-brand-300">
-              {t("dashboard.viewFullRegistry")}
-            </Link>
-          </CardHeader>
-          <div className="flex flex-wrap items-center gap-2 border-b border-border-secondary px-4 py-2.5">
-            <Dropdown
-              className="w-48"
-              placeholder={t("common.allAirports")}
-              value={tableAirportFilter}
-              onChange={setTableAirportFilter}
-              options={airports.map((a) => ({ value: a.id, label: a.city }))}
-            />
-            <div className="flex-1" />
-            <Input
-              icon="search"
-              placeholder={t("equipment.searchPlaceholder")}
-              className="w-56"
-              value={tableSearch}
-              onChange={(e) => setTableSearch(e.target.value)}
-            />
-            <Link href="/equipment/new">
-              <Button hierarchy="primary" icon="plus" size="sm">
-                {t("common.add")}
-              </Button>
-            </Link>
-          </div>
-          <EquipmentTable items={tableItems} full />
         </Card>
       </div>
     </div>

@@ -21,7 +21,7 @@ const severityMeta: Record<NotificationItem["severity"], { icon: IconName; class
 const entityHref: Record<NotificationItem["entityType"], (id: string) => string> = {
   equipment: (id) => `/equipment/${id}`,
   fault: () => `/faults`,
-  inspection: () => `/inspections`,
+  inspection: () => `/documents?tab=inspections`,
   spare_part: () => `/spare-parts`,
 };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/data-display/KPICard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -27,7 +26,7 @@ import { useTranslations } from "@/lib/locale-context";
 
 const PAGE_SIZE = 10;
 
-export function InspectionsClient() {
+export function InspectionsSection() {
   const t = useTranslations();
   const inspectionStatusConfig = getInspectionStatusConfig(t);
   const checklistResultConfig = getChecklistResultConfig(t);
@@ -154,21 +153,7 @@ export function InspectionsClient() {
     type === "periodic" ? t("inspections.typePeriodic") : type === "unscheduled" ? t("inspections.typeUnscheduled") : t("inspections.typePostRepair");
 
   return (
-    <div className="pb-8">
-      <PageHeader
-        title={t("inspections.title")}
-        actions={
-          <>
-            <Button hierarchy="secondary" icon="download" size="sm">
-              {t("common.export")}
-            </Button>
-            <Button hierarchy="primary" icon="plus" size="sm">
-              {t("inspections.newInspection")}
-            </Button>
-          </>
-        }
-      />
-
+    <>
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-5">
         <KPICard label={t("inspections.kpiTotal")} value={kpi.total} meta={t("inspections.kpiPeriod")} icon="clipboard-check" tone="neutral" />
         <KPICard
@@ -230,6 +215,9 @@ export function InspectionsClient() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
+            <Button hierarchy="primary" icon="plus" size="sm">
+              {t("inspections.newInspection")}
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 gap-4 px-6 pt-4 2xl:grid-cols-[320px_1fr_380px]">
@@ -568,7 +556,7 @@ export function InspectionsClient() {
           </div>
         </>
       )}
-    </div>
+    </>
   );
 }
 

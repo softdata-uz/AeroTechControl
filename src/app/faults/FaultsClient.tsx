@@ -429,19 +429,6 @@ function FaultDetailPanel({
           </Button>
         </div>
       </div>
-
-      <div className="space-y-2 border-t border-border-secondary p-4">
-        <p className="mb-1 text-xs font-medium text-text-quaternary">{t("faults.actions")}</p>
-        <Button hierarchy="primary" className="w-full justify-center" size="sm">
-          {t("faults.assignExecutor")}
-        </Button>
-        <Button hierarchy="secondary" className="w-full justify-center" size="sm">
-          {t("faults.createSparePartOrder")}
-        </Button>
-        <Button hierarchy="destructive" className="w-full justify-center" size="sm">
-          {t("faults.closeFault")}
-        </Button>
-      </div>
     </Card>
   );
 }

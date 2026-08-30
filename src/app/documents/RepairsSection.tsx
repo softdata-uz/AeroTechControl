@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/data-display/KPICard";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +20,7 @@ import { useTranslations } from "@/lib/locale-context";
 
 const REPAIR_STATUS_ORDER: RepairStatus[] = ["planned", "in_progress", "waiting_parts", "completed", "verified"];
 
-export function RepairsClient() {
+export function RepairsSection() {
   const t = useTranslations();
   const repairStatusConfig = getRepairStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
@@ -92,27 +91,19 @@ export function RepairsClient() {
   }
 
   return (
-    <div className="pb-8">
-      <PageHeader
-        title={t("repairs.title")}
-        actions={
-          <>
-            <Button hierarchy="secondary" icon="download" size="sm">
-              {t("common.export")}
-            </Button>
-            <Button hierarchy="primary" icon="plus" size="sm">
-              {t("repairs.newRepair")}
-            </Button>
-          </>
-        }
-      />
-
+    <>
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-5">
         <KPICard label={t("repairs.kpiTotal")} value={kpi.total} icon="wrench" tone="neutral" />
         <KPICard label={t("repairs.kpiInProgress")} value={kpi.inProgress} icon="clock" tone="warning" />
         <KPICard label={t("repairs.kpiWaitingParts")} value={kpi.waitingParts} icon="package" tone="brand" />
         <KPICard label={t("repairs.kpiCompleted")} value={kpi.completed} icon="check-circle" tone="success" />
         <KPICard label={t("repairs.kpiVerified")} value={kpi.verified} icon="shield" tone="success" />
+      </div>
+
+      <div className="flex items-center justify-end px-6 pt-4">
+        <Button hierarchy="primary" icon="plus" size="sm">
+          {t("repairs.newRepair")}
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[1fr_360px]">
@@ -306,7 +297,7 @@ export function RepairsClient() {
           </Card>
         )}
       </div>
-    </div>
+    </>
   );
 }
 

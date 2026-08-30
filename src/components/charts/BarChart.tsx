@@ -46,7 +46,18 @@ export function BarChart({
   return (
     <div className={cn("w-full", className)} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: typeof height === "number" ? height : 220 }}>
-        <ReBarChart data={data} margin={{ top: 24, right: 8, left: 8, bottom: 0 }}>
+        <ReBarChart data={data} margin={{ top: 24, right: 8, left: 8, bottom: 0 }} barCategoryGap="35%">
+          <defs>
+            {data.map((d, i) => {
+              const color = resolveColor(d.color ?? categoricalColor(i));
+              return (
+                <linearGradient key={d.label} id={`bar-gradient-${i}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={color} stopOpacity={1} />
+                  <stop offset="100%" stopColor={color} stopOpacity={0.55} />
+                </linearGradient>
+              );
+            })}
+          </defs>
           <CartesianGrid stroke={tokens["--border-secondary"]} strokeDasharray="3 3" vertical={false} />
           <XAxis
             dataKey="label"
@@ -68,9 +79,9 @@ export function BarChart({
             }}
             labelStyle={{ color: tokens["--text-secondary"] }}
           />
-          <Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={48} isAnimationActive={false}>
+          <Bar dataKey="value" radius={[10, 10, 0, 0]} maxBarSize={24} isAnimationActive={false}>
             {data.map((d, i) => (
-              <Cell key={d.label} fill={resolveColor(d.color ?? categoricalColor(i))} />
+              <Cell key={d.label} fill={`url(#bar-gradient-${i})`} />
             ))}
             <LabelList
               dataKey="value"

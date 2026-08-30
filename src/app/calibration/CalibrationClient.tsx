@@ -60,14 +60,7 @@ export function CalibrationClient() {
     <div className="pb-8">
       <PageHeader title={t("calibration.title")} context={`${t("calibration.totalEquipmentSuffix")} ${kpi.total}`} />
 
-      <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4">
-        <KPICard label={t("calibration.kpiTotal")} value={kpi.total} icon="gauge" tone="neutral" />
-        <KPICard label={t("calibration.kpiOverdue")} value={kpi.overdue} icon="alert-triangle" tone="error" />
-        <KPICard label={t("calibration.kpiUpcoming")} value={kpi.upcoming} icon="clock" tone="warning" />
-        <KPICard label={t("calibration.kpiPlanned")} value={kpi.planned} icon="clipboard-check" tone="brand" />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 px-6 pt-4">
+      <div className="flex flex-wrap items-center gap-2 px-6 pt-5">
         <Dropdown
           className="w-52"
           placeholder={t("common.allAirports")}
@@ -90,6 +83,13 @@ export function CalibrationClient() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 px-6 pt-4 sm:grid-cols-4">
+        <KPICard label={t("calibration.kpiTotal")} value={kpi.total} icon="gauge" tone="neutral" />
+        <KPICard label={t("calibration.kpiOverdue")} value={kpi.overdue} icon="alert-triangle" tone="error" />
+        <KPICard label={t("calibration.kpiUpcoming")} value={kpi.upcoming} icon="clock" tone="warning" />
+        <KPICard label={t("calibration.kpiPlanned")} value={kpi.planned} icon="clipboard-check" tone="brand" />
       </div>
 
       <div className="px-6 pt-4">

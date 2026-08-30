@@ -67,9 +67,9 @@ export function PieChart({
               nameKey="label"
               innerRadius="66%"
               outerRadius="92%"
-              paddingAngle={data.length > 1 ? 2 : 0}
-              stroke={tokens["--bg-secondary"]}
-              strokeWidth={2}
+              paddingAngle={data.length > 1 ? 6 : 0}
+              cornerRadius={8}
+              stroke="none"
               isAnimationActive={false}
             >
               {data.map((d, i) => (
@@ -102,17 +102,20 @@ export function PieChart({
         </div>
       </div>
 
-      <ul className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-2">
+      <ul className="flex w-full flex-wrap items-center justify-center gap-1.5">
         {data.map((d, i) => {
           const pct = total ? Math.round((d.value / total) * 100) : 0;
           return (
-            <li key={d.label} className="flex shrink-0 items-center gap-2 text-xs text-text-secondary">
+            <li
+              key={d.label}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-bg-tertiary px-2.5 py-1 text-xs text-text-secondary"
+            >
               <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                className="h-2 w-2 shrink-0 rounded-full"
                 style={{ backgroundColor: resolveColor(d.color ?? categoricalColor(i)) }}
               />
               <span className="whitespace-nowrap">
-                {d.label}: {formatValue(d.value)} ({pct}%)
+                {d.label}: <span className="font-medium text-text-primary">{formatValue(d.value)}</span> ({pct}%)
               </span>
             </li>
           );
