@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
+import { Pagination } from "@/components/ui/Pagination";
 import { airportName, airports } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import type { UserRole } from "@/lib/types";
@@ -15,6 +16,8 @@ import { useAsync } from "@/hooks/useAsync";
 import { usersService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 import { roleLabelKeys } from "@/config/roleAccess.config";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const roleChipClass: Record<UserRole, string> = {
   administrator: "bg-(--chip-brand-bg) text-(--chip-brand-text) border-(--chip-brand-border)",
@@ -32,21 +35,32 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput), 300);
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [roleFilter, airportFilter, search, pageSize]);
+
   const filters = {
     role: roleFilter || undefined,
     airportId: airportFilter || undefined,
     search: search || undefined,
-    pageSize: 100,
+    page,
+    pageSize,
   };
 
   const { data, loading, error, refetch } = useUsersList(filters);
   const users = useMemo(() => data?.items ?? [], [data]);
+  const total = data?.total ?? 0;
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // Total user count for the page header, independent of the table filters.
   const { data: allUsersPage } = useAsync(() => usersService.listUsers({ pageSize: 1000 }), []);
@@ -63,7 +77,7 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="pb-8">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader
         title={t("users.title")}
         context={`${t("users.totalSuffix")} ${totalUsers}`}
@@ -79,7 +93,7 @@ export default function UsersPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2 px-6 pt-5">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pt-5">
         <Dropdown
           className="w-56"
           placeholder={t("common.allRoles")}
@@ -104,8 +118,9 @@ export default function UsersPage() {
         />
       </div>
 
-      <div className="px-6 pt-4">
-        <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+      <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+          <div className="min-h-0 flex-1">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
               <p className="text-sm text-text-secondary">{t("users.loadError")}</p>
@@ -124,9 +139,9 @@ export default function UsersPage() {
               <p className="text-xs text-text-tertiary">{t("users.changeFilters")}</p>
             </div>
           ) : (
-          <div className="overflow-x-auto">
+          <div className="h-full overflow-auto">
             <table className="w-full min-w-[760px] border-collapse text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-bg-secondary">
                 <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
                   <th className="px-4 py-2.5">{t("users.colUser")}</th>
                   <th className="px-4 py-2.5">{t("users.colRole")}</th>
@@ -212,6 +227,24 @@ export default function UsersPage() {
             </table>
           </div>
           )}
+          </div>
+          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
+            <div className="flex items-center gap-2">
+              <span>{t("common.showingPerPage")}</span>
+              <Dropdown
+                className="w-20"
+                value={String(pageSize)}
+                onChange={(value) => setPageSize(Number(value))}
+                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span>
+                {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
+              </span>
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { Pagination } from "@/components/ui/Pagination";
 import { Icon, type IconName } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import type { NotificationItem } from "@/lib/types";
 import { useNotificationsList } from "@/hooks/useNotificationsList";
+import { useAsync } from "@/hooks/useAsync";
 import { notificationsService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const severityMeta: Record<NotificationItem["severity"], { icon: IconName; className: string }> = {
   critical: { icon: "alert-triangle", className: "text-error-400" },
@@ -27,28 +32,42 @@ const entityHref: Record<NotificationItem["entityType"], (id: string) => string>
 
 export function NotificationsClient() {
   const t = useTranslations();
-  const { data, loading, error, refetch } = useNotificationsList({ pageSize: 100 });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  useEffect(() => setPage(1), [pageSize]);
+
+  const { data, loading, error, refetch } = useNotificationsList({ page, pageSize });
   const items = data?.items ?? [];
-  const unreadCount = items.filter((n) => !n.read).length;
+  const total = data?.total ?? 0;
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [markingAll, setMarkingAll] = useState(false);
+
+  // Unread count reflects the full notification set, independent of the current page.
+  const { data: allNotificationsPage, refetch: refetchUnread } = useAsync(
+    () => notificationsService.listNotifications({ pageSize: 1000 }),
+    []
+  );
+  const unreadCount = (allNotificationsPage?.items ?? []).filter((n) => !n.read).length;
 
   async function markRead(id: string) {
     await notificationsService.markAsRead(id);
-    refetch();
+    await Promise.all([refetch(), refetchUnread()]);
   }
 
   async function markAllRead() {
     setMarkingAll(true);
     try {
       await notificationsService.markAllAsRead();
-      await refetch();
+      await Promise.all([refetch(), refetchUnread()]);
     } finally {
       setMarkingAll(false);
     }
   }
 
   return (
-    <div className="pb-8">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader
         title={t("notifications.title")}
         context={unreadCount > 0 ? `${t("notifications.unreadPrefix")} ${unreadCount}` : t("notifications.allRead")}
@@ -61,8 +80,9 @@ export function NotificationsClient() {
         }
       />
 
-      <div className="px-6 pt-4">
-        <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+      <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+          <div className="min-h-0 flex-1 overflow-y-auto">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
               <p className="text-sm text-text-secondary">{t("notifications.loadError")}</p>
@@ -115,6 +135,24 @@ export function NotificationsClient() {
               })}
             </ul>
           )}
+          </div>
+          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
+            <div className="flex items-center gap-2">
+              <span>{t("common.showingPerPage")}</span>
+              <Dropdown
+                className="w-20"
+                value={String(pageSize)}
+                onChange={(value) => setPageSize(Number(value))}
+                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span>
+                {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
+              </span>
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

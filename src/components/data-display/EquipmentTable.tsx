@@ -14,15 +14,17 @@ interface EquipmentTableProps {
   /** compact: dashboard/location panels (fewer columns). full: the Equipment Registry page (every column + row actions). */
   compact?: boolean;
   full?: boolean;
+  /** Fills a bounded-height flex parent and scrolls internally (both axes) instead of expanding with the page — the Equipment Registry page's fixed-header layout. */
+  scrollable?: boolean;
 }
 
-export function EquipmentTable({ items, compact = false, full = false }: EquipmentTableProps) {
+export function EquipmentTable({ items, compact = false, full = false, scrollable = false }: EquipmentTableProps) {
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   return (
-    <div className="overflow-x-auto">
+    <div className={scrollable ? "h-full overflow-auto" : "overflow-x-auto"}>
       <table className={full ? "w-full min-w-[1400px] border-collapse text-sm" : "w-full min-w-[860px] border-collapse text-sm"}>
-        <thead>
+        <thead className="sticky top-0 z-10 bg-bg-secondary">
           <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
             <th className="px-4 py-2.5">{t("equipment.colId")}</th>
             <th className="px-4 py-2.5">{t("equipment.colEquipment")}</th>

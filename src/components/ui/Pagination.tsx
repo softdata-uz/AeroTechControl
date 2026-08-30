@@ -8,13 +8,11 @@ interface PaginationProps {
   page: number;
   totalPages: number;
   onChange: (page: number) => void;
-  /** Show « first / last » jump buttons in addition to ‹ prev / next ›. */
-  showEdges?: boolean;
   className?: string;
 }
 
-/** Numbered pager — « ‹ 1 2 3 … N › » — used by every paginated table/list. */
-export function Pagination({ page, totalPages, onChange, showEdges = false, className }: PaginationProps) {
+/** Numbered pager — ‹ 1 2 3 … N › — used by every paginated table/list. */
+export function Pagination({ page, totalPages, onChange, className }: PaginationProps) {
   const t = useTranslations();
   if (totalPages <= 1) return null;
 
@@ -25,13 +23,7 @@ export function Pagination({ page, totalPages, onChange, showEdges = false, clas
   }
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
-      {showEdges && (
-        <IconBtn label={t("common.previousPage")} disabled={page <= 1} onClick={() => onChange(1)}>
-          <Icon name="chevron-left" size={12} />
-          <Icon name="chevron-left" size={12} className="-ml-2.5" />
-        </IconBtn>
-      )}
+    <div className={cn("flex items-center gap-1.5", className)}>
       <IconBtn label={t("common.previousPage")} disabled={page <= 1} onClick={() => onChange(Math.max(1, page - 1))}>
         <Icon name="chevron-left" size={14} />
       </IconBtn>
@@ -45,7 +37,7 @@ export function Pagination({ page, totalPages, onChange, showEdges = false, clas
             key={p}
             onClick={() => onChange(p)}
             className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md text-xs font-medium transition-colors",
+              "flex h-10 w-10 items-center justify-center rounded-md text-xs font-medium transition-colors",
               p === page ? "bg-brand-600 text-white" : "text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary"
             )}
           >
@@ -56,12 +48,6 @@ export function Pagination({ page, totalPages, onChange, showEdges = false, clas
       <IconBtn label={t("common.nextPage")} disabled={page >= totalPages} onClick={() => onChange(Math.min(totalPages, page + 1))}>
         <Icon name="chevron-right" size={14} />
       </IconBtn>
-      {showEdges && (
-        <IconBtn label={t("common.nextPage")} disabled={page >= totalPages} onClick={() => onChange(totalPages)}>
-          <Icon name="chevron-right" size={12} />
-          <Icon name="chevron-right" size={12} className="-ml-2.5" />
-        </IconBtn>
-      )}
     </div>
   );
 }
@@ -82,7 +68,7 @@ function IconBtn({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-7 items-center justify-center rounded-md px-1 text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30"
+      className="flex h-10 w-10 items-center justify-center rounded-md border border-border-primary text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30"
     >
       {children}
     </button>

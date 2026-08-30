@@ -16,7 +16,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { equipmentService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export default function EquipmentRegistryPage() {
   const router = useRouter();
@@ -28,6 +28,7 @@ export default function EquipmentRegistryPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
   // Debounce free-text search so we don't re-query on every keystroke.
   useEffect(() => {
@@ -35,10 +36,10 @@ export default function EquipmentRegistryPage() {
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
-  // Filters changed -> back to page 1.
+  // Filters or page size changed -> back to page 1.
   useEffect(() => {
     setPage(1);
-  }, [airportFilter, typeFilter, statusFilter, search]);
+  }, [airportFilter, typeFilter, statusFilter, search, pageSize]);
 
   const { data: typesData } = useAsync(() => equipmentService.listEquipmentTypes(), []);
   const equipmentTypes = typesData ?? [];
@@ -49,17 +50,17 @@ export default function EquipmentRegistryPage() {
     status: statusFilter || undefined,
     search: search || undefined,
     page,
-    pageSize: PAGE_SIZE,
+    pageSize,
   });
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
-  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const rangeEnd = Math.min(page * PAGE_SIZE, total);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <div className="pb-8">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader
         title={t("equipment.title")}
         context={`${t("equipment.totalRecords")} ${total}`}
@@ -78,7 +79,7 @@ export default function EquipmentRegistryPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
         <Dropdown
           className="w-56"
           placeholder={t("common.allAirports")}
@@ -113,35 +114,45 @@ export default function EquipmentRegistryPage() {
         </Button>
       </div>
 
-      <div className="px-6 pt-4">
-        <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
-          {error ? (
-            <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">{t("equipment.loadError")}</p>
-              <p className="text-xs text-text-tertiary">{error}</p>
-              <Button hierarchy="secondary" size="sm" onClick={refetch}>
-                {t("common.retry")}
-              </Button>
+      <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+          <div className="min-h-0 flex-1">
+            {error ? (
+              <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
+                <p className="text-sm text-text-secondary">{t("equipment.loadError")}</p>
+                <p className="text-xs text-text-tertiary">{error}</p>
+                <Button hierarchy="secondary" size="sm" onClick={refetch}>
+                  {t("common.retry")}
+                </Button>
+              </div>
+            ) : loading ? (
+              <div className="flex items-center justify-center px-4 py-16 text-sm text-text-tertiary">
+                {t("equipment.loading")}
+              </div>
+            ) : items.length === 0 ? (
+              <div className="flex flex-col items-center gap-1 px-4 py-16 text-center">
+                <p className="text-sm text-text-secondary">{t("equipment.notFound")}</p>
+                <p className="text-xs text-text-tertiary">{t("equipment.changeFilters")}</p>
+              </div>
+            ) : (
+              <EquipmentTable items={items} full scrollable />
+            )}
+          </div>
+          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
+            <div className="flex items-center gap-2">
+              <span>{t("common.showingPerPage")}</span>
+              <Dropdown
+                className="w-20"
+                value={String(pageSize)}
+                onChange={(value) => setPageSize(Number(value))}
+                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
+              />
             </div>
-          ) : loading ? (
-            <div className="flex items-center justify-center px-4 py-16 text-sm text-text-tertiary">
-              {t("equipment.loading")}
-            </div>
-          ) : items.length === 0 ? (
-            <div className="flex flex-col items-center gap-1 px-4 py-16 text-center">
-              <p className="text-sm text-text-secondary">{t("equipment.notFound")}</p>
-              <p className="text-xs text-text-tertiary">{t("equipment.changeFilters")}</p>
-            </div>
-          ) : (
-            <EquipmentTable items={items} full />
-          )}
-          <div className="flex items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
-            <span>{t("common.showingPerPage")} {PAGE_SIZE}</span>
             <div className="flex items-center gap-3">
               <span>
                 {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
               </span>
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} showEdges />
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
             </div>
           </div>
         </div>

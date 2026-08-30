@@ -34,14 +34,16 @@ export function DocumentsClient() {
   ] as const;
 
   return (
-    <div className="pb-8">
+    <div className="flex h-full min-h-0 flex-col">
       <PageHeader title={t(sectionTitleKey[section])} />
 
-      <Tabs items={sectionTabs} value={section} onChange={setSection} className="px-6 pt-3" />
+      <Tabs items={sectionTabs} value={section} onChange={setSection} className="shrink-0 px-6 pt-3" />
 
-      {section === "documents" && <DocumentsSection />}
-      {section === "inspections" && <InspectionsSection />}
-      {section === "repairs" && <RepairsSection />}
+      <div className="flex min-h-0 flex-1 flex-col">
+        {section === "documents" && <DocumentsSection />}
+        {section === "inspections" && <InspectionsSection />}
+        {section === "repairs" && <RepairsSection />}
+      </div>
     </div>
   );
 }

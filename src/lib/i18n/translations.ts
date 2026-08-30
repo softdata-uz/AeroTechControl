@@ -659,10 +659,6 @@ const ru = {
   "nav.checklists": "Чек-листы",
   "nav.actsAndProtocols": "Акты и протоколы",
 
-  // Footer bar (under main content, every page)
-  "footer.copyright": "© 2026 Система учета, контроля и технического обслуживания. Все права защищены.",
-  "footer.version": "Версия 1.0.0",
-
   // Common — additions
   "common.add": "Добавить",
   "common.viewAll": "Смотреть все",
@@ -1332,9 +1328,6 @@ const uz: Record<TranslationKey, string> = {
   "nav.checklists": "Nazorat varaqalari",
   "nav.actsAndProtocols": "Dalolatnomalar va bayonnomalar",
 
-  "footer.copyright": "© 2026 Hisob-kitob, nazorat va texnik xizmat ko'rsatish tizimi. Barcha huquqlar himoyalangan.",
-  "footer.version": "Versiya 1.0.0",
-
   "common.add": "Qo'shish",
   "common.viewAll": "Barchasini ko'rish",
   "common.list": "Ro'yxat",
@@ -1998,9 +1991,6 @@ const en: Record<TranslationKey, string> = {
   "nav.maintenanceSchedule": "Maintenance Schedule",
   "nav.checklists": "Checklists",
   "nav.actsAndProtocols": "Acts & Protocols",
-
-  "footer.copyright": "© 2026 Equipment Accounting, Control and Maintenance System. All rights reserved.",
-  "footer.version": "Version 1.0.0",
 
   "common.add": "Add",
   "common.viewAll": "View all",

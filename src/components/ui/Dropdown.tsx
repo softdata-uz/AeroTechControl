@@ -52,15 +52,27 @@ export function Dropdown({
   const t = useTranslations();
   const resolvedPlaceholder = placeholder ?? t("common.selectPlaceholder");
   const [open, setOpen] = useState(false);
-  const [coords, setCoords] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   const selected = options.find((o) => o.value === value) ?? null;
 
+  /** Menu opens below the trigger by default; flips above it when there
+   * isn't enough room below (e.g. a footer pager pinned near the bottom
+   * of the viewport) but there's clearly more room above. */
   function place() {
     const rect = triggerRef.current?.getBoundingClientRect();
-    if (rect) setCoords({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    if (!rect) return;
+    const MENU_MAX_HEIGHT = 288; // matches max-h-72 on the popover
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    const openAbove = spaceBelow < MENU_MAX_HEIGHT && spaceAbove > spaceBelow;
+    setCoords(
+      openAbove
+        ? { bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width }
+        : { top: rect.bottom + 4, left: rect.left, width: rect.width }
+    );
   }
 
   function openMenu() {
@@ -137,7 +149,7 @@ export function Dropdown({
           <div
             ref={popoverRef}
             role="listbox"
-            style={{ position: "fixed", top: coords.top, left: coords.left, minWidth: coords.width }}
+            style={{ position: "fixed", top: coords.top, bottom: coords.bottom, left: coords.left, minWidth: coords.width }}
             className="z-[60] max-h-72 overflow-y-auto rounded-lg border border-border-primary bg-bg-secondary p-1 shadow-lg"
           >
             {options.length === 0 && <p className="px-3 py-2 text-xs text-text-quaternary">{t("common.noOptions")}</p>}

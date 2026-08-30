@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon, type IconName } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
+import { Pagination } from "@/components/ui/Pagination";
 import { getDocumentStatusConfig } from "@/config/repairStatus.config";
 import { equipmentById } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
@@ -18,6 +19,8 @@ import { documentsService } from "@/services";
 import { UploadDocumentModal } from "./UploadDocumentModal";
 import { useTranslations } from "@/lib/locale-context";
 import type { TranslationKey } from "@/lib/i18n/translations";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const typeMetaKeys: Record<EquipmentDocument["type"], { labelKey: TranslationKey; icon: IconName }> = {
   certificate: { labelKey: "documents.type.certificate", icon: "shield" },
@@ -38,21 +41,32 @@ export function DocumentsSection() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput), 300);
     return () => clearTimeout(timeout);
   }, [searchInput]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [typeFilter, statusFilter, search, pageSize]);
+
   const filters = {
     type: typeFilter || undefined,
     status: statusFilter || undefined,
     search: search || undefined,
-    pageSize: 100,
+    page,
+    pageSize,
   };
 
   const { data, loading, error, refetch } = useDocumentsList(filters);
   const documents = useMemo(() => data?.items ?? [], [data]);
+  const total = data?.total ?? 0;
+  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, total);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // KPI cards reflect the full document set, independent of the table filters.
   const { data: allDocsPage, refetch: refetchKpi } = useAsync(
@@ -76,15 +90,15 @@ export function DocumentsSection() {
   }
 
   return (
-    <>
-      <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="grid shrink-0 grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4">
         <KPICard label={t("documents.kpiActive")} value={kpi.active} icon="check-circle" tone="success" />
         <KPICard label={t("documents.kpiExpiring")} value={kpi.expiring} icon="clock" tone="warning" />
         <KPICard label={t("documents.kpiExpired")} value={kpi.expired} icon="alert-triangle" tone="error" />
         <KPICard label={t("documents.kpiArchived")} value={kpi.archived} icon="layers" tone="neutral" />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 px-6 pt-4">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 pt-4">
         <div className="flex flex-wrap items-center gap-2">
           <Dropdown
             className="w-56"
@@ -113,8 +127,9 @@ export function DocumentsSection() {
         </Button>
       </div>
 
-      <div className="px-6 pt-4">
-        <div className="overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+      <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border-primary bg-bg-secondary">
+          <div className="min-h-0 flex-1">
           {error ? (
             <div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
               <p className="text-sm text-text-secondary">{t("documents.loadError")}</p>
@@ -133,9 +148,9 @@ export function DocumentsSection() {
               <p className="text-xs text-text-tertiary">{t("documents.changeFilters")}</p>
             </div>
           ) : (
-          <div className="overflow-x-auto">
+          <div className="h-full overflow-auto">
             <table className="w-full min-w-[860px] border-collapse text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-bg-secondary">
                 <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
                   <th className="px-4 py-2.5">{t("documents.colDocument")}</th>
                   <th className="px-4 py-2.5">{t("documents.colEquipment")}</th>
@@ -204,6 +219,24 @@ export function DocumentsSection() {
             </table>
           </div>
           )}
+          </div>
+          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
+            <div className="flex items-center gap-2">
+              <span>{t("common.showingPerPage")}</span>
+              <Dropdown
+                className="w-20"
+                value={String(pageSize)}
+                onChange={(value) => setPageSize(Number(value))}
+                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
+              />
+            </div>
+            <div className="flex items-center gap-3">
+              <span>
+                {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
+              </span>
+              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -213,6 +246,6 @@ export function DocumentsSection() {
         onCreated={handleDocumentCreated}
         typeMeta={typeMeta}
       />
-    </>
+    </div>
   );
 }
