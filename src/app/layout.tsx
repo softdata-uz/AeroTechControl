@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { AppShell } from "@/components/layout/AppShell";
 import { RoleProvider } from "@/lib/role-context";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/lib/theme-context";
 import { LocaleProvider, LOCALE_INIT_SCRIPT } from "@/lib/locale-context";
@@ -30,9 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <LocaleProvider>
-            <RoleProvider>
-              <AppShell>{children}</AppShell>
-            </RoleProvider>
+            <RoleProvider>{children}</RoleProvider>
           </LocaleProvider>
         </ThemeProvider>
       </body>

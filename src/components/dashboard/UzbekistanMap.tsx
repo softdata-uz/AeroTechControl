@@ -1,14 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import regions, { type UzRegion } from "@/data/uzbekistanRegions";
 import { cn } from "@/lib/cn";
 
+const VB_W = 970;
+const VB_H = 590;
+
+/** Display names for the map's top-level region shapes, keyed by their `type` slug. */
+const REGION_NAME: Record<string, string> = {
+  orol: "Orolbo'yi",
+  andijan: "Andijon viloyati",
+  bukhara: "Buxoro viloyati",
+  fergana: "Farg'ona viloyati",
+  jizzakh: "Jizzax viloyati",
+  namangan: "Namangan viloyati",
+  navoi: "Navoiy viloyati",
+  qarshi: "Qashqadaryo viloyati",
+  karakalpak: "Qoraqalpog'iston Respublikasi",
+  samarqand: "Samarqand viloyati",
+  sirdaryo: "Sirdaryo viloyati",
+  surxon: "Surxondaryo viloyati",
+  toshkent_sh: "Toshkent shahri",
+  toshkent: "Toshkent viloyati",
+  khwarezm: "Xorazm viloyati",
+};
+
 export interface UzMapMarker {
   id: string;
-  /** Percent of the 970×590 map viewBox, left/top style values (e.g. "71.6%"). */
-  left: string;
-  top: string;
+  /**
+   * The `type` field of the target region/district in `uzbekistanRegions.ts`
+   * (e.g. "toshkent_sh"). The marker is centered on that shape's own
+   * bounding-box centroid — computed from the real path geometry via
+   * `getBBox()` — so it always lands exactly on the shape it names instead
+   * of a hand-guessed percentage.
+   */
+  regionType: string;
   label: string;
   render: () => React.ReactNode;
 }
@@ -18,18 +45,115 @@ interface UzbekistanMapProps {
   className?: string;
 }
 
+function findRegionByType(list: UzRegion[], type: string): UzRegion | null {
+  for (const region of list) {
+    if (region.type === type) return region;
+    if (region.districts?.length) {
+      const found = findRegionByType(region.districts, type);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+interface Layout {
+  scale: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+}
+
 /**
  * Interactive administrative map of Uzbekistan (regions), rendered from the
  * `uzbekistanRegions` path dataset. Hover highlights a region with the same
- * gradient fill used by the original reference widget; markers (airport
- * pins, etc.) are absolutely positioned on top using percent coordinates.
+ * gradient fill used by the original reference widget.
+ *
+ * Markers are positioned by real geometry, not guessed percentages: each one
+ * names a region/district `type`, its shape's centroid is measured with
+ * `getBBox()`, and that viewBox-space point is converted to a container-
+ * relative percentage using the same letterbox math the browser applies to
+ * the SVG's `preserveAspectRatio` (measured live via `ResizeObserver`, since
+ * the map's aspect ratio rarely matches its card's). That keeps every pin
+ * exactly on its city regardless of the card's width, height, or resizing.
  */
 export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<{ id: number; type: string } | null>(null);
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pathRefs = useRef<Map<string, SVGPathElement>>(new Map());
+  const [layout, setLayout] = useState<Layout | null>(null);
+  const [centroids, setCentroids] = useState<Record<string, { x: number; y: number }>>({});
+
+  const uniqueTypes = Array.from(new Set(markers.map((m) => m.regionType)));
+  const typesKey = uniqueTypes.join(",");
+
+  useLayoutEffect(() => {
+    const next: Record<string, { x: number; y: number }> = {};
+    for (const type of uniqueTypes) {
+      const el = pathRefs.current.get(type);
+      if (!el) continue;
+      const box = el.getBBox();
+      next[type] = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    }
+    setCentroids(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typesKey]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    function measure() {
+      const { clientWidth: width, clientHeight: height } = el!;
+      if (!width || !height) return;
+      const scale = Math.min(width / VB_W, height / VB_H);
+      setLayout({
+        scale,
+        offsetX: (width - VB_W * scale) / 2,
+        offsetY: (height - VB_H * scale) / 2,
+        width,
+        height,
+      });
+    }
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  function markerStyle(regionType: string): React.CSSProperties | null {
+    const centroid = centroids[regionType];
+    if (!centroid || !layout) return null;
+    const px = layout.offsetX + centroid.x * layout.scale;
+    const py = layout.offsetY + centroid.y * layout.scale;
+    return {
+      left: `${(px / layout.width) * 100}%`,
+      top: `${(py / layout.height) * 100}%`,
+    };
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }
+
+  const tooltipStyle: React.CSSProperties | undefined =
+    hovered && mousePos && layout
+      ? {
+          left: Math.min(Math.max(mousePos.x, 4), layout.width - 4),
+          top: Math.max(mousePos.y - 14, 4),
+        }
+      : undefined;
 
   return (
-    <div className={cn("relative", className)}>
-      <svg viewBox="0 0 970 590" className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div
+      ref={containerRef}
+      className={cn("relative", className)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setHovered(null)}
+    >
+      <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
         {(regions as UzRegion[]).map((region) => (
           <g key={region.id}>
             <path
@@ -40,19 +164,39 @@ export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
             {region.g[1] && (
               <path
                 d={region.g[1].d}
-                fill={hoveredId === region.id ? "url(#uzMapHover)" : "transparent"}
-                stroke={region.g[1].stroke || "var(--border-primary)"}
+                fill={hovered?.id === region.id ? "url(#uzMapHover)" : "transparent"}
+                stroke={hovered?.id === region.id ? "var(--color-brand-400)" : region.g[1].stroke || "var(--border-primary)"}
                 strokeOpacity={region.g[1].stroke_opacity || undefined}
-                strokeWidth={region.g[1].stroke_width || "1"}
+                strokeWidth={hovered?.id === region.id ? "1.5" : region.g[1].stroke_width || "1"}
                 className="cursor-pointer transition-colors"
-                onMouseEnter={() => setHoveredId(region.id)}
-                onMouseLeave={() => setHoveredId((id) => (id === region.id ? null : id))}
-              >
-                <title>{region.type}</title>
-              </path>
+                onMouseEnter={() => setHovered({ id: region.id, type: region.type })}
+                onMouseLeave={() => setHovered((h) => (h?.id === region.id ? null : h))}
+              />
             )}
           </g>
         ))}
+
+        {/* Invisible geometry-only paths, purely so getBBox() can measure each
+            marker's target shape — never painted or hit-tested. */}
+        {uniqueTypes.map((type) => {
+          const region = findRegionByType(regions as UzRegion[], type);
+          const d = region?.g[0]?.d ?? region?.g[1]?.d;
+          if (!d) return null;
+          return (
+            <path
+              key={type}
+              ref={(el) => {
+                if (el) pathRefs.current.set(type, el);
+                else pathRefs.current.delete(type);
+              }}
+              d={d}
+              fill="none"
+              stroke="none"
+              style={{ visibility: "hidden", pointerEvents: "none" }}
+            />
+          );
+        })}
+
         <defs>
           <linearGradient id="uzMapHover" x1="0%" y1="100%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="var(--color-brand-600)" />
@@ -61,15 +205,24 @@ export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
         </defs>
       </svg>
 
-      {markers.map((marker) => (
+      {markers.map((marker) => {
+        const style = markerStyle(marker.regionType);
+        if (!style) return null;
+        return (
+          <div key={marker.id} className="absolute -translate-x-1/2 -translate-y-1/2" style={style}>
+            {marker.render()}
+          </div>
+        );
+      })}
+
+      {hovered && tooltipStyle && (
         <div
-          key={marker.id}
-          className="absolute -translate-x-1/2 -translate-y-1/2"
-          style={{ top: marker.top, left: marker.left }}
+          className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border border-border-primary bg-bg-secondary px-2.5 py-1.5 text-xs font-medium text-text-primary shadow-lg"
+          style={tooltipStyle}
         >
-          {marker.render()}
+          {REGION_NAME[hovered.type] ?? hovered.type}
         </div>
-      ))}
+      )}
     </div>
   );
 }

@@ -25,15 +25,20 @@ const STATUS_CHART_COLOR: Record<string, string> = {
   requires_inspection: "var(--color-purple-500)",
 };
 
-// Pin positions (percent of the 970×590 Uzbekistan map viewBox) — the
-// centroid of each city's own path in `uzbekistanRegions.ts` (toshkent_sh,
-// samarqand_sh, fargona_sh, buxoro_sh, urganch_sh).
-const CITY_POSITIONS: Record<string, { top: string; left: string }> = {
-  "air-tas": { top: "52.2%", left: "71.6%" },
-  "air-skd": { top: "65.2%", left: "55.6%" },
-  "air-fef": { top: "35.4%", left: "63.2%" },
-  "air-buk": { top: "61.2%", left: "41.2%" },
-  "air-uge": { top: "26.6%", left: "19.7%" },
+// Each airport's pin is anchored to a region/district shape in
+// `uzbekistanRegions.ts` — UzbekistanMap measures that shape's real centroid
+// via getBBox() rather than a hand-guessed percentage, so the pin always
+// lands exactly on the city regardless of the map's rendered size.
+// Fergana uses the top-level "fergana" region rather than the "fargona_sh"
+// district: that district entry is mislabeled in the source dataset (its
+// path actually sits far outside the Fergana valley), while "fergana"
+// itself is correctly positioned.
+const AIRPORT_REGION_TYPE: Record<string, string> = {
+  "air-tas": "toshkent_sh",
+  "air-skd": "samarqand_sh",
+  "air-fef": "fergana",
+  "air-buk": "buxoro_sh",
+  "air-uge": "urganch_sh",
 };
 
 function pct(n: number, total: number) {
@@ -169,21 +174,34 @@ export default function DashboardPage() {
             <UzbekistanMap
               className="h-full min-h-[196px] w-full"
               markers={byAirport
-                .filter(({ airport }) => CITY_POSITIONS[airport.id])
+                .filter(({ airport }) => AIRPORT_REGION_TYPE[airport.id])
                 .map(({ airport, total: t2, operational, faulty, maintenance, reserve }) => {
-                  const pos = CITY_POSITIONS[airport.id];
-                  const dominant = faulty > 0 ? "bg-error-500" : maintenance > 0 ? "bg-warning-500" : reserve > 0 && operational === 0 ? "bg-brand-400" : "bg-success-500";
+                  const dominant =
+                    faulty > 0
+                      ? { dot: "bg-error-500", ring: "ring-error-500/30" }
+                      : maintenance > 0
+                        ? { dot: "bg-warning-500", ring: "ring-warning-500/30" }
+                        : reserve > 0 && operational === 0
+                          ? { dot: "bg-brand-400", ring: "ring-brand-400/30" }
+                          : { dot: "bg-success-500", ring: "ring-success-500/30" };
                   return {
                     id: airport.id,
-                    top: pos.top,
-                    left: pos.left,
+                    regionType: AIRPORT_REGION_TYPE[airport.id],
                     label: airport.city,
                     render: () => (
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={cn("flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow", dominant)}>
+                      <div className="group flex flex-col items-center gap-1">
+                        <div
+                          className={cn(
+                            "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow-md ring-4 transition-transform group-hover:scale-110",
+                            dominant.dot,
+                            dominant.ring
+                          )}
+                        >
                           {t2}
                         </div>
-                        <span className="whitespace-nowrap text-[10px] font-medium text-text-tertiary">{airport.city}</span>
+                        <span className="whitespace-nowrap rounded-full bg-bg-primary/80 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary shadow-sm backdrop-blur-sm">
+                          {airport.city}
+                        </span>
                       </div>
                     ),
                   };

@@ -12,6 +12,8 @@ interface FieldChromeProps {
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement>, FieldChromeProps {
   icon?: IconName;
+  /** Trailing slot (e.g. a password show/hide toggle button). */
+  trailing?: ReactNode;
 }
 
 /**
@@ -20,7 +22,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement>, FieldChromeP
  * are optional so existing bare filter-bar usages (`<Input icon="search" />`)
  * keep working unchanged; pass them for a full form-field look.
  */
-export function Input({ icon, label, required, hint, error, id, className, ...rest }: InputProps) {
+export function Input({ icon, trailing, label, required, hint, error, id, className, ...rest }: InputProps) {
   const destructive = !!error;
   const field = (
     <div className="relative">
@@ -41,11 +43,15 @@ export function Input({ icon, label, required, hint, error, id, className, ...re
             ? "border-error-400 focus:border-error-500 focus:ring-1 focus:ring-error-500"
             : "border-border-primary hover:border-border-secondary focus:border-brand-500 focus:ring-1 focus:ring-brand-500",
           "disabled:cursor-not-allowed disabled:opacity-50",
-          icon ? "pl-8 pr-3" : "px-3",
+          icon ? "pl-8" : "pl-3",
+          trailing ? "pr-8" : "pr-3",
           className
         )}
         {...rest}
       />
+      {trailing && (
+        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-quaternary">{trailing}</span>
+      )}
     </div>
   );
 
