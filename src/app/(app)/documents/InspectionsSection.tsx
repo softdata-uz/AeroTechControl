@@ -15,7 +15,8 @@ import { Pagination } from "@/components/ui/Pagination";
 import { getInspectionStatusConfig, getChecklistResultConfig } from "@/config/inspectionStatus.config";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getRepairStatusConfig } from "@/config/repairStatus.config";
-import { equipmentById, airportName, airports } from "@/lib/mock-data";
+import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
+import { useLocations } from "@/hooks/useLocations";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { InspectionStatus } from "@/lib/types";
@@ -32,6 +33,8 @@ export function InspectionsSection() {
   const checklistResultConfig = getChecklistResultConfig(t);
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const repairStatusConfig = getRepairStatusConfig(t);
+  const { equipmentById } = useEquipmentLookup();
+  const { airports } = useLocations();
 
   const viewTabs = [
     { key: "inspections", label: t("inspections.tabInspections") },
@@ -52,7 +55,7 @@ export function InspectionsSection() {
   const [dateTo, setDateTo] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [onlyNonCompliant, setOnlyNonCompliant] = useState(false);
   const [completing, setCompleting] = useState(false);
@@ -63,7 +66,7 @@ export function InspectionsSection() {
   }, [searchInput]);
 
   const filters = {
-    airportId: airportFilter || undefined,
+    airportId: airportFilter ? Number(airportFilter) : undefined,
     status: statusFilter || undefined,
     search: search || undefined,
     pageSize: 1000,
@@ -195,7 +198,7 @@ export function InspectionsSection() {
               placeholder={t("common.allAirports")}
               value={airportFilter}
               onChange={setAirportFilter}
-              options={airports.map((a) => ({ value: a.id, label: a.city }))}
+              options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
             />
             <Dropdown className="w-56" placeholder={t("common.allTypes")} value="" onChange={() => {}} options={[]} />
             <Dropdown
@@ -295,7 +298,7 @@ export function InspectionsSection() {
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold text-text-primary">{equipment.name}</p>
                       <p className="truncate text-xs text-text-tertiary">
-                        {equipment.code} · {airportName(equipment.airportId)}
+                        {equipment.code} · {equipment.airport.name}
                       </p>
                       <div className="mt-1.5">
                         <StatusBadge status={equipmentStatusConfig[equipment.status]} />
@@ -307,11 +310,11 @@ export function InspectionsSection() {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-2 p-4 text-sm">
-                    <Field label={t("equipment.detail.airport")} value={airportName(equipment.airportId)} />
-                    <Field label={t("inspections.fieldLocation")} value={equipment.location} />
-                    <Field label={t("inspections.fieldType")} value={equipment.type} />
-                    <Field label={t("inspections.fieldSerialNumber")} value={equipment.serialNumber} />
-                    <Field label={t("inspections.fieldInventoryNumber")} value={equipment.inventoryNumber} />
+                    <Field label={t("equipment.detail.airport")} value={equipment.airport.name} />
+                    <Field label={t("inspections.fieldLocation")} value={equipment.location ?? "—"} />
+                    <Field label={t("inspections.fieldType")} value={equipment.equipmentType.name} />
+                    <Field label={t("inspections.fieldSerialNumber")} value={equipment.serialNumber ?? "—"} />
+                    <Field label={t("inspections.fieldInventoryNumber")} value={equipment.inventoryNumber ?? "—"} />
                   </div>
                 </Card>
               )}
@@ -321,9 +324,9 @@ export function InspectionsSection() {
               {detailTab === "info" && equipment && (
                 <Card>
                   <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
-                    <Field label={t("equipment.detail.manufacturer")} value={equipment.manufacturer} />
-                    <Field label={t("equipment.detail.model")} value={equipment.model} />
-                    <Field label={t("equipment.detail.commissionedAt")} value={formatDate(equipment.commissionedAt)} />
+                    <Field label={t("equipment.detail.manufacturerCompany")} value={equipment.manufacturerCompany.name} />
+                    <Field label={t("equipment.detail.model")} value={equipment.equipmentModel.name} />
+                    <Field label={t("equipment.detail.manufactureYear")} value={String(equipment.manufactureYear)} />
                     <Field label={t("equipment.detail.nextInspection")} value={formatDate(equipment.nextInspectionAt)} />
                   </div>
                 </Card>

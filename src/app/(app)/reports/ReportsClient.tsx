@@ -73,9 +73,9 @@ export function ReportsClient() {
                   </thead>
                   <tbody>
                     {summary.complianceMatrix.rows.map(({ airport, cells }) => (
-                      <tr key={airport.id} className="border-b border-border-secondary last:border-0">
+                      <tr key={airport} className="border-b border-border-secondary last:border-0">
                         <td className="sticky left-0 whitespace-nowrap bg-bg-secondary px-2 py-2 font-medium text-text-secondary">
-                          {airport.city}
+                          {airport}
                         </td>
                         {cells.map((cell, i) => (
                           <td key={i} className="px-2 py-2 text-center">

@@ -14,24 +14,27 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { getFaultStatusConfig, getFaultPriorityConfig } from "@/config/faultStatus.config";
-import { equipmentById, airportName, airports, terminalsByAirport } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { useFaultsList } from "@/hooks/useFaultsList";
 import { useAsync } from "@/hooks/useAsync";
+import { useLocations } from "@/hooks/useLocations";
+import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
 import { faultsService, repairsService, equipmentService } from "@/services";
+import { paginate } from "@/services/http-client";
 import { AddFaultModal } from "./AddFaultModal";
 import { useTranslations } from "@/lib/locale-context";
 
-const TODAY = "2026-08-25";
 const PAGE_SIZE = 10;
 
 export function FaultsClient() {
   const t = useTranslations();
   const faultStatusConfig = getFaultStatusConfig(t);
   const faultPriorityConfig = getFaultPriorityConfig(t);
+  const { airports, terminalsByAirport } = useLocations();
+  const { equipmentById } = useEquipmentLookup();
 
   const viewTabs = [
     { key: "list", label: t("faults.tabList") },
@@ -51,7 +54,7 @@ export function FaultsClient() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
     const timeout = setTimeout(() => setSearch(searchInput), 300);
@@ -69,20 +72,38 @@ export function FaultsClient() {
   const { data: typesData } = useAsync(() => equipmentService.listEquipmentTypes(), []);
   const equipmentTypes = typesData ?? [];
 
+  // The backend filters faults by stage/priority/search/pagination only —
+  // it doesn't denormalize equipment location/type onto Fault. When an
+  // airport/terminal/type filter is active, fetch a larger unpaginated-ish
+  // set matching the backend-supported filters and post-filter + paginate
+  // client-side using the equipment lookup below.
+  const hasLocationFilters = !!(airportFilter || terminalFilter || typeFilter);
   const filters = {
-    airportId: airportFilter || undefined,
-    terminalId: terminalFilter || undefined,
-    equipmentType: typeFilter || undefined,
     stage: statusFilter || undefined,
     priority: priorityFilter || undefined,
     search: search || undefined,
-    page,
-    pageSize: PAGE_SIZE,
+    page: hasLocationFilters ? 1 : page,
+    pageSize: hasLocationFilters ? 200 : PAGE_SIZE,
   };
 
   const { data, loading, error, refetch } = useFaultsList(filters);
-  const faults = useMemo(() => data?.items ?? [], [data]);
-  const total = data?.total ?? 0;
+
+  const { faults, total } = useMemo(() => {
+    const items = data?.items ?? [];
+    if (!hasLocationFilters) {
+      return { faults: items, total: data?.total ?? 0 };
+    }
+    const filtered = items.filter((f) => {
+      const eq = equipmentById(f.equipmentId);
+      if (!eq) return false;
+      if (airportFilter && String(eq.airport.id) !== airportFilter) return false;
+      if (terminalFilter && String(eq.terminal?.id) !== terminalFilter) return false;
+      if (typeFilter && String(eq.equipmentType.id) !== typeFilter) return false;
+      return true;
+    });
+    const pageResult = paginate(filtered, page, PAGE_SIZE);
+    return { faults: pageResult.items, total: pageResult.total };
+  }, [data, hasLocationFilters, airportFilter, terminalFilter, typeFilter, page, equipmentById]);
 
   // KPI cards reflect overall operational state, independent of table filters/pagination.
   const { data: allFaultsPage, refetch: refetchKpiFaults } = useAsync(
@@ -102,7 +123,8 @@ export function FaultsClient() {
     const waitingParts = waitingPartsPage?.total ?? 0;
     const resolved = allFaults.filter((f) => f.stage === "verification").length;
     const closed = allFaults.filter((f) => f.stage === "closed").length;
-    const overdue = allFaults.filter((f) => f.dueAt && f.dueAt < TODAY && f.stage !== "closed").length;
+    const today = new Date().toISOString().slice(0, 10);
+    const overdue = allFaults.filter((f) => f.dueAt && f.dueAt < today && f.stage !== "closed").length;
     return { total, open, inProgress, waitingParts, resolved, closed, overdue };
   }, [allFaultsPage, waitingPartsPage]);
 
@@ -171,21 +193,24 @@ export function FaultsClient() {
               placeholder={t("common.allAirports")}
               value={airportFilter}
               onChange={setAirportFilter}
-              options={airports.map((a) => ({ value: a.id, label: a.city }))}
+              options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
             />
             <Dropdown
               className="w-44"
               placeholder={t("common.allTerminals")}
               value={terminalFilter}
               onChange={setTerminalFilter}
-              options={(airportFilter ? terminalsByAirport(airportFilter) : []).map((tm) => ({ value: tm.id, label: tm.name }))}
+              options={(airportFilter ? terminalsByAirport(Number(airportFilter)) : []).map((tm) => ({
+                value: String(tm.id),
+                label: tm.name,
+              }))}
             />
             <Dropdown
               className="w-52"
               placeholder={t("common.allTypes")}
               value={typeFilter}
               onChange={setTypeFilter}
-              options={equipmentTypes.map((et) => ({ value: et, label: et }))}
+              options={equipmentTypes.map((et) => ({ value: String(et.id), label: et.name }))}
             />
             <Dropdown
               className="w-44"
@@ -263,7 +288,7 @@ export function FaultsClient() {
                             active ? "bg-bg-tertiary" : "hover:bg-bg-tertiary"
                           )}
                         >
-                          <td className="px-4 py-2.5 font-medium text-error-400">{f.id}</td>
+                          <td className="px-4 py-2.5 font-medium text-error-400">{f.code}</td>
                           <td className="px-4 py-2.5">
                             <div className="flex items-center gap-2">
                               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-bg-tertiary">
@@ -283,7 +308,7 @@ export function FaultsClient() {
                             <StatusBadge status={faultPriorityConfig[f.priority]} />
                           </td>
                           <td className="px-4 py-2.5 text-text-secondary">
-                            <p>{eq ? airportName(eq.airportId) : "—"}</p>
+                            <p>{eq ? eq.airport.name : "—"}</p>
                             <p className="text-xs text-text-tertiary">{eq?.location}</p>
                           </td>
                           <td className="px-4 py-2.5 text-text-secondary">{formatDate(f.detectedAt)}</td>
@@ -312,7 +337,13 @@ export function FaultsClient() {
               </div>
             </div>
 
-            <FaultDetailPanel fault={selected} t={t} faultStatusConfig={faultStatusConfig} faultPriorityConfig={faultPriorityConfig} />
+            <FaultDetailPanel
+              fault={selected}
+              t={t}
+              faultStatusConfig={faultStatusConfig}
+              faultPriorityConfig={faultPriorityConfig}
+              equipmentById={equipmentById}
+            />
           </div>
         </>
       )}
@@ -327,11 +358,13 @@ function FaultDetailPanel({
   t,
   faultStatusConfig,
   faultPriorityConfig,
+  equipmentById,
 }: {
   fault: Fault | null;
   t: (key: TranslationKey) => string;
   faultStatusConfig: ReturnType<typeof getFaultStatusConfig>;
   faultPriorityConfig: ReturnType<typeof getFaultPriorityConfig>;
+  equipmentById: ReturnType<typeof useEquipmentLookup>["equipmentById"];
 }) {
   if (!fault) {
     return (
@@ -350,7 +383,7 @@ function FaultDetailPanel({
         <div>
           <p className="text-sm font-semibold text-text-primary">{t("faults.detailTitle")}</p>
           <p className="text-xs text-text-tertiary">
-            {fault.id} · {formatDate(fault.detectedAt)}
+            {fault.code} · {formatDate(fault.detectedAt)}
           </p>
         </div>
         <StatusBadge status={faultStatusConfig[fault.stage]} />
@@ -368,7 +401,7 @@ function FaultDetailPanel({
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-text-primary">{eq.name}</p>
               <p className="truncate text-xs text-text-tertiary">
-                {eq.code} · {airportName(eq.airportId)} · {eq.location}
+                {eq.code} · {eq.airport.name} · {eq.location}
               </p>
             </div>
           </Link>

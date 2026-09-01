@@ -11,12 +11,34 @@ import { quickActionsFor } from "@/config/quickActions.config";
 import { useRole } from "@/lib/role-context";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
+import { useAsync } from "@/hooks/useAsync";
+import { faultsService, notificationsService } from "@/services";
 
 export function Sidebar() {
   const pathname = usePathname();
   const { role } = useRole();
   const t = useTranslations();
   const visibleNav = primaryNav.filter((item) => roleNavAccess[role].includes(item.href));
+
+  const { data: totalFaults } = useAsync(
+    () => faultsService.listFaults({ pageSize: 1 }),
+    []
+  );
+  const { data: closedFaults } = useAsync(
+    () => faultsService.listFaults({ stage: "closed", pageSize: 1 }),
+    []
+  );
+  const openFaultsCount = (totalFaults?.total ?? 0) - (closedFaults?.total ?? 0);
+
+  const { data: unreadNotificationsCount } = useAsync(
+    () => notificationsService.getUnreadCount(),
+    []
+  );
+
+  const badgeCounts: Record<string, number> = {
+    openFaults: openFaultsCount,
+    unreadNotifications: unreadNotificationsCount ?? 0,
+  };
   const [openGroup, setOpenGroup] = useState<string | null>(
     primaryNav.find((i) => i.children?.some((c) => pathname.startsWith(c.href)))?.href ?? null
   );
@@ -65,7 +87,9 @@ export function Sidebar() {
                   >
                     <Icon name={item.icon} size={18} className="shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{t(item.labelKey)}</span>
-                    {item.badge ? <CountBadge count={item.badge} /> : null}
+                    {item.badgeKey && badgeCounts[item.badgeKey] > 0 ? (
+                      <CountBadge count={badgeCounts[item.badgeKey]} />
+                    ) : null}
                   </Link>
                   {hasChildren && (
                     <button

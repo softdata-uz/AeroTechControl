@@ -1,19 +1,19 @@
-// Frontend role simulation only — no real authentication/authorization.
-// Matches CLAUDE.md §31: the UI adapts to a selected role, it does not enforce security.
+// Real session lookup. Role-preview switching (CLAUDE.md §31 — UI
+// simulation, not real authorization) lives in src/lib/role-context.tsx and
+// sources sample users via usersService.listUsers, not this file.
 
 import type { AppUser } from "@/lib/types";
-import { currentUser, users as userSeed } from "@/lib/mock-data";
-import { resolve, reject } from "./http-client";
+import { apiGet, apiPost } from "./http-client";
+import { getRefreshToken } from "@/lib/auth-token";
 
 // GET /auth/me
 export function getCurrentUser(): Promise<AppUser> {
-  return resolve(() => currentUser);
+  return apiGet<AppUser>("/auth/me");
 }
 
-// POST /auth/switch-role  (dev/demo affordance for role-based UI simulation)
-export function switchToUser(userId: string): Promise<AppUser> {
-  return resolve(() => userSeed.find((u) => u.id === userId)).then((u) => {
-    if (!u) return reject(404, `User ${userId} not found`) as Promise<AppUser>;
-    return u;
-  });
+// POST /auth/logout
+export function logout(): Promise<void> {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return Promise.resolve();
+  return apiPost<void>("/auth/logout", { refreshToken });
 }

@@ -22,7 +22,7 @@ type PendingAction = "reserve" | "consume" | null;
 export function SparePartsClient() {
   const t = useTranslations();
   const sparePartStatusConfig = getSparePartStatusConfig(t);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [warehouseFilter, setWarehouseFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<SparePartStatus | "">("");
   const [searchInput, setSearchInput] = useState("");

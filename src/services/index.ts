@@ -12,3 +12,6 @@ export * as usersService from "./users.service";
 export * as authService from "./auth.service";
 export * as reportsService from "./reports.service";
 export * as settingsService from "./settings.service";
+export * from "./manufacturer-companies.service";
+export * from "./manufacturer-countries.service";
+export * from "./equipment-operators.service";

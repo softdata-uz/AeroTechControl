@@ -13,10 +13,15 @@ import { getInspectionStatusConfig } from "@/config/inspectionStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { getRepairStatusConfig, getDocumentStatusConfig } from "@/config/repairStatus.config";
 import { formatDate } from "@/lib/format";
-import { airportName } from "@/lib/mock-data";
+import {
+  useEquipmentDetail,
+  useEquipmentInspectionHistory,
+  useEquipmentFaultHistory,
+} from "@/hooks/useEquipmentDetail";
+import { useRepairsList } from "@/hooks/useRepairsList";
+import { useDocumentsList } from "@/hooks/useDocumentsList";
 import { useTranslations } from "@/lib/locale-context";
 import type { TranslationKey } from "@/lib/i18n/translations";
-import type { Equipment, Inspection, Fault, Repair, EquipmentDocument } from "@/lib/types";
 
 const tabKeys = ["info", "inspections", "repairs", "faults", "documents"] as const;
 const tabLabelKeys: Record<(typeof tabKeys)[number], TranslationKey> = {
@@ -30,15 +35,10 @@ const tabLabelKeys: Record<(typeof tabKeys)[number], TranslationKey> = {
 type TabKey = (typeof tabKeys)[number];
 
 interface Props {
-  equipment: Equipment;
-  airport: string;
-  inspections: Inspection[];
-  faults: Fault[];
-  repairs: Repair[];
-  documents: EquipmentDocument[];
+  equipmentId: number;
 }
 
-export function EquipmentDetailClient({ equipment, inspections, faults, repairs, documents }: Props) {
+export function EquipmentDetailClient({ equipmentId }: Props) {
   const router = useRouter();
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
@@ -47,6 +47,24 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
   const repairStatusConfig = getRepairStatusConfig(t);
   const documentStatusConfig = getDocumentStatusConfig(t);
   const [tab, setTab] = useState<TabKey>("info");
+
+  const { data: equipment, loading, error } = useEquipmentDetail(equipmentId);
+  const { data: inspectionsData } = useEquipmentInspectionHistory(equipmentId);
+  const { data: faultsData } = useEquipmentFaultHistory(equipmentId);
+  const { data: repairsPage } = useRepairsList({ equipmentId, pageSize: 100 });
+  const { data: documentsPage } = useDocumentsList({ equipmentId, pageSize: 100 });
+
+  const inspections = inspectionsData ?? [];
+  const faults = faultsData ?? [];
+  const repairs = repairsPage?.items ?? [];
+  const documents = documentsPage?.items ?? [];
+
+  if (loading) {
+    return <div className="px-6 py-16 text-center text-sm text-text-tertiary">{t("equipment.loading")}</div>;
+  }
+  if (error || !equipment) {
+    return <div className="px-6 py-16 text-center text-sm text-text-secondary">{t("equipment.notFound")}</div>;
+  }
 
   const tabsWithBadges = tabKeys.map((key) => ({
     key,
@@ -67,7 +85,7 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
     <div className="pb-8">
       <PageHeader
         title={equipment.name}
-        context={`${equipment.code} · ${equipment.model}`}
+        context={`${equipment.code} · ${equipment.equipmentModel.name}`}
         actions={
           <>
             <Button hierarchy="secondary" icon="qr-code" size="sm">
@@ -82,20 +100,25 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-5 lg:grid-cols-[280px_1fr]">
         <Card className="h-fit">
-          <div className="flex aspect-video items-center justify-center rounded-t-xl border-b border-border-secondary bg-bg-tertiary">
-            <Icon name="image" size={40} className="text-text-quaternary" />
+          <div className="flex aspect-video items-center justify-center overflow-hidden rounded-t-xl border-b border-border-secondary bg-bg-tertiary">
+            {equipment.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- backend-served image, arbitrary origin
+              <img src={equipment.imageUrl} alt={equipment.name} className="h-full w-full object-cover" />
+            ) : (
+              <Icon name="image" size={40} className="text-text-quaternary" />
+            )}
           </div>
           <div className="space-y-3 p-4 text-sm">
             <div>
               <StatusBadge status={equipmentStatusConfig[equipment.status]} />
             </div>
-            <Row label={t("equipment.detail.airport")} value={airportName(equipment.airportId)} />
-            <Row label={t("equipment.detail.location")} value={equipment.location} />
-            <Row label={t("equipment.detail.manufacturer")} value={equipment.manufacturer} />
-            <Row label={t("equipment.detail.model")} value={equipment.model} />
-            <Row label={t("equipment.detail.serialNumber")} value={equipment.serialNumber} />
-            <Row label={t("equipment.detail.inventoryNumber")} value={equipment.inventoryNumber} />
-            <Row label={t("equipment.detail.commissionedAt")} value={formatDate(equipment.commissionedAt)} />
+            <Row label={t("equipment.detail.airport")} value={equipment.airport.name} />
+            <Row label={t("equipment.detail.location")} value={equipment.location ?? "—"} />
+            <Row label={t("equipment.detail.manufacturerCompany")} value={equipment.manufacturerCompany.name} />
+            <Row label={t("equipment.detail.model")} value={equipment.equipmentModel.name} />
+            <Row label={t("equipment.detail.serialNumber")} value={equipment.serialNumber ?? "—"} />
+            <Row label={t("equipment.detail.inventoryNumber")} value={equipment.inventoryNumber ?? "—"} />
+            <Row label={t("equipment.detail.manufactureYear")} value={String(equipment.manufactureYear)} />
             <Row label={t("equipment.detail.nextInspection")} value={formatDate(equipment.nextInspectionAt)} />
           </div>
         </Card>
@@ -103,19 +126,79 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
         <div>
           <Tabs items={tabsWithBadges} value={tab} onChange={setTab} />
 
-          <div className="pt-4">
+          <div className="space-y-4 pt-4">
             {tab === "info" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("equipment.detail.techSpecs")}</CardTitle>
-                </CardHeader>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
-                  <Row label={t("equipment.detail.type")} value={equipment.type} />
-                  <Row label={t("equipment.detail.id")} value={equipment.id} />
-                  <Row label={t("equipment.detail.terminalZone")} value={equipment.location} />
-                  <Row label={t("equipment.detail.status")} value={equipmentStatusConfig[equipment.status].label} />
-                </div>
-              </Card>
+              <>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("equipment.detail.groupIdentity")}</CardTitle>
+                  </CardHeader>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
+                    <Row label={t("equipment.detail.code")} value={equipment.code} />
+                    <Row label={t("equipment.detail.name")} value={equipment.name} />
+                    <Row label={t("equipment.detail.type")} value={equipment.equipmentType.name} />
+                    <Row label={t("equipment.detail.model")} value={equipment.equipmentModel.name} />
+                  </div>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("equipment.detail.groupManufacturer")}</CardTitle>
+                  </CardHeader>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
+                    <Row label={t("equipment.detail.manufacturerCompany")} value={equipment.manufacturerCompany.name} />
+                    <Row label={t("equipment.detail.manufacturerCountry")} value={equipment.manufacturerCountry.name} />
+                    <Row label={t("equipment.detail.serialNumber")} value={equipment.serialNumber ?? "—"} />
+                    <Row label={t("equipment.detail.inventoryNumber")} value={equipment.inventoryNumber ?? "—"} />
+                  </div>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("equipment.detail.groupLocation")}</CardTitle>
+                  </CardHeader>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
+                    <Row label={t("equipment.detail.airport")} value={equipment.airport.name} />
+                    <Row label={t("equipment.detail.terminal")} value={equipment.terminal?.name ?? "—"} />
+                    <Row label={t("equipment.detail.zone")} value={equipment.zone?.name ?? "—"} />
+                    <Row label={t("equipment.detail.location")} value={equipment.location ?? "—"} />
+                    <Row label={t("equipment.detail.operatedBy")} value={equipment.operatedBy.name} />
+                  </div>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("equipment.detail.groupLifecycle")}</CardTitle>
+                  </CardHeader>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
+                    <Row label={t("equipment.detail.status")} value={equipmentStatusConfig[equipment.status].label} />
+                    <Row label={t("equipment.detail.manufactureYear")} value={String(equipment.manufactureYear)} />
+                    <Row
+                      label={t("equipment.detail.purchaseYear")}
+                      value={equipment.purchaseYear != null ? String(equipment.purchaseYear) : "—"}
+                    />
+                    <Row
+                      label={t("equipment.detail.commissioningYear")}
+                      value={equipment.commissioningYear != null ? String(equipment.commissioningYear) : "—"}
+                    />
+                    <Row
+                      label={t("equipment.detail.serviceLifeExpiryYear")}
+                      value={equipment.serviceLifeExpiryYear != null ? String(equipment.serviceLifeExpiryYear) : "—"}
+                    />
+                    <Row label={t("equipment.detail.lastInspection")} value={formatDate(equipment.lastInspectionAt)} />
+                    <Row label={t("equipment.detail.nextInspection")} value={formatDate(equipment.nextInspectionAt)} />
+                  </div>
+                </Card>
+
+                {equipment.notes && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("equipment.detail.groupNotes")}</CardTitle>
+                    </CardHeader>
+                    <p className="whitespace-pre-wrap p-4 text-sm text-text-secondary">{equipment.notes}</p>
+                  </Card>
+                )}
+              </>
             )}
 
             {tab === "inspections" && (
@@ -188,7 +271,7 @@ export function EquipmentDetailClient({ equipment, inspections, faults, repairs,
                         <div className="min-w-0">
                           <p className="truncate font-medium text-text-primary">{f.title}</p>
                           <p className="text-xs text-text-tertiary">
-                            {f.id} · {formatDate(f.detectedAt)}
+                            {f.code} · {formatDate(f.detectedAt)}
                           </p>
                         </div>
                         <StatusBadge status={faultStatusConfig[f.stage]} className="shrink-0" />

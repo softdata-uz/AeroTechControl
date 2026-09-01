@@ -1693,6 +1693,67 @@ complete.
 DO NOT redesign anything. DO NOT create backend code. DO NOT continue to
 later phases automatically.
 
+------------------------------------------------------------------------
+
+# Backend Integration (added post-design-phase)
+
+Everything above this section is the original Figma-first, frontend-only
+build spec. It is kept as-is for historical/product-design reference.
+**Section 2's "no backend" rule reflected the initial UI-build phase
+only** — a real backend now exists and this app is wired to it. Do not
+re-read the sections above as if they still forbid backend work; they
+don't apply anymore to this integration layer.
+
+## What changed
+
+A real backend, **AeroTechControlBackend**, lives in the sibling
+directory `../AeroTechControlBackend` (NestJS + PostgreSQL + TypeORM,
+matching `docs/API_CONTRACT.md`). This app is a real client of it:
+
+- `src/lib/mock-data.ts` **no longer exists.** Every page fetches real
+  data through `src/services/*.service.ts`, which now call the real API
+  instead of an in-memory array.
+- Real authentication exists: `src/lib/role-context.tsx` holds a real
+  session (`GET /auth/me`, login/logout), gated by
+  `src/components/layout/AuthGuard.tsx` wrapping the `(app)` route group.
+  Role-preview switching (§31) still works but now sources sample users
+  from the real `GET /users` endpoint instead of a static array.
+- Tokens live in `src/lib/auth-token.ts` (localStorage if "remember me"
+  was checked at login, else sessionStorage). `src/services/http-client.ts`
+  is the only place that knows about `fetch()`, the backend's
+  `{success, snapdata, pagination, message}` envelope, and silent
+  401→refresh→retry.
+- `NEXT_PUBLIC_API_URL` (in `.env.local`) points at the backend, e.g.
+  `http://localhost:5000/api/v1`. This app's dev/start scripts run on
+  port **3001** — the backend defaults to 3000 and its `CORS_ORIGIN`
+  default assumes 3001, so don't change one without the other.
+- Two new shared hooks replace the old synchronous mock lookups, since
+  the same "load a small bounded dataset once, look up from cache"
+  pattern can't become a per-row HTTP call: `src/hooks/useLocations.ts`
+  (airports/terminals/zones + `airportName()`) and
+  `src/hooks/useEquipmentLookup.ts` (`equipmentById()` over the full
+  fleet). Reach for these instead of adding new per-row fetches when a
+  table needs to resolve an id to a display name.
+- A `king` role exists in the backend (superuser, bootstrapped via
+  `DEFAULT_ADMIN_LOGIN`/`DEFAULT_ADMIN_PASSWORD` — see the backend's
+  `CLAUDE.md`) and is mirrored here in `src/lib/types.ts`'s `UserRole`,
+  `src/config/roleAccess.config.ts` (full nav access), and the
+  `role.king`/`roleDesc.king` translation keys in all three locales.
+
+## Working in this integration layer
+
+- Never reintroduce a `mock-data`-style static array for anything the
+  backend already serves — add a service function and a hook instead,
+  following the existing pattern in any `src/services/*.service.ts` file.
+- A Server Component cannot read the browser-stored JWT. Any page that
+  needs authenticated data must be a thin shell delegating to a Client
+  Component that fetches via hooks — see `equipment/[id]/page.tsx` +
+  `EquipmentDetailClient.tsx` for the reference shape.
+- List-query `pageSize` is clamped client-side to the backend's cap
+  (200) in `http-client.ts` — don't raise it per call-site; if a page
+  genuinely needs more than 200 rows of something, that's a backend
+  pagination/aggregation problem, not a frontend one.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know

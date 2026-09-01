@@ -51,12 +51,13 @@ const INTERIOR_Y1 = BOTTOM_Y1;
 const ZOOM_STEPS = [0.75, 1, 1.25, 1.5, 2];
 
 const STATUS_FILL: Record<EquipmentStatus, string> = {
-  operational: "var(--color-success-500)",
-  maintenance: "var(--color-warning-500)",
   faulty: "var(--color-error-500)",
-  requires_inspection: "var(--color-purple-500)",
-  reserve: "var(--color-brand-400)",
-  decommissioned: "var(--color-gray-500)",
+  operational: "var(--color-success-500)",
+  good: "var(--color-success-500)",
+  satisfactory: "var(--color-warning-500)",
+  unsatisfactory: "var(--color-error-500)",
+  overdue: "var(--color-error-500)",
+  not_connected: "var(--color-gray-500)",
 };
 
 // Same 20x20 "cpu" glyph used everywhere else in the app for equipment
@@ -64,16 +65,18 @@ const STATUS_FILL: Record<EquipmentStatus, string> = {
 // render as raw SVG shapes, not <Icon>.
 const EQUIPMENT_ICON_PATH = "M8 3v2M12 3v2M8 15v2M12 15v2M3 8h2M3 12h2M15 8h2M15 12h2M7 7h6v6H7V7Z";
 
-export const MARKER_STORAGE_KEY = "atz-location-marker-positions";
+// Bumped to v2 since zone/equipment ids switched from uuid strings to
+// ints — old v1 records would otherwise be misread as numbers.
+export const MARKER_STORAGE_KEY = "atz-location-marker-positions-v2";
 
 export interface MarkerRecord {
   x: number;
   y: number;
   /** Zone the marker was last auto-detected (or started) in. */
-  zoneId?: string;
+  zoneId?: number;
 }
 
-type Positions = Record<string, MarkerRecord>;
+type Positions = Record<number, MarkerRecord>;
 
 export function loadMarkerOverrides(): Positions {
   try {
@@ -219,7 +222,7 @@ function buildLanes(zones: Zone[], equipment: Equipment[]): Lane[] {
         room,
         x0: room.x0 + i * laneWidth,
         width: laneWidth,
-        items: equipment.filter((e) => e.zoneId === zone.id),
+        items: equipment.filter((e) => e.zone?.id === zone.id),
       });
     });
   }
@@ -256,9 +259,9 @@ function defaultPosition(lane: Lane, index: number) {
 interface Props {
   zones: Zone[];
   equipment: Equipment[];
-  selectedZoneId: string | null;
-  onSelectZone: (id: string) => void;
-  onEquipmentZoneChange?: (equipmentId: string, zoneId: string) => void;
+  selectedZoneId: number | null;
+  onSelectZone: (id: number) => void;
+  onEquipmentZoneChange?: (equipmentId: number, zoneId: number) => void;
   statusConfig: Record<EquipmentStatus, StatusVisual>;
 }
 
@@ -280,9 +283,9 @@ export function TerminalMap({
   // server-side); a layout effect corrects from storage before paint,
   // same hydration-safe pattern as locale-context.tsx.
   const [positions, setPositions] = useState<Positions>({});
-  const [openMarkerId, setOpenMarkerId] = useState<string | null>(null);
+  const [openMarkerId, setOpenMarkerId] = useState<number | null>(null);
 
-  const dragId = useRef<string | null>(null);
+  const dragId = useRef<number | null>(null);
   const dragOffset = useRef({ x: 0, y: 0 });
   const panFrom = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -386,7 +389,7 @@ export function TerminalMap({
 
   const gateXs = [0.18, 0.4, 0.62, 0.84].map((f) => CONTENT_X0 + (CONTENT_X1 - CONTENT_X0) * f);
   const openMarker = openMarkerId ? equipment.find((e) => e.id === openMarkerId) : null;
-  const openMarkerLane = openMarker ? lanes.find((l) => l.zone.id === openMarker.zoneId) : null;
+  const openMarkerLane = openMarker ? lanes.find((l) => l.zone.id === openMarker.zone?.id) : null;
   const openMarkerIndex = openMarker && openMarkerLane ? openMarkerLane.items.indexOf(openMarker) : -1;
   const openMarkerPos =
     openMarker && openMarkerLane && openMarkerIndex >= 0
@@ -525,7 +528,7 @@ export function TerminalMap({
             {/* Equipment markers — square badges with the app's standard
                 equipment glyph, matching the reference's marker style. */}
             {equipment.map((eq) => {
-              const lane = lanes.find((l) => l.zone.id === eq.zoneId);
+              const lane = lanes.find((l) => l.zone.id === eq.zone?.id);
               const idx = lane ? lane.items.indexOf(eq) : -1;
               const def = lane && idx >= 0 ? defaultPosition(lane, idx) : { x: VB_W / 2, y: (SECURITY_Y0 + SECURITY_Y1) / 2 };
               const pos = positions[eq.id] ?? def;

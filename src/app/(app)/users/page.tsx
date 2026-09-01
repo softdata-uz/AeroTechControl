@@ -7,11 +7,11 @@ import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
 import { Pagination } from "@/components/ui/Pagination";
-import { airportName, airports } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { useUsersList } from "@/hooks/useUsersList";
+import { useLocations } from "@/hooks/useLocations";
 import { useAsync } from "@/hooks/useAsync";
 import { usersService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
@@ -20,6 +20,7 @@ import { roleLabelKeys } from "@/config/roleAccess.config";
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 const roleChipClass: Record<UserRole, string> = {
+  king: "bg-(--chip-error-bg) text-(--chip-error-text) border-(--chip-error-border)",
   administrator: "bg-(--chip-brand-bg) text-(--chip-brand-text) border-(--chip-brand-border)",
   lead_engineer: "bg-(--chip-purple-bg) text-(--chip-purple-text) border-(--chip-purple-border)",
   engineer: "bg-(--chip-gray-bg) text-(--chip-gray-text) border-(--chip-gray-border)",
@@ -30,11 +31,12 @@ const roleChipClass: Record<UserRole, string> = {
 
 export default function UsersPage() {
   const t = useTranslations();
+  const { airports, airportName } = useLocations();
   const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
   const [airportFilter, setAirportFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
@@ -49,7 +51,7 @@ export default function UsersPage() {
 
   const filters = {
     role: roleFilter || undefined,
-    airportId: airportFilter || undefined,
+    airportId: airportFilter ? Number(airportFilter) : undefined,
     search: search || undefined,
     page,
     pageSize,
@@ -66,7 +68,7 @@ export default function UsersPage() {
   const { data: allUsersPage } = useAsync(() => usersService.listUsers({ pageSize: 1000 }), []);
   const totalUsers = allUsersPage?.total ?? 0;
 
-  async function handleToggleActive(id: string, active: boolean) {
+  async function handleToggleActive(id: number, active: boolean) {
     setTogglingId(id);
     try {
       await usersService.setUserActive(id, active);
@@ -106,7 +108,7 @@ export default function UsersPage() {
           placeholder={t("common.allAirports")}
           value={airportFilter}
           onChange={setAirportFilter}
-          options={airports.map((a) => ({ value: a.id, label: a.city }))}
+          options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
         />
         <div className="flex-1" />
         <Input

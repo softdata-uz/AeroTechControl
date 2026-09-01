@@ -11,7 +11,7 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { getCalibrationStatusConfig } from "@/config/inspectionStatus.config";
-import { airportName, airports } from "@/lib/mock-data";
+import { useLocations } from "@/hooks/useLocations";
 import { formatDate } from "@/lib/format";
 import { useCalibrationList } from "@/hooks/useCalibrationList";
 import { useAsync } from "@/hooks/useAsync";
@@ -23,6 +23,7 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function CalibrationClient() {
   const t = useTranslations();
+  const { airports, airportName } = useLocations();
   const calibrationStatusConfig = getCalibrationStatusConfig(t);
 
   const [airportFilter, setAirportFilter] = useState("");
@@ -42,7 +43,7 @@ export function CalibrationClient() {
   }, [airportFilter, statusFilter, search, pageSize]);
 
   const filters = {
-    airportId: airportFilter || undefined,
+    airportId: airportFilter ? Number(airportFilter) : undefined,
     status: statusFilter || undefined,
     search: search || undefined,
     page,
@@ -80,7 +81,7 @@ export function CalibrationClient() {
           placeholder={t("common.allAirports")}
           value={airportFilter}
           onChange={setAirportFilter}
-          options={airports.map((a) => ({ value: a.id, label: a.city }))}
+          options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
         />
         <Dropdown
           className="w-52"
@@ -151,7 +152,7 @@ export function CalibrationClient() {
                       </Link>
                       <p className="text-xs text-text-tertiary">{eq.code}</p>
                     </td>
-                    <td className="px-4 py-2.5 text-text-secondary">{airportName(eq.airportId)}</td>
+                    <td className="px-4 py-2.5 text-text-secondary">{eq.airport.name}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{formatDate(eq.lastInspectionAt)}</td>
                     <td className="px-4 py-2.5 text-text-secondary">{formatDate(eq.nextInspectionAt)}</td>
                     <td className="px-4 py-2.5">
