@@ -25,6 +25,9 @@ import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
 import { faultsService, repairsService, equipmentService } from "@/services";
 import { paginate } from "@/services/http-client";
 import { AddFaultModal } from "./AddFaultModal";
+import { FaultIntelligencePanel } from "@/components/dashboard/FaultIntelligencePanel";
+import { FaultTrendChart } from "@/components/dashboard/FaultTrendChart";
+import { useFaultIntelligence } from "@/hooks/useFaultIntelligence";
 import { useTranslations } from "@/lib/locale-context";
 
 const PAGE_SIZE = 10;
@@ -153,6 +156,8 @@ export function FaultsClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faults]);
 
+  const { data: faultIntel, loading: faultIntelLoading, error: faultIntelError } = useFaultIntelligence("30d");
+
   const selected = faults.find((f) => f.id === selectedId) ?? null;
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(page * PAGE_SIZE, total);
@@ -192,7 +197,12 @@ export function FaultsClient() {
 
       <Tabs items={viewTabs} value={view} onChange={setView} className="mt-5 px-6" />
 
-      {view !== "list" ? (
+      {view === "charts" ? (
+        <div className="flex flex-col gap-4 px-6 pt-4">
+          <FaultIntelligencePanel summary={faultIntel} loading={faultIntelLoading} error={faultIntelError} />
+          <FaultTrendChart trend={faultIntel?.trend ?? []} loading={faultIntelLoading} />
+        </div>
+      ) : view === "map" ? (
         <div className="mx-6 mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-border-primary bg-bg-secondary py-16 text-text-tertiary">
           <Icon name="layers" size={24} />
           <p className="text-sm">

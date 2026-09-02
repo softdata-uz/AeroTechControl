@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { LocationClient } from "./LocationClient";
 
 export default function LocationPage() {
-  return <LocationClient />;
+  return (
+    <Suspense>
+      <LocationClient />
+    </Suspense>
+  );
 }

@@ -51,7 +51,12 @@ export function LineChart({ series, height = 220, formatValue = (v) => String(v)
             axisLine={false}
             tick={{ fill: tokens["--text-quaternary"], fontSize: 12 }}
           />
-          <YAxis tickLine={false} axisLine={false} tick={{ fill: tokens["--text-quaternary"], fontSize: 12 }} />
+          <YAxis
+            tickLine={false}
+            axisLine={false}
+            tick={{ fill: tokens["--text-quaternary"], fontSize: 12 }}
+            tickFormatter={formatValue}
+          />
           <Tooltip
             cursor={{ stroke: tokens["--border-primary"], strokeWidth: 1 }}
             formatter={(value) => formatValue(Number(value))}
