@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -8,7 +9,9 @@ import { RankedBarList } from "@/components/charts/RankedBarList";
 import { ChartFrame } from "@/components/charts/ChartFrame";
 import { HealthInsightCallout } from "@/components/dashboard/HealthInsightCallout";
 import { useHealthSummary } from "@/hooks/useHealthSummary";
-import { equipment, faults, airportName } from "@/lib/mock-data";
+import { useEquipmentList } from "@/hooks/useEquipmentList";
+import { useFaultsList } from "@/hooks/useFaultsList";
+import { useLocations } from "@/hooks/useLocations";
 import { useTranslations } from "@/lib/locale-context";
 
 function scoreColor(score: number) {
@@ -21,17 +24,23 @@ export function HealthOverviewClient() {
   const t = useTranslations();
   const router = useRouter();
   const { data: health, loading } = useHealthSummary();
+  const { data: equipmentPage } = useEquipmentList({ pageSize: 200 });
+  const { data: faultsPage } = useFaultsList({ pageSize: 200 });
+  const { airportName } = useLocations();
 
-  const totalEquipment = equipment.length;
-  const criticalOpen = faults.filter((f) => f.priority === "critical" && f.stage !== "closed").length;
+  const totalEquipment = equipmentPage?.total ?? 0;
+  const criticalOpen = useMemo(
+    () => (faultsPage?.items ?? []).filter((f) => f.priority === "critical" && f.stage !== "closed").length,
+    [faultsPage]
+  );
   const worst = health?.entities.find((e) => e.kind === "airport") ?? null;
 
   const terminals = (health?.entities ?? []).filter((e) => e.kind === "terminal");
 
   function locationHref(entity: NonNullable<typeof worst>) {
-    const params = new URLSearchParams({ airportId: entity.airportId });
-    if (entity.terminalId) params.set("terminalId", entity.terminalId);
-    if (entity.zoneId) params.set("zoneId", entity.zoneId);
+    const params = new URLSearchParams({ airportId: String(entity.airportId) });
+    if (entity.terminalId) params.set("terminalId", String(entity.terminalId));
+    if (entity.zoneId) params.set("zoneId", String(entity.zoneId));
     return `/location?${params.toString()}`;
   }
 

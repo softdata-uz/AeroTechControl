@@ -272,7 +272,7 @@ interface Props {
   onEquipmentZoneChange?: (equipmentId: number, zoneId: number) => void;
   statusConfig: Record<EquipmentStatus, StatusVisual>;
   /** Optional zoneId -> health tone, tinted subtly behind each lane. */
-  zoneHealth?: Record<string, ZoneHealthTone>;
+  zoneHealth?: Record<number, ZoneHealthTone>;
 }
 
 export function TerminalMap({
