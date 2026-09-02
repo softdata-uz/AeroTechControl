@@ -4,7 +4,7 @@ import type {
   EquipmentStatus,
   EquipmentType,
 } from "@/lib/types";
-import { apiGet, apiGetPage, apiPatch, apiPost, apiDelete, apiUpload, type Page } from "./http-client";
+import { apiGet, apiGetPage, apiPatch, apiPost, apiDelete, apiUpload, apiDownload, type Page } from "./http-client";
 
 export interface EquipmentFilters {
   airportId?: number;
@@ -29,6 +29,11 @@ export function listEquipment(filters: EquipmentFilters = {}): Promise<Page<Equi
 // GET /equipment/:id
 export function getEquipment(id: number): Promise<Equipment> {
   return apiGet<Equipment>(`/equipment/${id}`);
+}
+
+// GET /equipment/export
+export function exportEquipment(filters: EquipmentFilters = {}): Promise<void> {
+  return apiDownload("/equipment/export", filters, "equipment.xlsx");
 }
 
 // PATCH /equipment/:id/status

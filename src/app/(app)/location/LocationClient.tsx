@@ -13,6 +13,7 @@ import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { useLocations } from "@/hooks/useLocations";
 import { useEquipmentList } from "@/hooks/useEquipmentList";
 import { useTranslations } from "@/lib/locale-context";
+import { exportEquipment } from "@/services/equipment.service";
 import { cn } from "@/lib/cn";
 import type { Equipment, EquipmentStatus, Zone } from "@/lib/types";
 
@@ -125,6 +126,20 @@ export function LocationClient() {
   const selectedAirport = airports.find((a) => a.id === airportId) ?? null;
   const selectedTerminal = terminals.find((t) => t.id === terminalId) ?? null;
 
+  const [exporting, setExporting] = useState(false);
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportEquipment({
+        airportId: airportId || undefined,
+        terminalId: terminalId || undefined,
+        zoneId: zoneId || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="pb-8">
       <PageHeader
@@ -152,7 +167,7 @@ export function LocationClient() {
                 {t("common.map")}
               </button>
             </div>
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
           </>

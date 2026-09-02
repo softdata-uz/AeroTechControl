@@ -83,6 +83,20 @@ export function SparePartsClient() {
 
   const selected = spareParts.find((p) => p.id === selectedId) ?? null;
 
+  const [exporting, setExporting] = useState(false);
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await sparePartsService.exportSpareParts({
+        warehouse: warehouseFilter || undefined,
+        status: statusFilter || undefined,
+        search: search || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function handleConfirmAction() {
     if (!selected || !pendingAction) return;
     const qty = Number(quantity);
@@ -109,7 +123,7 @@ export function SparePartsClient() {
         context={`${t("spareParts.totalNomenclature")} ${kpi.total}`}
         actions={
           <>
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
             <Button hierarchy="primary" icon="plus" size="sm">

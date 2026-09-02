@@ -1,5 +1,5 @@
 import type { AppUser, UserRole } from "@/lib/types";
-import { apiGet, apiGetPage, apiPatch, type Page } from "./http-client";
+import { apiGet, apiGetPage, apiPatch, apiDownload, type Page } from "./http-client";
 
 export interface UserFilters {
   role?: UserRole;
@@ -18,6 +18,11 @@ export function listUsers(filters: UserFilters = {}): Promise<Page<AppUser>> {
 // GET /users/:id
 export function getUser(id: number): Promise<AppUser> {
   return apiGet<AppUser>(`/users/${id}`);
+}
+
+// GET /users/export
+export function exportUsers(filters: UserFilters = {}): Promise<void> {
+  return apiDownload("/users/export", filters, "users.xlsx");
 }
 
 // PATCH /users/:id/active

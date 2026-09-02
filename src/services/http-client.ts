@@ -255,6 +255,54 @@ export async function apiGetPage<T>(
   return doRequest(false);
 }
 
+/** Downloads a binary export (XLSX/PDF) and saves it via the browser, reading the filename off Content-Disposition. */
+export async function apiDownload(
+  path: string,
+  query?: object,
+  fallbackFilename = "export.xlsx",
+): Promise<void> {
+  const queryTyped = query as Record<string, QueryValue> | undefined;
+  const accessToken = getAccessToken();
+  const headers = new Headers();
+  if (accessToken) headers.set("Authorization", `Bearer ${accessToken}`);
+
+  const doRequest = async (isRetry: boolean): Promise<Response> => {
+    const res = await fetch(`${API_BASE_URL}${path}${buildQueryString(queryTyped)}`, {
+      method: "GET",
+      headers,
+    });
+
+    if (res.status === 401 && !isRetry) {
+      const refreshed = await tryRefresh();
+      if (refreshed) return doRequest(true);
+      redirectToLogin();
+      throw new ApiException(401, "Session expired");
+    }
+
+    if (!res.ok) {
+      throw new ApiException(res.status, res.statusText || "Export failed");
+    }
+
+    return res;
+  };
+
+  const res = await doRequest(false);
+  const blob = await res.blob();
+
+  const disposition = res.headers.get("Content-Disposition") ?? "";
+  const match = disposition.match(/filename="?([^";]+)"?/i);
+  const filename = match ? match[1] : fallbackFilename;
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 /** Client-side pagination helper — still used by derived views with no backend endpoint (e.g. calibration). */
 export function paginate<T>(items: T[], page = 1, pageSize = 20): Page<T> {
   const start = (page - 1) * pageSize;

@@ -1,5 +1,5 @@
 import type { SparePart, SparePartStatus } from "@/lib/types";
-import { apiGet, apiGetPage, apiPatch, type Page } from "./http-client";
+import { apiGet, apiGetPage, apiPatch, apiDownload, type Page } from "./http-client";
 
 export interface SparePartFilters {
   warehouse?: string;
@@ -18,6 +18,11 @@ export function listSpareParts(filters: SparePartFilters = {}): Promise<Page<Spa
 // GET /spare-parts/:id
 export function getSparePart(id: number): Promise<SparePart> {
   return apiGet<SparePart>(`/spare-parts/${id}`);
+}
+
+// GET /spare-parts/export
+export function exportSpareParts(filters: SparePartFilters = {}): Promise<void> {
+  return apiDownload("/spare-parts/export", filters, "spare-parts.xlsx");
 }
 
 // PATCH /spare-parts/:id/reserve

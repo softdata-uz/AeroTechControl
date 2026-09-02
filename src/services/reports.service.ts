@@ -1,4 +1,4 @@
-import { apiGet } from "./http-client";
+import { apiGet, apiDownload } from "./http-client";
 
 export type ReportPeriod = "30d" | "90d" | "year";
 
@@ -37,4 +37,9 @@ export interface ReportsSummary {
 // GET /reports/summary?period=30d
 export function getReportsSummary(period: ReportPeriod = "30d"): Promise<ReportsSummary> {
   return apiGet<ReportsSummary>("/reports/summary", { period });
+}
+
+// GET /reports/summary/export?period=30d&format=xlsx
+export function exportReportsSummary(period: ReportPeriod = "30d"): Promise<void> {
+  return apiDownload("/reports/summary/export", { period, format: "xlsx" }, "reports-summary.xlsx");
 }

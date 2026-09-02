@@ -8,7 +8,7 @@ import { PeriodSelect } from "./PeriodSelect";
 import { LineChart } from "@/components/charts/LineChart";
 import { formatDate } from "@/lib/format";
 import { useReportsSummary } from "@/hooks/useReportsSummary";
-import type { ReportPeriod } from "@/services/reports.service";
+import { exportReportsSummary, type ReportPeriod } from "@/services/reports.service";
 import { useTranslations } from "@/lib/locale-context";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -21,7 +21,17 @@ const periodLabelKeys: Record<ReportPeriod, TranslationKey> = {
 export function ReportsClient() {
   const t = useTranslations();
   const [period, setPeriod] = useState<ReportPeriod>("30d");
+  const [exporting, setExporting] = useState(false);
   const { data: summary, loading, error, refetch } = useReportsSummary(period);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportReportsSummary(period);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="pb-8">
@@ -31,7 +41,7 @@ export function ReportsClient() {
         actions={
           <>
             <PeriodSelect value={period} onChange={setPeriod} />
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
           </>

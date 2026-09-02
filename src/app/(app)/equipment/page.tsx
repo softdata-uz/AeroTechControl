@@ -14,6 +14,7 @@ import { useEquipmentList } from "@/hooks/useEquipmentList";
 import { useLocations } from "@/hooks/useLocations";
 import { useEquipmentTypes } from "@/hooks/useEquipmentLookups";
 import { useTranslations } from "@/lib/locale-context";
+import { exportEquipment } from "@/services/equipment.service";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -57,6 +58,21 @@ export default function EquipmentRegistryPage() {
   const rangeEnd = Math.min(page * pageSize, total);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  const [exporting, setExporting] = useState(false);
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportEquipment({
+        airportId: airportFilter ? Number(airportFilter) : undefined,
+        equipmentTypeId: typeFilter ? Number(typeFilter) : undefined,
+        status: statusFilter || undefined,
+        search: search || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader
@@ -64,7 +80,7 @@ export default function EquipmentRegistryPage() {
         context={`${t("equipment.totalRecords")} ${total}`}
         actions={
           <>
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
             <Button hierarchy="secondary" icon="printer" size="sm">

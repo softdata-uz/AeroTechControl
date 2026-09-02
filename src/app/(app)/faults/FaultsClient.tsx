@@ -88,6 +88,20 @@ export function FaultsClient() {
 
   const { data, loading, error, refetch } = useFaultsList(filters);
 
+  const [exporting, setExporting] = useState(false);
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await faultsService.exportFaults({
+        stage: statusFilter || undefined,
+        priority: priorityFilter || undefined,
+        search: search || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const { faults, total } = useMemo(() => {
     const items = data?.items ?? [];
     if (!hasLocationFilters) {
@@ -156,7 +170,7 @@ export function FaultsClient() {
         title={t("faults.title")}
         actions={
           <>
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
             <Button hierarchy="primary" icon="plus" size="sm" onClick={() => setAddOpen(true)}>

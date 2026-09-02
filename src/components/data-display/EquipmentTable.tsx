@@ -68,7 +68,7 @@ export function EquipmentTable({ items, compact = false, full = false, scrollabl
                   {!full && <Thumbnail equipment={eq} />}
                   <div className="min-w-0">
                     <p className="font-medium text-text-primary">{eq.name}</p>
-                    <p className="text-xs text-text-tertiary">{full ? eq.equipmentModel.name : eq.serialNumber}</p>
+                    <p className="text-xs text-text-tertiary">{eq.serialNumber}</p>
                   </div>
                 </div>
               </td>

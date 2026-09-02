@@ -78,6 +78,20 @@ export default function UsersPage() {
     }
   }
 
+  const [exporting, setExporting] = useState(false);
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await usersService.exportUsers({
+        role: roleFilter || undefined,
+        airportId: airportFilter ? Number(airportFilter) : undefined,
+        search: search || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader
@@ -85,7 +99,7 @@ export default function UsersPage() {
         context={`${t("users.totalSuffix")} ${totalUsers}`}
         actions={
           <>
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
             <Button hierarchy="primary" icon="plus" size="sm">

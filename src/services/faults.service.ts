@@ -1,5 +1,5 @@
 import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
-import { apiGet, apiGetPage, apiPatch, apiPost, type Page } from "./http-client";
+import { apiGet, apiGetPage, apiPatch, apiPost, apiDownload, type Page } from "./http-client";
 
 export interface FaultFilters {
   airportId?: number;
@@ -31,6 +31,16 @@ export function listFaultsForEquipment(equipmentId: number): Promise<Fault[]> {
 // GET /faults/:id
 export function getFault(id: number): Promise<Fault> {
   return apiGet<Fault>(`/faults/${id}`);
+}
+
+// GET /faults/export?format=xlsx
+export function exportFaults(filters: FaultFilters = {}): Promise<void> {
+  const { equipmentId, stage, priority, search } = filters;
+  return apiDownload(
+    "/faults/export",
+    { equipmentId, stage, priority, search, format: "xlsx" },
+    "faults.xlsx"
+  );
 }
 
 // POST /faults
