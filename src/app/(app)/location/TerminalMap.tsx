@@ -253,6 +253,14 @@ function defaultPosition(lane: Lane, index: number) {
   return { x, y };
 }
 
+export type ZoneHealthTone = "success" | "warning" | "error";
+
+const ZONE_HEALTH_FILL: Record<ZoneHealthTone, string> = {
+  success: "var(--chip-success-bg)",
+  warning: "var(--chip-warning-bg)",
+  error: "var(--chip-error-bg)",
+};
+
 interface Props {
   zones: Zone[];
   equipment: Equipment[];
@@ -260,6 +268,8 @@ interface Props {
   onSelectZone: (id: string) => void;
   onEquipmentZoneChange?: (equipmentId: string, zoneId: string) => void;
   statusConfig: Record<EquipmentStatus, StatusVisual>;
+  /** Optional zoneId -> health tone, tinted subtly behind each lane. */
+  zoneHealth?: Record<string, ZoneHealthTone>;
 }
 
 export function TerminalMap({
@@ -268,6 +278,7 @@ export function TerminalMap({
   onSelectZone,
   onEquipmentZoneChange,
   statusConfig,
+  zoneHealth,
 }: Props) {
   const t = useTranslations();
   const svgRef = useRef<SVGSVGElement>(null);
@@ -501,6 +512,21 @@ export function TerminalMap({
                       y2={lane.room.y1 - 4}
                       stroke="var(--color-border-secondary)"
                       strokeDasharray="3 4"
+                    />
+                  )}
+                  {/* Health tint — subtle, non-interactive, painted behind
+                      the click target below so it never affects hit-testing
+                      or the floor-plan's own line drawing. */}
+                  {zoneHealth?.[lane.zone.id] && (
+                    <rect
+                      x={lane.x0 + 4}
+                      y={lane.room.y0 + 20}
+                      width={lane.width - 8}
+                      height={lane.room.y1 - lane.room.y0 - 26}
+                      rx={5}
+                      fill={ZONE_HEALTH_FILL[zoneHealth[lane.zone.id]]}
+                      fillOpacity={0.35}
+                      pointerEvents="none"
                     />
                   )}
                   {/* Invisible click target for zone selection — no fill/

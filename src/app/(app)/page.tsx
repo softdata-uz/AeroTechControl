@@ -10,10 +10,13 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { PieChart } from "@/components/charts/PieChart";
 import { BarChart } from "@/components/charts/BarChart";
 import { UzbekistanMap } from "@/components/dashboard/UzbekistanMap";
+import { FaultIntelligencePanel } from "@/components/dashboard/FaultIntelligencePanel";
+import { FaultTrendChart } from "@/components/dashboard/FaultTrendChart";
 import { equipment, airports, faults, airportName } from "@/lib/mock-data";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { formatDate } from "@/lib/format";
+import { useFaultIntelligence } from "@/hooks/useFaultIntelligence";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 
@@ -50,6 +53,7 @@ export default function DashboardPage() {
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
+  const { data: faultIntel, loading: faultIntelLoading, error: faultIntelError } = useFaultIntelligence("30d");
 
   const [now, setNow] = useState<Date | null>(() => new Date("2026-08-25T10:45:32"));
   useEffect(() => {
@@ -209,6 +213,11 @@ export default function DashboardPage() {
             />
           </div>
         </Card>
+      </div>
+
+      <div className="flex flex-col gap-4 px-6 pt-4">
+        <FaultIntelligencePanel summary={faultIntel} loading={faultIntelLoading} error={faultIntelError} />
+        <FaultTrendChart trend={faultIntel?.trend ?? []} loading={faultIntelLoading} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-2">

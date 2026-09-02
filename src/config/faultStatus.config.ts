@@ -127,6 +127,16 @@ export const faultPriorityLabelKeys: Record<FaultPriority, TranslationKey> = {
   critical: "status.faultPriority.critical",
 };
 
+/** Literal chart-series colors mirroring `faultPriorityVisuals`' dot colors
+ * above — for chart libraries (Recharts) that need a resolvable CSS value
+ * rather than a Tailwind class. Keep in sync with `faultPriorityVisuals`. */
+export const faultPriorityChartColor: Record<FaultPriority, string> = {
+  low: "var(--color-brand-400)",
+  medium: "var(--color-warning-500)",
+  high: "var(--color-error-500)",
+  critical: "var(--color-error-600)",
+};
+
 export function getFaultPriorityConfig(t: (key: TranslationKey) => string): Record<FaultPriority, StatusVisual> {
   return Object.fromEntries(
     Object.entries(faultPriorityVisuals).map(([key, visual]) => [

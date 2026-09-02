@@ -11,4 +11,5 @@ export * as notificationsService from "./notifications.service";
 export * as usersService from "./users.service";
 export * as authService from "./auth.service";
 export * as reportsService from "./reports.service";
+export * as faultIntelligenceService from "./fault-intelligence.service";
 export * as settingsService from "./settings.service";

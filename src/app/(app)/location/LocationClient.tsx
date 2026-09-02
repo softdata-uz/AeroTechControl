@@ -1,15 +1,18 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
-import { TerminalMap, loadMarkerOverrides } from "./TerminalMap";
+import { TerminalMap, loadMarkerOverrides, type ZoneHealthTone } from "./TerminalMap";
+import { HealthInsightCallout } from "@/components/dashboard/HealthInsightCallout";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
+import { useHealthSummary } from "@/hooks/useHealthSummary";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 import type { Airport, Equipment, EquipmentStatus, Terminal, Zone } from "@/lib/types";
@@ -72,6 +75,20 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
     if (Object.keys(overrides).length > 0) setZoneOverrides(overrides);
   }, []);
 
+  // Pre-select from a `/location/health` "view" link (?airportId=&terminalId=&zoneId=).
+  // Additive only — default (no params) behavior is unchanged.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const qAirport = searchParams.get("airportId");
+    const qTerminal = searchParams.get("terminalId");
+    const qZone = searchParams.get("zoneId");
+    if (!qAirport) return;
+    setAirportId(qAirport);
+    if (qTerminal) setTerminalId(qTerminal);
+    if (qZone) setZoneId(qZone);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const resolvedEquipment = useMemo(
     () =>
       equipment.map((e) => (zoneOverrides[e.id] ? { ...e, zoneId: zoneOverrides[e.id] } : e)),
@@ -109,6 +126,20 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
   const tableItems = zoneId ? zoneEquipment : terminalEquipment;
   const selectedAirport = airports.find((a) => a.id === airportId) ?? null;
   const selectedTerminal = terminals.find((t) => t.id === terminalId) ?? null;
+
+  const { data: health } = useHealthSummary({ airportId });
+  const zoneHealth = useMemo(() => {
+    const map: Record<string, ZoneHealthTone> = {};
+    for (const e of health?.entities ?? []) {
+      if (e.kind !== "zone" || e.terminalId !== terminalId) continue;
+      if (e.healthScore < 50) map[e.id] = "error";
+      else if (e.healthScore < 75) map[e.id] = "warning";
+    }
+    return map;
+  }, [health, terminalId]);
+  const terminalInsights = (health?.insights ?? []).filter((i) => i.entity.terminalId === terminalId);
+  const visibleInsights = (terminalInsights.length > 0 ? terminalInsights : health?.insights ?? []).slice(0, 2);
+  const maintenanceRiskCount = health?.maintenanceRiskCount ?? 0;
 
   return (
     <div className="pb-8">
@@ -228,6 +259,9 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
           <div className="shrink-0 border-t border-border-secondary p-3">
             <p className="mb-2 text-xs font-medium text-text-quaternary">{t("location.equipmentStatusTerminal")}</p>
             <StatusSummary counts={countByStatus(terminalEquipment)} statusConfig={equipmentStatusConfig} />
+            <div className="mt-2">
+              <StatTile label={t("location.maintenanceRisk")} value={maintenanceRiskCount} dotClassName="bg-warning-500" />
+            </div>
           </div>
         </Card>
 
@@ -253,6 +287,7 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
               onSelectZone={setZoneId}
               onEquipmentZoneChange={handleEquipmentZoneChange}
               statusConfig={equipmentStatusConfig}
+              zoneHealth={zoneHealth}
             />
           ) : (
             <EquipmentTable items={terminalEquipment} />
@@ -269,6 +304,23 @@ export function LocationClient({ airports, terminals, zones, equipment }: Props)
           statusConfig={equipmentStatusConfig}
         />
       </div>
+
+      {visibleInsights.length > 0 && (
+        <div className="grid grid-cols-1 gap-3 px-6 pt-4 lg:grid-cols-2">
+          {visibleInsights.map((insight) => (
+            <HealthInsightCallout
+              key={insight.id}
+              insight={insight}
+              ctaLabel={t("location.viewDetails")}
+              onNavigate={() => {
+                if (insight.entity.airportId) setAirportId(insight.entity.airportId);
+                if (insight.entity.terminalId) setTerminalId(insight.entity.terminalId);
+                if (insight.entity.zoneId) setZoneId(insight.entity.zoneId);
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       <div className="mt-4 px-6">
         <Card className="overflow-hidden">

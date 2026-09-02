@@ -156,6 +156,75 @@ const faultSeed: Array<{
   { eqIndex: 4, title: "Нестабильное срабатывание при низком напряжении сети.", description: "При просадке напряжения сети арка металлодетектора самопроизвольно перезагружается.", category: "Электропитание", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 12, dueInDays: null, attachmentCount: 0 },
   { eqIndex: 16, title: "Не печатает талон по результатам проверки.", description: "Встроенный принтер интроскопа не выводит талон с результатами проверки, лента заправлена корректно.", category: "Механика", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 14, dueInDays: null, attachmentCount: 0 },
   { eqIndex: 7, title: "Сбой авторизации оператора на турникете.", description: "Турникет периодически не распознает карту доступа авторизованного оператора.", category: "ПО", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 15, dueInDays: null, attachmentCount: 0 },
+
+  // --- Extended history (last 0-7 days) — deliberately concentrated on
+  // zone-tas-2-b (eqIndex 0, 13) so the health rollup finds a real,
+  // non-fabricated week-over-week fault spike there.
+  { eqIndex: 0, title: "Помехи на изображении багажа.", description: "На изображении интроскопа появляются шумовые артефакты, снижающие детализацию.", category: "Оптика/Датчики", priority: "high", stage: "diagnosis", detectedVia: "sensor", daysAgo: 4, dueInDays: 3, attachmentCount: 2 },
+  { eqIndex: 13, title: "Повторное зависание блока управления.", description: "Сенсорная панель интроскопа для багажа снова зависает после обновления ПО.", category: "ПО", priority: "medium", stage: "registered", detectedVia: "manual", daysAgo: 6, dueInDays: 4, attachmentCount: 1 },
+  { eqIndex: 0, title: "Просадка напряжения при запуске сканирования.", description: "При запуске цикла сканирования фиксируется кратковременная просадка напряжения питания.", category: "Электропитание", priority: "medium", stage: "assigned", detectedVia: "inspection", daysAgo: 2, dueInDays: 5, attachmentCount: 0 },
+  { eqIndex: 12, title: "Медленная загрузка изображения багажа.", description: "Формирование изображения занимает более 5 секунд, что превышает норматив.", category: "ПО", priority: "medium", stage: "detected", detectedVia: "manual", daysAgo: 1, dueInDays: 3, attachmentCount: 0 },
+  { eqIndex: 4, title: "Случайные ложные срабатывания арки.", description: "Металлодетектор периодически срабатывает без прохождения пассажиров.", category: "Электроника", priority: "medium", stage: "registered", detectedVia: "sensor", daysAgo: 3, dueInDays: 4, attachmentCount: 0 },
+  { eqIndex: 9, title: "Нестабильный отклик датчика ионной подвижности.", description: "Прибор выдает нестабильные показания при повторных замерах одного образца.", category: "Оптика/Датчики", priority: "high", stage: "diagnosis", detectedVia: "audit", daysAgo: 5, dueInDays: 2, attachmentCount: 1 },
+  { eqIndex: 7, title: "Задержка отклика при считывании карты доступа.", description: "Турникет реагирует на карту доступа с задержкой до 3 секунд.", category: "Электроника", priority: "low", stage: "detected", detectedVia: "manual", daysAgo: 0, dueInDays: 6, attachmentCount: 0 },
+  { eqIndex: 1, title: "Артефакты сжатия на выводимом изображении.", description: "На экране оператора изображение периодически теряет резкость по краям.", category: "Оптика/Датчики", priority: "medium", stage: "registered", detectedVia: "inspection", daysAgo: 7, dueInDays: 3, attachmentCount: 2 },
+  { eqIndex: 5, title: "Сбой автоматической калибровки при включении.", description: "При включении интроскопа автоматическая калибровка завершается ошибкой.", category: "Калибровка", priority: "high", stage: "assigned", detectedVia: "sensor", daysAgo: 4, dueInDays: 2, attachmentCount: 1 },
+  { eqIndex: 11, title: "Слабый звуковой сигнал оповещения.", description: "Ручной металлодетектор подает слабый звуковой сигнал при обнаружении металла.", category: "Электроника", priority: "low", stage: "registered", detectedVia: "manual", daysAgo: 5, dueInDays: 5, attachmentCount: 0 },
+  { eqIndex: 3, title: "Ошибка самодиагностики после замены картриджа.", description: "После замены картриджа детектор следов взрывчатых веществ не проходит самодиагностику.", category: "Калибровка", priority: "high", stage: "diagnosis", detectedVia: "manual", daysAgo: 2, dueInDays: 2, attachmentCount: 1 },
+  { eqIndex: 8, title: "Заедание шторки на выходе конвейера.", description: "Защитная шторка на выходе конвейера периодически заедает при высокой загрузке.", category: "Механика", priority: "medium", stage: "registered", detectedVia: "inspection", daysAgo: 6, dueInDays: 4, attachmentCount: 1 },
+  { eqIndex: 14, title: "Кратковременное пропадание индикации статуса.", description: "Индикаторная панель стационарного металлодетектора кратковременно гаснет.", category: "Электропитание", priority: "low", stage: "detected", detectedVia: "manual", daysAgo: 1, dueInDays: 7, attachmentCount: 0 },
+
+  // --- 8-30 days ago
+  { eqIndex: 13, title: "Повышенный уровень шума в изображении.", description: "На изображении багажа заметен повышенный уровень шума в тёмных зонах.", category: "Оптика/Датчики", priority: "low", stage: "closed", detectedVia: "inspection", daysAgo: 10, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 2, title: "Отклонение показаний при контрольном тесте.", description: "При контрольном тесте чувствительности зафиксировано отклонение от нормативных значений.", category: "Калибровка", priority: "medium", stage: "verification", detectedVia: "audit", daysAgo: 11, dueInDays: 2, attachmentCount: 0 },
+  { eqIndex: 6, title: "Перегрев блока анализа при длительной работе.", description: "Через 2-3 часа непрерывной работы фиксируется перегрев блока анализа.", category: "Электроника", priority: "high", stage: "repair", detectedVia: "sensor", daysAgo: 13, dueInDays: 1, attachmentCount: 2 },
+  { eqIndex: 17, title: "Заедание механизма арки при закрытии.", description: "Механизм створки арки периодически заедает при закрытии после досмотра.", category: "Механика", priority: "medium", stage: "verification", detectedVia: "inspection", daysAgo: 16, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 1, title: "Ошибка обновления встроенного ПО.", description: "Обновление встроенного ПО завершается ошибкой на этапе проверки контрольной суммы.", category: "ПО", priority: "medium", stage: "diagnosis", detectedVia: "manual", daysAgo: 18, dueInDays: 3, attachmentCount: 0 },
+  { eqIndex: 9, title: "Утечка в системе подачи пробы.", description: "Обнаружена незначительная утечка в системе подачи пробы газоанализатора.", category: "Механика", priority: "high", stage: "repair", detectedVia: "audit", daysAgo: 19, dueInDays: 2, attachmentCount: 3 },
+  { eqIndex: 4, title: "Коррозия контактов разъёма питания.", description: "На контактах разъёма питания обнаружены следы коррозии, снижающие надёжность контакта.", category: "Электропитание", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 20, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 12, title: "Разрыв ленты конвейера на стыке.", description: "На стыке секций ленты конвейера образовался небольшой разрыв.", category: "Механика", priority: "high", stage: "repair", detectedVia: "manual", daysAgo: 21, dueInDays: 1, attachmentCount: 2 },
+  { eqIndex: 3, title: "Снижена чувствительность к отдельным веществам.", description: "Прибор показывает сниженную чувствительность при тестировании контрольных образцов.", category: "Калибровка", priority: "medium", stage: "verification", detectedVia: "audit", daysAgo: 22, dueInDays: 1, attachmentCount: 0 },
+  { eqIndex: 8, title: "Сбой синхронизации двух мониторов оператора.", description: "Изображения на двух мониторах оператора периодически рассинхронизируются.", category: "ПО", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 23, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 15, title: "Дрейф нулевой точки показаний.", description: "Зафиксирован дрейф нулевой точки показаний при длительной работе без перекалибровки.", category: "Калибровка", priority: "medium", stage: "verification", detectedVia: "sensor", daysAgo: 24, dueInDays: 2, attachmentCount: 0 },
+  { eqIndex: 14, title: "Заклинивание крышки отсека батареи.", description: "Крышка отсека батареи стационарного металлодетектора заклинивает при открытии.", category: "Механика", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 25, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 5, title: "Искажение геометрии изображения по краям.", description: "На краях кадра наблюдается заметное геометрическое искажение изображения.", category: "Оптика/Датчики", priority: "medium", stage: "verification", detectedVia: "inspection", daysAgo: 26, dueInDays: 1, attachmentCount: 2 },
+  { eqIndex: 11, title: "Разряд встроенного аккумулятора быстрее нормы.", description: "Встроенный аккумулятор ручного металлодетектора разряжается быстрее заявленного времени.", category: "Электропитание", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 27, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 16, title: "Не срабатывает индикатор готовности.", description: "Индикатор готовности к сканированию не загорается после запуска системы.", category: "Электроника", priority: "medium", stage: "verification", detectedVia: "manual", daysAgo: 28, dueInDays: 1, attachmentCount: 1 },
+  { eqIndex: 7, title: "Ошибка синхронизации с сервером доступа.", description: "Турникет периодически теряет соединение с сервером контроля доступа.", category: "ПО", priority: "high", stage: "repair", detectedVia: "sensor", daysAgo: 29, dueInDays: 1, attachmentCount: 1 },
+  { eqIndex: 2, title: "Люфт в креплении опорной стойки.", description: "Обнаружен люфт в креплении опорной стойки арочного металлодетектора.", category: "Механика", priority: "low", stage: "closed", detectedVia: "inspection", daysAgo: 20, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 10, title: "Отклонение калибровки после транспортировки.", description: "После планового перемещения прибора зафиксировано отклонение калибровочных параметров.", category: "Калибровка", priority: "medium", stage: "closed", detectedVia: "audit", daysAgo: 60, dueInDays: null, attachmentCount: 0 },
+
+  // --- 31-90 days ago
+  { eqIndex: 0, title: "Повторная ошибка системы генератора.", description: "Повторно зафиксирована ошибка системы генератора E071, идентичная предыдущему инциденту.", category: "Электроника", priority: "high", stage: "closed", detectedVia: "sensor", daysAgo: 45, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 13, title: "Сбой встроенного ПО при пакетной обработке.", description: "При обработке серии багажа подряд интерфейс оператора зависает повторно.", category: "ПО", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 50, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 2, title: "Повторное отклонение чувствительности при поверке.", description: "Плановая поверка вновь выявила отклонение чувствительности от нормативных значений.", category: "Калибровка", priority: "medium", stage: "closed", detectedVia: "audit", daysAgo: 40, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 6, title: "Повторный перегрев блока анализа.", description: "Через месяц после предыдущего ремонта вновь зафиксирован перегрев блока анализа.", category: "Электроника", priority: "high", stage: "closed", detectedVia: "sensor", daysAgo: 35, dueInDays: null, attachmentCount: 2 },
+  { eqIndex: 16, title: "Повторное заедание механизма шторки.", description: "Механизм защитной шторки снова заедает после предыдущего ремонта.", category: "Механика", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 70, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 1, title: "Помутнение защитного стекла детектора.", description: "На защитном стекле детектора обнаружено помутнение, снижающее качество изображения.", category: "Оптика/Датчики", priority: "low", stage: "closed", detectedVia: "inspection", daysAgo: 33, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 3, title: "Замена неисправного насоса пробоотбора.", description: "Насос системы пробоотбора вышел из строя, требуется замена узла.", category: "Механика", priority: "high", stage: "closed", detectedVia: "manual", daysAgo: 37, dueInDays: null, attachmentCount: 2 },
+  { eqIndex: 4, title: "Пробой изоляции силового кабеля.", description: "Обнаружен локальный пробой изоляции силового кабеля питания стойки.", category: "Электропитание", priority: "critical", stage: "closed", detectedVia: "audit", daysAgo: 42, dueInDays: null, attachmentCount: 2 },
+  { eqIndex: 5, title: "Смещение калибровочной мишени.", description: "Внутренняя калибровочная мишень сместилась после планового обслуживания.", category: "Калибровка", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 48, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 8, title: "Отказ датчика присутствия багажа.", description: "Датчик присутствия багажа на входе конвейера перестал срабатывать.", category: "Оптика/Датчики", priority: "high", stage: "closed", detectedVia: "sensor", daysAgo: 52, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 9, title: "Замена изношенного уплотнителя пробоотборника.", description: "Уплотнитель пробоотборника изношен и требует замены.", category: "Механика", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 55, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 11, title: "Трещина корпуса рукоятки.", description: "На корпусе рукоятки ручного металлодетектора обнаружена трещина.", category: "Механика", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 58, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 12, title: "Сбой ленты конвейера при обратном ходе.", description: "При обратном ходе лента конвейера издаёт нехарактерный шум и подёргивается.", category: "Механика", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 62, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 14, title: "Окисление контактов кнопочной панели.", description: "Кнопочная панель управления показывает нестабильный отклик из-за окисления контактов.", category: "Электроника", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 65, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 15, title: "Замена источника питания детектора.", description: "Источник питания дозиметра-радиометра вышел из строя и был заменён.", category: "Электропитание", priority: "high", stage: "closed", detectedVia: "sensor", daysAgo: 68, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 17, title: "Обновление ПО для устранения ложных срабатываний.", description: "Массовые ложные срабатывания устранены после обновления встроенного ПО.", category: "ПО", priority: "medium", stage: "closed", detectedVia: "audit", daysAgo: 72, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 7, title: "Замена считывателя карт доступа.", description: "Считыватель карт доступа турникета вышел из строя и был заменён на новый.", category: "Электроника", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 76, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 10, title: "Нарушение герметичности корпуса анализатора.", description: "Обнаружено нарушение герметичности корпуса, влияющее на точность измерений.", category: "Механика", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 80, dueInDays: null, attachmentCount: 1 },
+
+  // --- 91-130 days ago
+  { eqIndex: 6, title: "Первичный отказ блока анализа.", description: "Первичный случай отказа блока анализа, ставший причиной планового усиления контроля.", category: "Электроника", priority: "high", stage: "closed", detectedVia: "sensor", daysAgo: 85, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 2, title: "Первичное отклонение чувствительности.", description: "Первый зафиксированный случай отклонения чувствительности данной арки.", category: "Калибровка", priority: "low", stage: "closed", detectedVia: "audit", daysAgo: 100, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 0, title: "Кратковременный сбой генератора рентгеновской трубки.", description: "Кратковременный сбой генератора, устранён перезапуском системы.", category: "Электроника", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 95, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 1, title: "Замена лампы подсветки монитора оператора.", description: "Лампа подсветки монитора оператора вышла из строя и была заменена.", category: "Электропитание", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 92, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 3, title: "Замена мембраны детектора следов.", description: "Мембрана детектора следов взрывчатых веществ пришла в негодность и была заменена.", category: "Механика", priority: "medium", stage: "closed", detectedVia: "inspection", daysAgo: 98, dueInDays: null, attachmentCount: 1 },
+  { eqIndex: 5, title: "Сбой при первом включении после поставки.", description: "При первом включении после поставки зафиксирован программный сбой инициализации.", category: "ПО", priority: "medium", stage: "closed", detectedVia: "manual", daysAgo: 105, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 8, title: "Регулировка натяжения приводного ремня.", description: "Приводной ремень конвейера ослаб и потребовал регулировки натяжения.", category: "Механика", priority: "low", stage: "closed", detectedVia: "inspection", daysAgo: 110, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 9, title: "Замена фильтра системы забора пробы.", description: "Фильтр системы забора пробы засорился и был заменён по регламенту.", category: "Механика", priority: "low", stage: "closed", detectedVia: "manual", daysAgo: 115, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 4, title: "Первичная нестабильность срабатывания.", description: "Первый зафиксированный случай нестабильного срабатывания арки при вводе в эксплуатацию.", category: "Электроника", priority: "low", stage: "closed", detectedVia: "inspection", daysAgo: 120, dueInDays: null, attachmentCount: 0 },
+  { eqIndex: 17, title: "Настройка чувствительности после ввода в эксплуатацию.", description: "Потребовалась донастройка чувствительности после планового ввода в эксплуатацию.", category: "Калибровка", priority: "low", stage: "closed", detectedVia: "audit", daysAgo: 128, dueInDays: null, attachmentCount: 0 },
 ];
 
 export const faults: Fault[] = faultSeed.map((f, i) => ({
@@ -183,7 +252,10 @@ export const repairs: Repair[] = faults
     status: f.stage === "closed" ? "verified" : f.stage === "verification" ? "completed" : "in_progress",
     engineer: f.assignee ?? inspectorNames[0],
     startedAt: f.detectedAt,
-    completedAt: f.stage === "closed" ? isoDaysAgo(1) : null,
+    // Completed a few days after detection (varied, not a fixed global
+    // date) — otherwise every closed fault "resolves" on the same day,
+    // producing an artificial single-day spike once there are many of them.
+    completedAt: f.stage === "closed" ? isoDaysAfter(f.detectedAt, 2 + (i % 4)) : null,
     estimatedHours: 4 + i,
     actualHours: f.stage === "closed" ? 3 + i : null,
     partsUsed: f.stage === "closed" ? ["Блок питания 24В", "Ремень конвейера"] : [],
@@ -292,4 +364,13 @@ function isoDaysFromNow(days: number) {
   const d = new Date("2026-08-25T10:00:00Z");
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/** `dateIso` plus `days`, capped at today — never resolves in the future. */
+function isoDaysAfter(dateIso: string, days: number) {
+  const d = new Date(`${dateIso}T10:00:00Z`);
+  d.setDate(d.getDate() + days);
+  const today = "2026-08-25";
+  const result = d.toISOString().slice(0, 10);
+  return result > today ? today : result;
 }
