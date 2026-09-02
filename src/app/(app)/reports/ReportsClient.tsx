@@ -4,17 +4,11 @@ import { useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { KPICard } from "@/components/data-display/KPICard";
 import { PeriodSelect } from "./PeriodSelect";
 import { LineChart } from "@/components/charts/LineChart";
-import { RadarChart } from "@/components/charts/RadarChart";
-import { RankedBarList } from "@/components/charts/RankedBarList";
-import { ChartFrame } from "@/components/charts/ChartFrame";
-import { categoricalColor } from "@/components/charts/palette";
-import { formatDate, formatHours } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { useReportsSummary } from "@/hooks/useReportsSummary";
-import { reportsService } from "@/services";
-import type { ReportPeriod } from "@/services/reports.service";
+import { exportReportsSummary, type ReportPeriod } from "@/services/reports.service";
 import { useTranslations } from "@/lib/locale-context";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
@@ -27,7 +21,17 @@ const periodLabelKeys: Record<ReportPeriod, TranslationKey> = {
 export function ReportsClient() {
   const t = useTranslations();
   const [period, setPeriod] = useState<ReportPeriod>("30d");
+  const [exporting, setExporting] = useState(false);
   const { data: summary, loading, error, refetch } = useReportsSummary(period);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportReportsSummary(period);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="pb-8">
@@ -37,7 +41,7 @@ export function ReportsClient() {
         actions={
           <>
             <PeriodSelect value={period} onChange={setPeriod} />
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
           </>
@@ -58,16 +62,7 @@ export function ReportsClient() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-3 xl:grid-cols-6">
-            <KPICard label={t("reports.metricTotalEquipment")} value={summary.total} icon="cpu" tone="neutral" />
-            <KPICard label={t("reports.metricOperational")} value={summary.operational} icon="check-circle" tone="success" />
-            <KPICard label={t("reports.metricFaulty")} value={summary.faulty} icon="alert-triangle" tone="error" />
-            <KPICard label={t("reports.metricUnderRepair")} value={summary.underRepair} icon="wrench" tone="warning" />
-            <KPICard label={t("reports.metricOverdueInspections")} value={summary.overdueInspections} icon="clock" tone="error" />
-            <KPICard label={t("reports.metricUpcomingInspections")} value={summary.upcomingInspections} icon="calendar-date" tone="brand" />
-          </div>
-
-          <div className="px-6 pt-4">
+          <div className="px-6 pt-5">
             <Card>
               <CardHeader>
                 <CardTitle>{t("reports.complianceByAirport")}</CardTitle>
@@ -88,9 +83,9 @@ export function ReportsClient() {
                   </thead>
                   <tbody>
                     {summary.complianceMatrix.rows.map(({ airport, cells }) => (
-                      <tr key={airport.id} className="border-b border-border-secondary last:border-0">
+                      <tr key={airport} className="border-b border-border-secondary last:border-0">
                         <td className="sticky left-0 whitespace-nowrap bg-bg-secondary px-2 py-2 font-medium text-text-secondary">
-                          {airport.city}
+                          {airport}
                         </td>
                         {cells.map((cell, i) => (
                           <td key={i} className="px-2 py-2 text-center">
@@ -126,10 +121,11 @@ export function ReportsClient() {
                 <CardTitle>{t("reports.faultsDynamics")}</CardTitle>
               </CardHeader>
               <div className="p-4">
-                <ChartFrame height={160} isEmpty={summary.dailyFaults.length === 0} emptyLabel={t("reports.noFaultsInPeriod")}>
+                {summary.dailyFaults.length === 0 ? (
+                  <p className="text-sm text-text-tertiary">{t("reports.noFaultsInPeriod")}</p>
+                ) : (
                   <LineChart
                     height={160}
-                    formatValue={(v) => String(Math.round(v))}
                     series={[
                       {
                         name: t("dashboard.faults"),
@@ -141,79 +137,7 @@ export function ReportsClient() {
                       },
                     ]}
                   />
-                </ChartFrame>
-              </div>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 px-6 pt-4 sm:grid-cols-2">
-            <KPICard
-              label={t("reports.mttrTitle")}
-              value={formatHours(summary.mttrHours)}
-              meta={`${t("reports.mttrCalculatedOn")} ${summary.mttrSampleSize} ${t("reports.mttrCompletedRepairs")}`}
-              icon="clock"
-              tone="warning"
-            />
-            <KPICard
-              label={t("reports.mtbfTitle")}
-              value={formatHours(summary.mtbfHours)}
-              meta={`${t("reports.mtbfEstimateOn")} ${summary.total} ${t("reports.mtbfUnits")}`}
-              icon="gauge"
-              tone="brand"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("reports.problemTypesTitle")}</CardTitle>
-              </CardHeader>
-              <div className="p-4">
-                <ChartFrame isEmpty={summary.byTypeFaultCount.length === 0} emptyLabel={t("reports.noFaultsInPeriod")} height={180}>
-                  <RankedBarList
-                    data={summary.byTypeFaultCount.map(([label, value], i) => ({
-                      label,
-                      value,
-                      color: categoricalColor(i),
-                    }))}
-                  />
-                </ChartFrame>
-              </div>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("reports.airportComparison")}</CardTitle>
-              </CardHeader>
-              <div className="p-4">
-                <RadarChart
-                  axes={[t("reports.radarOperational"), t("reports.radarOnTime"), t("reports.radarResolved")]}
-                  series={summary.radarSeries.map((s, i) => ({ ...s, color: categoricalColor(i) }))}
-                  max={100}
-                />
-              </div>
-            </Card>
-          </div>
-
-          <div className="px-6 pt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("reports.partsConsumption")}</CardTitle>
-              </CardHeader>
-              <div className="p-4">
-                <ChartFrame isEmpty={summary.partsConsumption.length === 0} emptyLabel={t("reports.noConsumptionData")} height={140}>
-                  <RankedBarList
-                    formatValue={(v) => `${v} ${t("reports.used").replace(":", "")}`}
-                    data={summary.partsConsumption.map(([name, count], i) => {
-                      const stock = reportsService.getSparePartStockByName(name);
-                      return {
-                        label: stock != null ? `${name} (${t("reports.stock")} ${stock})` : name,
-                        value: count,
-                        color: categoricalColor(i),
-                      };
-                    })}
-                  />
-                </ChartFrame>
+                )}
               </div>
             </Card>
           </div>

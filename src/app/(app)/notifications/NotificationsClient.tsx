@@ -23,7 +23,7 @@ const severityMeta: Record<NotificationItem["severity"], { icon: IconName; class
   info: { icon: "bell", className: "text-brand-400" },
 };
 
-const entityHref: Record<NotificationItem["entityType"], (id: string) => string> = {
+const entityHref: Record<NotificationItem["entityType"], (id: number) => string> = {
   equipment: (id) => `/equipment/${id}`,
   fault: () => `/faults`,
   inspection: () => `/documents?tab=inspections`,
@@ -51,7 +51,7 @@ export function NotificationsClient() {
   );
   const unreadCount = (allNotificationsPage?.items ?? []).filter((n) => !n.read).length;
 
-  async function markRead(id: string) {
+  async function markRead(id: number) {
     await notificationsService.markAsRead(id);
     await Promise.all([refetch(), refetchUnread()]);
   }

@@ -1,12 +1,20 @@
-import type { Equipment, EquipmentStatus } from "@/lib/types";
-import { equipment as equipmentSeed, equipmentById } from "@/lib/mock-data";
-import { resolve, mutate, reject, paginate, type Page } from "./http-client";
+import type {
+  Equipment,
+  EquipmentModel,
+  EquipmentStatus,
+  EquipmentType,
+} from "@/lib/types";
+import { apiGet, apiGetPage, apiPatch, apiPost, apiDelete, apiUpload, apiDownload, type Page } from "./http-client";
 
 export interface EquipmentFilters {
-  airportId?: string;
-  terminalId?: string;
-  zoneId?: string;
-  type?: string;
+  airportId?: number;
+  terminalId?: number;
+  zoneId?: number;
+  equipmentTypeId?: number;
+  equipmentModelId?: number;
+  manufacturerCompanyId?: number;
+  manufacturerCountryId?: number;
+  operatedById?: number;
   status?: EquipmentStatus;
   search?: string;
   page?: number;
@@ -15,46 +23,122 @@ export interface EquipmentFilters {
 
 // GET /equipment
 export function listEquipment(filters: EquipmentFilters = {}): Promise<Page<Equipment>> {
-  return resolve(() => {
-    let items = equipmentSeed;
-    if (filters.airportId) items = items.filter((e) => e.airportId === filters.airportId);
-    if (filters.terminalId) items = items.filter((e) => e.terminalId === filters.terminalId);
-    if (filters.zoneId) items = items.filter((e) => e.zoneId === filters.zoneId);
-    if (filters.type) items = items.filter((e) => e.type === filters.type);
-    if (filters.status) items = items.filter((e) => e.status === filters.status);
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      items = items.filter(
-        (e) =>
-          e.name.toLowerCase().includes(q) ||
-          e.code.toLowerCase().includes(q) ||
-          e.serialNumber.toLowerCase().includes(q) ||
-          e.inventoryNumber.toLowerCase().includes(q)
-      );
-    }
-    return paginate(items, filters.page, filters.pageSize);
-  });
+  return apiGetPage<Equipment>("/equipment", filters);
 }
 
 // GET /equipment/:id
-export function getEquipment(id: string): Promise<Equipment> {
-  return resolve(() => equipmentById(id)).then((eq) => {
-    if (!eq) return reject(404, `Equipment ${id} not found`) as Promise<Equipment>;
-    return eq;
-  });
+export function getEquipment(id: number): Promise<Equipment> {
+  return apiGet<Equipment>(`/equipment/${id}`);
+}
+
+// GET /equipment/export
+export function exportEquipment(filters: EquipmentFilters = {}): Promise<void> {
+  return apiDownload("/equipment/export", filters, "equipment.xlsx");
 }
 
 // PATCH /equipment/:id/status
-export function updateEquipmentStatus(id: string, status: EquipmentStatus): Promise<Equipment> {
-  return mutate(() => {
-    const eq = equipmentById(id);
-    if (!eq) throw new Error(`Equipment ${id} not found`);
-    eq.status = status;
-    return eq;
-  });
+export function updateEquipmentStatus(id: number, status: EquipmentStatus): Promise<Equipment> {
+  return apiPatch<Equipment>(`/equipment/${id}/status`, { status });
 }
 
-// GET /equipment/types (distinct types for filter dropdowns)
-export function listEquipmentTypes(): Promise<string[]> {
-  return resolve(() => Array.from(new Set(equipmentSeed.map((e) => e.type))).sort());
+// GET /equipment-types
+export function listEquipmentTypes(): Promise<EquipmentType[]> {
+  return apiGet<EquipmentType[]>("/equipment-types");
+}
+
+// POST /equipment-types
+export function createEquipmentType(input: { name: string }): Promise<EquipmentType> {
+  return apiPost<EquipmentType>("/equipment-types", input);
+}
+
+// PATCH /equipment-types/:id
+export function updateEquipmentType(id: number, input: { name: string }): Promise<EquipmentType> {
+  return apiPatch<EquipmentType>(`/equipment-types/${id}`, input);
+}
+
+// DELETE /equipment-types/:id
+export function deleteEquipmentType(id: number): Promise<void> {
+  return apiDelete<void>(`/equipment-types/${id}`);
+}
+
+// GET /equipment-models?equipmentTypeId=
+export function listEquipmentModels(equipmentTypeId?: number): Promise<EquipmentModel[]> {
+  return apiGet<EquipmentModel[]>("/equipment-models", { equipmentTypeId });
+}
+
+// POST /equipment-models
+export function createEquipmentModel(input: {
+  equipmentTypeId: number;
+  name: string;
+}): Promise<EquipmentModel> {
+  return apiPost<EquipmentModel>("/equipment-models", input);
+}
+
+// PATCH /equipment-models/:id
+export function updateEquipmentModel(
+  id: number,
+  input: { equipmentTypeId?: number; name?: string }
+): Promise<EquipmentModel> {
+  return apiPatch<EquipmentModel>(`/equipment-models/${id}`, input);
+}
+
+// DELETE /equipment-models/:id
+export function deleteEquipmentModel(id: number): Promise<void> {
+  return apiDelete<void>(`/equipment-models/${id}`);
+}
+
+export interface EquipmentInput {
+  name: string;
+  equipmentTypeId: number | "";
+  equipmentModelId: number | "";
+  manufacturerCompanyId: number | "";
+  manufacturerCountryId: number | "";
+  serialNumber?: string;
+  inventoryNumber?: string;
+  airportId: number;
+  terminalId?: number;
+  zoneId?: number;
+  location?: string;
+  operatedById: number | "";
+  status?: EquipmentStatus;
+  manufactureYear: number | "";
+  purchaseYear?: number | "";
+  commissioningYear?: number | "";
+  serviceLifeExpiryYear?: number | "";
+  lastInspectionAt?: string | null;
+  nextInspectionAt?: string | null;
+  notes?: string;
+  /** undefined = leave unchanged (edit only), null = remove, File = replace/set */
+  image?: File | null;
+}
+
+function buildFormData(input: Partial<EquipmentInput>): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (key === "image") continue;
+    if (value === undefined || value === null || value === "") continue;
+    formData.set(key, String(value));
+  }
+  if (input.image instanceof File) {
+    formData.set("image", input.image);
+  }
+  return formData;
+}
+
+// POST /equipment
+export function createEquipment(input: EquipmentInput): Promise<Equipment> {
+  if (input.image instanceof File) {
+    return apiUpload<Equipment>("/equipment", buildFormData(input));
+  }
+  const { image: _image, ...rest } = input;
+  return apiPost<Equipment>("/equipment", rest);
+}
+
+// PATCH /equipment/:id
+export function updateEquipment(id: number, input: Partial<EquipmentInput>): Promise<Equipment> {
+  if (input.image instanceof File) {
+    return apiUpload<Equipment>(`/equipment/${id}`, buildFormData(input), "PATCH");
+  }
+  const { image: _image, ...rest } = input;
+  return apiPatch<Equipment>(`/equipment/${id}`, rest);
 }

@@ -29,6 +29,7 @@ const emptyForm = {
 export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Props) {
   const t = useTranslations();
   const [form, setForm] = useState(emptyForm);
+  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -40,6 +41,7 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
 
   function reset() {
     setForm(emptyForm);
+    setFile(null);
     setError(null);
   }
 
@@ -49,7 +51,7 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
   }
 
   async function handleSubmit() {
-    if (!form.title || !form.author) {
+    if (!form.title || !form.author || !file) {
       setError(t("documents.modal.requiredError"));
       return;
     }
@@ -57,12 +59,13 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
     setError(null);
     try {
       const doc = await documentsService.createDocument({
-        equipmentId: form.equipmentId || null,
+        equipmentId: form.equipmentId ? Number(form.equipmentId) : null,
         title: form.title,
         type: form.type,
         status: "active",
         author: form.author,
         version: form.version || "1.0",
+        file,
       });
       onCreated(doc);
       reset();
@@ -125,7 +128,7 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
           placeholder={t("documents.modal.equipmentPlaceholder")}
           value={form.equipmentId}
           onChange={(v) => setForm((f) => ({ ...f, equipmentId: v }))}
-          options={equipment.map((eq) => ({ value: eq.id, label: `${eq.name} · ${eq.code}` }))}
+          options={equipment.map((eq) => ({ value: String(eq.id), label: `${eq.name} · ${eq.code}` }))}
         />
 
         <Input
@@ -135,6 +138,17 @@ export function UploadDocumentModal({ open, onClose, onCreated, typeMeta }: Prop
           value={form.author}
           onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))}
         />
+
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-text-secondary">
+            {t("documents.modal.file")}
+          </label>
+          <input
+            type="file"
+            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            className="w-full rounded-md border border-border-primary bg-bg-primary px-3 py-2 text-sm text-text-primary file:mr-3 file:rounded file:border-0 file:bg-bg-tertiary file:px-2 file:py-1 file:text-xs file:text-text-secondary"
+          />
+        </div>
       </div>
     </Modal>
   );

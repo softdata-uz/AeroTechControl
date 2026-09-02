@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { KPICard } from "@/components/data-display/KPICard";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -10,38 +10,37 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { PieChart } from "@/components/charts/PieChart";
 import { BarChart } from "@/components/charts/BarChart";
 import { UzbekistanMap } from "@/components/dashboard/UzbekistanMap";
-import { FaultIntelligencePanel } from "@/components/dashboard/FaultIntelligencePanel";
-import { FaultTrendChart } from "@/components/dashboard/FaultTrendChart";
-import { equipment, airports, faults, airportName } from "@/lib/mock-data";
+import { useEquipmentList } from "@/hooks/useEquipmentList";
+import { useFaultsList } from "@/hooks/useFaultsList";
+import { useLocations } from "@/hooks/useLocations";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { formatDate } from "@/lib/format";
-import { useFaultIntelligence } from "@/hooks/useFaultIntelligence";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 
 const STATUS_CHART_COLOR: Record<string, string> = {
-  operational: "var(--color-success-500)",
   faulty: "var(--color-error-500)",
-  maintenance: "var(--color-warning-500)",
-  reserve: "var(--color-brand-400)",
-  requires_inspection: "var(--color-purple-500)",
+  operational: "var(--color-success-500)",
+  good: "var(--color-success-500)",
+  satisfactory: "var(--color-warning-500)",
+  unsatisfactory: "var(--color-error-500)",
+  overdue: "var(--color-error-500)",
+  not_connected: "var(--color-gray-500)",
 };
 
 // Each airport's pin is anchored to a region/district shape in
 // `uzbekistanRegions.ts` — UzbekistanMap measures that shape's real centroid
 // via getBBox() rather than a hand-guessed percentage, so the pin always
 // lands exactly on the city regardless of the map's rendered size.
-// Fergana uses the top-level "fergana" region rather than the "fargona_sh"
-// district: that district entry is mislabeled in the source dataset (its
-// path actually sits far outside the Fergana valley), while "fergana"
-// itself is correctly positioned.
+// Keyed by the airport's human-facing `code` (stable across environments),
+// not its database id (a real UUID, not the mock's "air-tas"-style id).
 const AIRPORT_REGION_TYPE: Record<string, string> = {
-  "air-tas": "toshkent_sh",
-  "air-skd": "samarqand_sh",
-  "air-fef": "fergana",
-  "air-buk": "buxoro_sh",
-  "air-uge": "urganch_sh",
+  TAS: "toshkent_sh",
+  SKD: "samarqand_sh",
+  BHK: "buxoro_sh",
+  NMA: "namangan",
+  UGC: "urganch_sh",
 };
 
 function pct(n: number, total: number) {
@@ -53,9 +52,14 @@ export default function DashboardPage() {
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
-  const { data: faultIntel, loading: faultIntelLoading, error: faultIntelError } = useFaultIntelligence("30d");
 
-  const [now, setNow] = useState<Date | null>(() => new Date("2026-08-25T10:45:32"));
+  const { data: equipmentPage } = useEquipmentList({ pageSize: 200 });
+  const equipment = useMemo(() => equipmentPage?.items ?? [], [equipmentPage]);
+  const { airports } = useLocations();
+  const { data: faultsPage } = useFaultsList({ pageSize: 200 });
+  const faults = useMemo(() => faultsPage?.items ?? [], [faultsPage]);
+
+  const [now, setNow] = useState<Date | null>(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow((d) => (d ? new Date(d.getTime() + 1000) : d)), 1000);
     return () => clearInterval(id);
@@ -65,25 +69,27 @@ export default function DashboardPage() {
   const byStatus = {
     operational: equipment.filter((e) => e.status === "operational").length,
     faulty: equipment.filter((e) => e.status === "faulty").length,
-    maintenance: equipment.filter((e) => e.status === "maintenance").length,
-    reserve: equipment.filter((e) => e.status === "reserve").length,
-    requires_inspection: equipment.filter((e) => e.status === "requires_inspection").length,
+    good: equipment.filter((e) => e.status === "good").length,
+    satisfactory: equipment.filter((e) => e.status === "satisfactory").length,
+    unsatisfactory: equipment.filter((e) => e.status === "unsatisfactory").length,
+    overdue: equipment.filter((e) => e.status === "overdue").length,
+    not_connected: equipment.filter((e) => e.status === "not_connected").length,
   };
 
   const byType = Object.entries(
     equipment.reduce<Record<string, number>>((acc, e) => {
-      acc[e.type] = (acc[e.type] ?? 0) + 1;
+      acc[e.equipmentType.name] = (acc[e.equipmentType.name] ?? 0) + 1;
       return acc;
     }, {})
   ).sort((a, b) => b[1] - a[1]);
 
   const byAirport = airports.map((a) => ({
     airport: a,
-    total: equipment.filter((e) => e.airportId === a.id).length,
-    operational: equipment.filter((e) => e.airportId === a.id && e.status === "operational").length,
-    faulty: equipment.filter((e) => e.airportId === a.id && e.status === "faulty").length,
-    maintenance: equipment.filter((e) => e.airportId === a.id && e.status === "maintenance").length,
-    reserve: equipment.filter((e) => e.airportId === a.id && e.status === "reserve").length,
+    total: equipment.filter((e) => e.airport.id === a.id).length,
+    operational: equipment.filter((e) => e.airport.id === a.id && e.status === "operational").length,
+    faulty: equipment.filter((e) => e.airport.id === a.id && e.status === "faulty").length,
+    unsatisfactory: equipment.filter((e) => e.airport.id === a.id && e.status === "unsatisfactory").length,
+    overdue: equipment.filter((e) => e.airport.id === a.id && e.status === "overdue").length,
   }));
 
   const upcoming = [...equipment]
@@ -105,9 +111,9 @@ export default function DashboardPage() {
         <KPICard label={t("dashboard.totalEquipment")} value={total} meta={t("dashboard.units")} icon="cpu" tone="neutral" />
         <KPICard label={t("dashboard.operational")} value={byStatus.operational} meta={pct(byStatus.operational, total)} icon="check-circle" tone="success" />
         <KPICard label={t("dashboard.faulty")} value={byStatus.faulty} meta={pct(byStatus.faulty, total)} icon="alert-triangle" tone="error" />
-        <KPICard label={t("dashboard.maintenance")} value={byStatus.maintenance} meta={pct(byStatus.maintenance, total)} icon="wrench" tone="warning" />
-        <KPICard label={t("dashboard.reserve")} value={byStatus.reserve} meta={pct(byStatus.reserve, total)} icon="package" tone="brand" />
-        <KPICard label={t("dashboard.requiresInspection")} value={byStatus.requires_inspection} meta={pct(byStatus.requires_inspection, total)} icon="gauge" tone="purple" />
+        <KPICard label={t("dashboard.unsatisfactory")} value={byStatus.unsatisfactory} meta={pct(byStatus.unsatisfactory, total)} icon="wrench" tone="warning" />
+        <KPICard label={t("dashboard.overdue")} value={byStatus.overdue} meta={pct(byStatus.overdue, total)} icon="clock" tone="error" />
+        <KPICard label={t("dashboard.notConnected")} value={byStatus.not_connected} meta={pct(byStatus.not_connected, total)} icon="gauge" tone="neutral" />
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-3">
@@ -127,9 +133,11 @@ export default function DashboardPage() {
                 [
                   ["operational", byStatus.operational],
                   ["faulty", byStatus.faulty],
-                  ["maintenance", byStatus.maintenance],
-                  ["reserve", byStatus.reserve],
-                  ["requires_inspection", byStatus.requires_inspection],
+                  ["good", byStatus.good],
+                  ["satisfactory", byStatus.satisfactory],
+                  ["unsatisfactory", byStatus.unsatisfactory],
+                  ["overdue", byStatus.overdue],
+                  ["not_connected", byStatus.not_connected],
                 ] as const
               )
                 .filter(([, count]) => count > 0)
@@ -178,19 +186,19 @@ export default function DashboardPage() {
             <UzbekistanMap
               className="h-full min-h-[196px] w-full"
               markers={byAirport
-                .filter(({ airport }) => AIRPORT_REGION_TYPE[airport.id])
-                .map(({ airport, total: t2, operational, faulty, maintenance, reserve }) => {
+                .filter(({ airport }) => AIRPORT_REGION_TYPE[airport.code])
+                .map(({ airport, total: t2, operational, faulty, unsatisfactory, overdue }) => {
                   const dominant =
-                    faulty > 0
+                    faulty > 0 || overdue > 0
                       ? { dot: "bg-error-500", ring: "ring-error-500/30" }
-                      : maintenance > 0
+                      : unsatisfactory > 0
                         ? { dot: "bg-warning-500", ring: "ring-warning-500/30" }
-                        : reserve > 0 && operational === 0
-                          ? { dot: "bg-brand-400", ring: "ring-brand-400/30" }
-                          : { dot: "bg-success-500", ring: "ring-success-500/30" };
+                        : operational > 0
+                          ? { dot: "bg-success-500", ring: "ring-success-500/30" }
+                          : { dot: "bg-gray-500", ring: "ring-gray-500/30" };
                   return {
-                    id: airport.id,
-                    regionType: AIRPORT_REGION_TYPE[airport.id],
+                    id: String(airport.id),
+                    regionType: AIRPORT_REGION_TYPE[airport.code],
                     label: airport.city,
                     render: () => (
                       <div className="group flex flex-col items-center gap-1">
@@ -213,11 +221,6 @@ export default function DashboardPage() {
             />
           </div>
         </Card>
-      </div>
-
-      <div className="flex flex-col gap-4 px-6 pt-4">
-        <FaultIntelligencePanel summary={faultIntel} loading={faultIntelLoading} error={faultIntelError} />
-        <FaultTrendChart trend={faultIntel?.trend ?? []} loading={faultIntelLoading} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-2">
@@ -248,7 +251,7 @@ export default function DashboardPage() {
                           {eq.name}
                         </Link>
                       </td>
-                      <td className="px-4 py-2.5 text-text-secondary">{airportName(eq.airportId)}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{eq.airport.name}</td>
                       <td className="px-4 py-2.5 text-text-secondary">{formatDate(eq.nextInspectionAt)}</td>
                       <td className="px-4 py-2.5 text-right font-medium text-warning-400">
                         {d != null && d >= 0 ? `${t("dashboard.inDaysPrefix")} ${d} ${t("dashboard.inDaysSuffix")}` : "—"}
@@ -287,7 +290,7 @@ export default function DashboardPage() {
                           {eq?.name ?? f.title}
                         </Link>
                       </td>
-                      <td className="px-4 py-2.5 text-text-secondary">{eq ? airportName(eq.airportId) : f.id}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{eq ? eq.airport.name : f.code}</td>
                       <td className="px-4 py-2.5 text-right">
                         <StatusBadge status={faultStatusConfig[f.stage]} />
                       </td>

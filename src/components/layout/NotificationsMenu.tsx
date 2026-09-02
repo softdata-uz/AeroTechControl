@@ -5,7 +5,9 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { CountBadge } from "@/components/ui/Badge";
-import { notifications } from "@/lib/mock-data";
+import { useNotificationsList } from "@/hooks/useNotificationsList";
+import { notificationsService } from "@/services";
+import { useAsync } from "@/hooks/useAsync";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
 
@@ -23,8 +25,10 @@ export function NotificationsMenu() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-  const items = notifications.slice(0, MAX_ITEMS);
+  const { data: unreadCountData } = useAsync(() => notificationsService.getUnreadCount(), []);
+  const unreadCount = unreadCountData ?? 0;
+  const { data: notificationsPage } = useNotificationsList({ pageSize: MAX_ITEMS });
+  const items = notificationsPage?.items ?? [];
 
   function place() {
     const rect = triggerRef.current?.getBoundingClientRect();
@@ -109,7 +113,7 @@ export function NotificationsMenu() {
                     <p className="truncate text-xs text-text-tertiary">{n.description}</p>
                   </div>
                   <span className="shrink-0 text-xs text-text-quaternary">
-                    {new Date(`${n.createdAt}T${n.severity === "critical" ? "10:15" : n.severity === "warning" ? "10:30" : "09:45"}:00`).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(n.createdAt).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </li>
               ))}

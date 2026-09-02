@@ -3,8 +3,7 @@
 // intentionally not covered here — they are client-side concerns, not
 // backend-backed resources.
 
-import { airports, terminals, zones, equipment } from "@/lib/mock-data";
-import { resolve, mutate } from "./http-client";
+import { apiGet, apiPatch } from "./http-client";
 
 export interface DirectorySummary {
   airports: number;
@@ -15,12 +14,7 @@ export interface DirectorySummary {
 
 // GET /settings/directories/summary
 export function getDirectorySummary(): Promise<DirectorySummary> {
-  return resolve(() => ({
-    airports: airports.length,
-    terminals: terminals.length,
-    zones: zones.length,
-    equipmentTypes: new Set(equipment.map((e) => e.type)).size,
-  }));
+  return apiGet<DirectorySummary>("/settings/directories/summary");
 }
 
 export interface NotificationPreferences {
@@ -29,23 +23,14 @@ export interface NotificationPreferences {
   sms: boolean;
 }
 
-let notificationPreferences: NotificationPreferences = {
-  email: true,
-  push: true,
-  sms: false,
-};
-
 // GET /settings/notification-preferences
 export function getNotificationPreferences(): Promise<NotificationPreferences> {
-  return resolve(() => ({ ...notificationPreferences }));
+  return apiGet<NotificationPreferences>("/settings/notification-preferences");
 }
 
 // PATCH /settings/notification-preferences
 export function updateNotificationPreferences(
   patch: Partial<NotificationPreferences>
 ): Promise<NotificationPreferences> {
-  return mutate(() => {
-    notificationPreferences = { ...notificationPreferences, ...patch };
-    return { ...notificationPreferences };
-  });
+  return apiPatch<NotificationPreferences>("/settings/notification-preferences", patch);
 }

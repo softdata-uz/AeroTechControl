@@ -1,19 +1,27 @@
 "use client";
 
+import { useState, use } from "react";
 import { useRouter } from "next/navigation";
-import { notFound } from "next/navigation";
-import { use } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EquipmentForm } from "../../EquipmentForm";
-import { equipment, equipmentById } from "@/lib/mock-data";
+import { equipmentService } from "@/services";
+import { useEquipmentDetail } from "@/hooks/useEquipmentDetail";
 import { useTranslations } from "@/lib/locale-context";
 
 export default function EditEquipmentPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+  const { id: idParam } = use(params);
+  const id = Number(idParam);
   const router = useRouter();
   const t = useTranslations();
-  const eq = equipmentById(id);
-  if (!eq) notFound();
+  const { data: eq, loading, error } = useEquipmentDetail(id);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (loading) {
+    return <div className="px-6 py-16 text-center text-sm text-text-tertiary">{t("equipment.loading")}</div>;
+  }
+  if (error || !eq) {
+    return <div className="px-6 py-16 text-center text-sm text-text-secondary">{t("equipment.notFound")}</div>;
+  }
 
   return (
     <div className="pb-8">
@@ -25,11 +33,16 @@ export default function EditEquipmentPage({ params }: { params: Promise<{ id: st
         <EquipmentForm
           mode="edit"
           initial={eq}
+          submitting={submitting}
           onCancel={() => router.push(`/equipment/${id}`)}
-          onSubmit={(updated) => {
-            const idx = equipment.findIndex((e) => e.id === id);
-            if (idx !== -1) equipment[idx] = updated;
-            router.push(`/equipment/${id}`);
+          onSubmit={async (values) => {
+            setSubmitting(true);
+            try {
+              await equipmentService.updateEquipment(id, values);
+              router.push(`/equipment/${id}`);
+            } finally {
+              setSubmitting(false);
+            }
           }}
         />
       </div>

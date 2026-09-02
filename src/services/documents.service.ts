@@ -1,9 +1,8 @@
 import type { EquipmentDocument, DocumentStatus } from "@/lib/types";
-import { documents as documentSeed, equipmentById } from "@/lib/mock-data";
-import { resolve, mutate, reject, paginate, type Page } from "./http-client";
+import { apiGet, apiGetPage, apiUpload, type Page } from "./http-client";
 
 export interface DocumentFilters {
-  equipmentId?: string;
+  equipmentId?: number;
   type?: EquipmentDocument["type"];
   status?: DocumentStatus;
   search?: string;
@@ -13,43 +12,33 @@ export interface DocumentFilters {
 
 // GET /documents
 export function listDocuments(filters: DocumentFilters = {}): Promise<Page<EquipmentDocument>> {
-  return resolve(() => {
-    let items = documentSeed;
-    if (filters.equipmentId) items = items.filter((d) => d.equipmentId === filters.equipmentId);
-    if (filters.type) items = items.filter((d) => d.type === filters.type);
-    if (filters.status) items = items.filter((d) => d.status === filters.status);
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      items = items.filter((d) => {
-        const eq = d.equipmentId ? equipmentById(d.equipmentId) : null;
-        return (
-          d.title.toLowerCase().includes(q) ||
-          eq?.name.toLowerCase().includes(q) ||
-          eq?.code.toLowerCase().includes(q)
-        );
-      });
-    }
-    return paginate(items, filters.page, filters.pageSize);
-  });
+  return apiGetPage<EquipmentDocument>("/documents", filters);
 }
 
 // GET /documents/:id
 export function getDocument(id: string): Promise<EquipmentDocument> {
-  return resolve(() => documentSeed.find((d) => d.id === id)).then((d) => {
-    if (!d) return reject(404, `Document ${id} not found`) as Promise<EquipmentDocument>;
-    return d;
-  });
+  return apiGet<EquipmentDocument>(`/documents/${id}`);
 }
 
-// POST /documents  (metadata only — file upload is simulated client-side)
-export function createDocument(input: Omit<EquipmentDocument, "id" | "date">): Promise<EquipmentDocument> {
-  return mutate(() => {
-    const doc: EquipmentDocument = {
-      ...input,
-      id: `doc-${String(documentSeed.length + 1).padStart(3, "0")}`,
-      date: new Date().toISOString().slice(0, 10),
-    };
-    documentSeed.unshift(doc);
-    return doc;
-  });
+export interface CreateDocumentInput {
+  equipmentId?: number | null;
+  title: string;
+  type: EquipmentDocument["type"];
+  status?: DocumentStatus;
+  author?: string;
+  version?: string;
+  file: File;
+}
+
+// POST /documents (multipart/form-data — the backend requires a real file)
+export function createDocument(input: CreateDocumentInput): Promise<EquipmentDocument> {
+  const formData = new FormData();
+  if (input.equipmentId) formData.set("equipmentId", String(input.equipmentId));
+  formData.set("title", input.title);
+  formData.set("type", input.type);
+  if (input.status) formData.set("status", input.status);
+  if (input.author) formData.set("author", input.author);
+  if (input.version) formData.set("version", input.version);
+  formData.set("file", input.file);
+  return apiUpload<EquipmentDocument>("/documents", formData);
 }
