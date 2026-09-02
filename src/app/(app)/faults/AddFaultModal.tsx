@@ -68,7 +68,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
     setError(null);
     try {
       const newFault = await faultsService.createFault({
-        equipmentId: form.equipmentId,
+        equipmentId: Number(form.equipmentId),
         title: form.title,
         description: form.description || form.title,
         category: form.category,
@@ -120,7 +120,7 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
           placeholder={t("faults.modal.equipmentPlaceholder")}
           value={form.equipmentId}
           onChange={(v) => setForm((f) => ({ ...f, equipmentId: v }))}
-          options={equipment.map((eq) => ({ value: eq.id, label: `${eq.name} · ${eq.code}` }))}
+          options={equipment.map((eq) => ({ value: String(eq.id), label: `${eq.name} · ${eq.code}` }))}
         />
 
         <Input

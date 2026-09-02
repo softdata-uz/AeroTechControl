@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Icon, type IconName } from "@/components/icons";
 import { useTranslations } from "@/lib/locale-context";
@@ -23,6 +23,10 @@ interface DropdownProps {
   disabled?: boolean;
   error?: string;
   className?: string;
+  /** Shows an in-popover text filter above the option list — for pickers with more than a handful of options. */
+  searchable?: boolean;
+  /** Rendered as a pinned row below the (filtered) option list, e.g. a "+ Add new" trigger. Receives a `close` callback so the trigger can dismiss the popover before opening something else (a modal). */
+  footer?: (close: () => void) => ReactNode;
 }
 
 /**
@@ -48,15 +52,25 @@ export function Dropdown({
   disabled,
   error,
   className,
+  searchable,
+  footer,
 }: DropdownProps) {
   const t = useTranslations();
   const resolvedPlaceholder = placeholder ?? t("common.selectPlaceholder");
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const [coords, setCoords] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   const selected = options.find((o) => o.value === value) ?? null;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable || !query.trim()) return options;
+    const q = query.trim().toLowerCase();
+    return options.filter((o) => o.label.toLowerCase().includes(q));
+  }, [options, searchable, query]);
 
   /** Menu opens below the trigger by default; flips above it when there
    * isn't enough room below (e.g. a footer pager pinned near the bottom
@@ -78,6 +92,7 @@ export function Dropdown({
   function openMenu() {
     if (disabled) return;
     place();
+    setQuery("");
     setOpen(true);
   }
 
@@ -150,10 +165,30 @@ export function Dropdown({
             ref={popoverRef}
             role="listbox"
             style={{ position: "fixed", top: coords.top, bottom: coords.bottom, left: coords.left, minWidth: coords.width }}
-            className="z-[60] max-h-72 overflow-y-auto rounded-lg border border-border-primary bg-bg-secondary p-1 shadow-lg"
+            className="z-[60] flex max-h-80 flex-col rounded-lg border border-border-primary bg-bg-secondary p-1 shadow-lg"
           >
-            {options.length === 0 && <p className="px-3 py-2 text-xs text-text-quaternary">{t("common.noOptions")}</p>}
-            {options.map((opt) => {
+            {searchable && (
+              <div className="relative mb-1 shrink-0 px-0.5 pt-0.5">
+                <Icon
+                  name="search"
+                  size={14}
+                  className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-quaternary"
+                />
+                <input
+                  ref={searchRef}
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t("common.searchPlaceholder")}
+                  className="h-8 w-full rounded-md border border-border-primary bg-bg-primary pl-7 pr-2 text-xs text-text-primary outline-none placeholder:text-text-placeholder focus:border-brand-500"
+                />
+              </div>
+            )}
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              {filteredOptions.length === 0 && (
+                <p className="px-3 py-2 text-xs text-text-quaternary">{t("common.noOptions")}</p>
+              )}
+              {filteredOptions.map((opt) => {
               const isSelected = opt.value === value;
               return (
                 <button
@@ -178,7 +213,13 @@ export function Dropdown({
                   {isSelected && <Icon name="check" size={15} strokeWidth={2.2} className="shrink-0" />}
                 </button>
               );
-            })}
+              })}
+            </div>
+            {footer && (
+              <div className="mt-1 shrink-0 border-t border-border-secondary pt-1">
+                {footer(() => setOpen(false))}
+              </div>
+            )}
           </div>,
           document.body
         )}

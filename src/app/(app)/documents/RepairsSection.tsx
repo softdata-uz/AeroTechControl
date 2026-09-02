@@ -10,12 +10,13 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { getRepairStatusConfig } from "@/config/repairStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
-import { equipmentById, faultById, airportName } from "@/lib/mock-data";
 import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { RepairStatus } from "@/lib/types";
 import { useRepairsList } from "@/hooks/useRepairsList";
-import { repairsService } from "@/services";
+import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
+import { useAsync } from "@/hooks/useAsync";
+import { repairsService, faultsService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 
 const REPAIR_STATUS_ORDER: RepairStatus[] = ["planned", "in_progress", "waiting_parts", "completed", "verified"];
@@ -24,8 +25,9 @@ export function RepairsSection() {
   const t = useTranslations();
   const repairStatusConfig = getRepairStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
+  const { equipmentById } = useEquipmentLookup();
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [addingPart, setAddingPart] = useState(false);
   const [partInputOpen, setPartInputOpen] = useState(false);
@@ -33,6 +35,11 @@ export function RepairsSection() {
 
   const { data, loading, error, refetch } = useRepairsList({ pageSize: 1000 });
   const repairs = useMemo(() => data?.items ?? [], [data]);
+  const { data: faultsPage } = useAsync(() => faultsService.listFaults({ pageSize: 200 }), []);
+  const faultsById = useMemo(() => {
+    const map = new Map(faultsPage?.items.map((f) => [f.id, f]));
+    return (id: number) => map.get(id);
+  }, [faultsPage]);
 
   const kpi = useMemo(() => {
     const total = repairs.length;
@@ -60,7 +67,10 @@ export function RepairsSection() {
   }, [selectedId]);
 
   const selected = repairs.find((r) => r.id === selectedId) ?? null;
-  const selectedFault = selected ? faultById(selected.faultId) : null;
+  const { data: selectedFault } = useAsync(
+    () => (selected ? faultsService.getFault(selected.faultId) : Promise.resolve(null)),
+    [selected?.faultId]
+  );
   const selectedEq = selected ? equipmentById(selected.equipmentId) : null;
   const nextStatus = selected
     ? REPAIR_STATUS_ORDER[REPAIR_STATUS_ORDER.indexOf(selected.status) + 1]
@@ -140,7 +150,7 @@ export function RepairsSection() {
               <tbody>
                 {repairs.map((r) => {
                   const eq = equipmentById(r.equipmentId);
-                  const fault = faultById(r.faultId);
+                  const fault = faultsById(r.faultId);
                   const active = r.id === selectedId;
                   return (
                     <tr
@@ -197,7 +207,7 @@ export function RepairsSection() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-text-primary">{selectedEq.name}</p>
                     <p className="truncate text-xs text-text-tertiary">
-                      {selectedEq.code} · {airportName(selectedEq.airportId)}
+                      {selectedEq.code} · {selectedEq.airport.name}
                     </p>
                   </div>
                 </Link>
@@ -209,7 +219,7 @@ export function RepairsSection() {
                   <div className="flex items-center justify-between gap-2 rounded-lg border border-border-primary bg-bg-primary p-3">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-text-primary">{selectedFault.title}</p>
-                      <p className="text-xs text-text-tertiary">{selectedFault.id}</p>
+                      <p className="text-xs text-text-tertiary">{selectedFault.code}</p>
                     </div>
                     <StatusBadge status={faultStatusConfig[selectedFault.stage]} className="shrink-0" />
                   </div>

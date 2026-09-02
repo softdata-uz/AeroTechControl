@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import { Icon, type IconName } from "@/components/icons";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -20,7 +19,6 @@ const features: { icon: IconName; titleKey: TranslationKey; descKey: Translation
 ];
 
 export default function LoginPage() {
-  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const t = useTranslations();
 
@@ -41,10 +39,11 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       await login({ login: loginValue, password, rememberMe });
-      router.push("/");
+      // Full navigation (not router.push) so the auth provider remounts and
+      // fetches the now-valid session from scratch.
+      window.location.assign("/");
     } catch {
       setError(t("login.errorInvalid"));
-    } finally {
       setSubmitting(false);
     }
   }

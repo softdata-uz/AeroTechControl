@@ -10,7 +10,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { getDocumentStatusConfig } from "@/config/repairStatus.config";
-import { equipmentById } from "@/lib/mock-data";
+import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
 import { formatDate } from "@/lib/format";
 import type { DocumentStatus, EquipmentDocument } from "@/lib/types";
 import { useDocumentsList } from "@/hooks/useDocumentsList";
@@ -32,6 +32,7 @@ const typeMetaKeys: Record<EquipmentDocument["type"], { labelKey: TranslationKey
 
 export function DocumentsSection() {
   const t = useTranslations();
+  const { equipmentById } = useEquipmentLookup();
   const documentStatusConfig = getDocumentStatusConfig(t);
   const typeMeta: Record<EquipmentDocument["type"], { label: string; icon: IconName }> = Object.fromEntries(
     Object.entries(typeMetaKeys).map(([key, m]) => [key, { label: t(m.labelKey), icon: m.icon }])

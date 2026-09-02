@@ -12,37 +12,43 @@ export interface StatusVisual {
 type StatusVisuals<K extends string> = Record<K, Omit<StatusVisual, "label">>;
 
 const equipmentStatusVisuals: StatusVisuals<EquipmentStatus> = {
-  operational: {
-    dot: "bg-success-500",
-    badgeBg: "bg-(--chip-success-bg)",
-    badgeText: "text-(--chip-success-text)",
-    badgeBorder: "border-(--chip-success-border)",
-  },
-  maintenance: {
-    dot: "bg-warning-500",
-    badgeBg: "bg-(--chip-warning-bg)",
-    badgeText: "text-(--chip-warning-text)",
-    badgeBorder: "border-(--chip-warning-border)",
-  },
   faulty: {
     dot: "bg-error-500",
     badgeBg: "bg-(--chip-error-bg)",
     badgeText: "text-(--chip-error-text)",
     badgeBorder: "border-(--chip-error-border)",
   },
-  reserve: {
-    dot: "bg-brand-400",
-    badgeBg: "bg-(--chip-brand-bg)",
-    badgeText: "text-(--chip-brand-text)",
-    badgeBorder: "border-(--chip-brand-border)",
+  operational: {
+    dot: "bg-success-500",
+    badgeBg: "bg-(--chip-success-bg)",
+    badgeText: "text-(--chip-success-text)",
+    badgeBorder: "border-(--chip-success-border)",
   },
-  requires_inspection: {
-    dot: "bg-purple-500",
-    badgeBg: "bg-(--chip-purple-bg)",
-    badgeText: "text-(--chip-purple-text)",
-    badgeBorder: "border-(--chip-purple-border)",
+  good: {
+    dot: "bg-success-500",
+    badgeBg: "bg-(--chip-success-bg)",
+    badgeText: "text-(--chip-success-text)",
+    badgeBorder: "border-(--chip-success-border)",
   },
-  decommissioned: {
+  satisfactory: {
+    dot: "bg-warning-500",
+    badgeBg: "bg-(--chip-warning-bg)",
+    badgeText: "text-(--chip-warning-text)",
+    badgeBorder: "border-(--chip-warning-border)",
+  },
+  unsatisfactory: {
+    dot: "bg-error-500",
+    badgeBg: "bg-(--chip-error-bg)",
+    badgeText: "text-(--chip-error-text)",
+    badgeBorder: "border-(--chip-error-border)",
+  },
+  overdue: {
+    dot: "bg-error-500",
+    badgeBg: "bg-(--chip-error-bg)",
+    badgeText: "text-(--chip-error-text)",
+    badgeBorder: "border-(--chip-error-border)",
+  },
+  not_connected: {
     dot: "bg-gray-500",
     badgeBg: "bg-(--chip-gray-bg)",
     badgeText: "text-(--chip-gray-text)",
@@ -51,12 +57,13 @@ const equipmentStatusVisuals: StatusVisuals<EquipmentStatus> = {
 };
 
 export const equipmentStatusLabelKeys: Record<EquipmentStatus, TranslationKey> = {
-  operational: "status.equipment.operational",
-  maintenance: "status.equipment.maintenance",
   faulty: "status.equipment.faulty",
-  reserve: "status.equipment.reserve",
-  requires_inspection: "status.equipment.requiresInspection",
-  decommissioned: "status.equipment.decommissioned",
+  operational: "status.equipment.operational",
+  good: "status.equipment.good",
+  satisfactory: "status.equipment.satisfactory",
+  unsatisfactory: "status.equipment.unsatisfactory",
+  overdue: "status.equipment.overdue",
+  not_connected: "status.equipment.notConnected",
 };
 
 /** Build the locale-aware status config — call with `useTranslations()`'s `t`. */

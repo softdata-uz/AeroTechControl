@@ -1,11 +1,13 @@
 import type { Equipment, EquipmentDocument } from "@/lib/types";
-import { equipment as equipmentSeed, documents as documentSeed, equipmentByAirport } from "@/lib/mock-data";
-import { resolve, paginate, type Page } from "./http-client";
+import { listEquipment } from "./equipment.service";
+import { listDocuments } from "./documents.service";
+import { paginate, type Page } from "./http-client";
 
 // Calibration/verification is derived from the equipment lifecycle (its
 // inspection dates and any linked certificate) rather than a separate
-// entity — per CLAUDE.md §26, this module stays connected to equipment,
-// not an isolated record type.
+// backend entity — per the backend's API contract, this stays a client-side
+// view computed from real equipment + document data, not an isolated
+// record type.
 
 export type CalibrationStatus = "overdue" | "upcoming" | "planned";
 
@@ -16,46 +18,46 @@ export interface CalibrationRecord {
 }
 
 export interface CalibrationFilters {
-  airportId?: string;
+  airportId?: number;
   status?: CalibrationStatus;
   search?: string;
   page?: number;
   pageSize?: number;
 }
 
-const TODAY = "2026-08-25";
-const IN_30_DAYS = "2026-09-24";
-
 function statusFor(nextDate: string | null): CalibrationStatus {
   if (!nextDate) return "planned";
-  if (nextDate < TODAY) return "overdue";
-  if (nextDate <= IN_30_DAYS) return "upcoming";
+  const today = new Date().toISOString().slice(0, 10);
+  const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  if (nextDate < today) return "overdue";
+  if (nextDate <= in30Days) return "upcoming";
   return "planned";
 }
 
-function buildRecords(): CalibrationRecord[] {
-  return equipmentSeed.map((eq) => ({
+async function buildRecords(airportId?: number): Promise<CalibrationRecord[]> {
+  const [equipmentPage, documentsPage] = await Promise.all([
+    listEquipment({ airportId, pageSize: 200 }),
+    listDocuments({ type: "certificate", pageSize: 200 }),
+  ]);
+
+  return equipmentPage.items.map((eq) => ({
     equipment: eq,
     status: statusFor(eq.nextInspectionAt),
-    certificate: documentSeed.find((d) => d.equipmentId === eq.id && d.type === "certificate") ?? null,
+    certificate: documentsPage.items.find((d) => d.equipmentId === eq.id) ?? null,
   }));
 }
 
-// GET /calibration
-export function listCalibrationRecords(filters: CalibrationFilters = {}): Promise<Page<CalibrationRecord>> {
-  return resolve(() => {
-    let items = buildRecords();
-    if (filters.airportId) {
-      const equipmentIds = new Set(equipmentByAirport(filters.airportId).map((e) => e.id));
-      items = items.filter((r) => equipmentIds.has(r.equipment.id));
-    }
-    if (filters.status) items = items.filter((r) => r.status === filters.status);
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      items = items.filter(
-        (r) => r.equipment.name.toLowerCase().includes(q) || r.equipment.code.toLowerCase().includes(q)
-      );
-    }
-    return paginate(items, filters.page, filters.pageSize);
-  });
+// Derived view — GET /equipment + GET /documents, computed client-side.
+export async function listCalibrationRecords(
+  filters: CalibrationFilters = {}
+): Promise<Page<CalibrationRecord>> {
+  let items = await buildRecords(filters.airportId);
+  if (filters.status) items = items.filter((r) => r.status === filters.status);
+  if (filters.search) {
+    const q = filters.search.toLowerCase();
+    items = items.filter(
+      (r) => r.equipment.name.toLowerCase().includes(q) || r.equipment.code.toLowerCase().includes(q)
+    );
+  }
+  return paginate(items, filters.page, filters.pageSize);
 }

@@ -3,12 +3,13 @@
 // every other entity references it directly or indirectly.
 
 export type EquipmentStatus =
-  | "operational"
-  | "maintenance"
   | "faulty"
-  | "reserve"
-  | "requires_inspection"
-  | "decommissioned";
+  | "operational"
+  | "good"
+  | "satisfactory"
+  | "unsatisfactory"
+  | "overdue"
+  | "not_connected";
 
 export type InspectionStatus =
   | "planned"
@@ -42,54 +43,92 @@ export type SparePartStatus = "available" | "low_stock" | "reserved" | "out_of_s
 export type ChecklistResult = "compliant" | "non_compliant" | "not_applicable" | "pending";
 
 export interface ChecklistItem {
-  id: string;
+  id: number;
   label: string;
   result: ChecklistResult;
   comment?: string;
 }
 
 export interface Airport {
-  id: string;
+  id: number;
   name: string;
   code: string;
   city: string;
 }
 
 export interface Terminal {
-  id: string;
-  airportId: string;
+  id: number;
+  airportId: number;
   name: string;
 }
 
 export interface Zone {
-  id: string;
-  terminalId: string;
+  id: number;
+  terminalId: number;
+  name: string;
+}
+
+export interface LookupRef {
+  id: number;
+  name: string;
+}
+
+export interface EquipmentType {
+  id: number;
+  name: string;
+}
+
+export interface EquipmentModel {
+  id: number;
+  equipmentTypeId: number;
+  name: string;
+}
+
+export interface ManufacturerCompany {
+  id: number;
+  name: string;
+}
+
+export interface ManufacturerCountry {
+  id: number;
+  name: string;
+}
+
+export interface EquipmentOperator {
+  id: number;
   name: string;
 }
 
 export interface Equipment {
-  id: string;
+  id: number;
   code: string; // e.g. EQ-0001
   name: string;
-  type: string;
-  manufacturer: string;
-  model: string;
+  equipmentType: LookupRef;
+  equipmentModel: LookupRef;
+  manufacturerCompany: LookupRef;
+  manufacturerCountry: LookupRef;
   serialNumber: string;
-  inventoryNumber: string;
-  airportId: string;
-  terminalId: string;
-  zoneId: string;
-  location: string;
+  inventoryNumber: string | null;
+  airport: Airport;
+  terminal: LookupRef | null;
+  zone: LookupRef | null;
+  location: string | null;
+  operatedBy: LookupRef;
   status: EquipmentStatus;
-  commissionedAt: string; // ISO date
+  manufactureYear: number;
+  purchaseYear: number | null;
+  commissioningYear: number | null;
+  serviceLifeExpiryYear: number | null;
   lastInspectionAt: string | null;
   nextInspectionAt: string | null;
-  imageColor: string; // accent color for the generated equipment glyph
+  image: string | null;
+  imageUrl: string | null;
+  notes: string | null;
 }
 
 export interface Inspection {
-  id: string; // e.g. INS-00123
-  equipmentId: string;
+  id: number;
+  equipmentId: number;
   type: "periodic" | "unscheduled" | "post_repair";
   regulation: string;
   status: InspectionStatus;
@@ -102,8 +141,9 @@ export interface Inspection {
 export type FaultDetectedVia = "inspection" | "manual" | "sensor" | "audit";
 
 export interface Fault {
-  id: string; // e.g. INC-00032
-  equipmentId: string;
+  id: number;
+  code: string; // e.g. INC-00032
+  equipmentId: number;
   title: string;
   description: string;
   category: string;
@@ -118,9 +158,9 @@ export interface Fault {
 }
 
 export interface Repair {
-  id: string; // e.g. REP-00045
-  faultId: string;
-  equipmentId: string;
+  id: number;
+  faultId: number;
+  equipmentId: number;
   status: RepairStatus;
   engineer: string;
   startedAt: string;
@@ -132,7 +172,7 @@ export interface Repair {
 }
 
 export interface SparePart {
-  id: string;
+  id: number;
   name: string;
   sku: string;
   warehouse: string;
@@ -145,27 +185,30 @@ export interface SparePart {
 
 export interface EquipmentDocument {
   id: string;
-  equipmentId: string | null;
+  code: string; // e.g. doc-001
+  equipmentId: number | null;
   title: string;
   type: "certificate" | "act" | "protocol" | "manual" | "repair_report";
   status: DocumentStatus;
   author: string;
   date: string;
   version: string;
+  fileUrl: string;
 }
 
 export interface NotificationItem {
-  id: string;
+  id: number;
   title: string;
   description: string;
   severity: "info" | "warning" | "critical";
   createdAt: string;
   entityType: "equipment" | "fault" | "inspection" | "spare_part";
-  entityId: string;
+  entityId: number;
   read: boolean;
 }
 
 export type UserRole =
+  | "king"
   | "engineer"
   | "lead_engineer"
   | "spare_parts_manager"
@@ -174,11 +217,11 @@ export type UserRole =
   | "auditor";
 
 export interface AppUser {
-  id: string;
+  id: number;
   fullName: string;
   email: string;
   role: UserRole;
-  airportId: string | null;
+  airportId: number | null;
   active: boolean;
-  lastActiveAt: string;
+  lastActiveAt: string | null;
 }

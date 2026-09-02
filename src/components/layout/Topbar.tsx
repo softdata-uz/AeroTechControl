@@ -1,28 +1,20 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
 import { LanguageMenu } from "./LanguageMenu";
 import { NotificationsMenu } from "./NotificationsMenu";
-import { useRole } from "@/lib/role-context";
+import { AccountMenu } from "./AccountMenu";
 import { useTheme } from "@/lib/theme-context";
 import { useTranslations } from "@/lib/locale-context";
-import { roleLabelKeys } from "@/config/roleAccess.config";
 import { formatDate } from "@/lib/format";
 
 export function Topbar() {
-  const { user } = useRole();
   const { theme, toggleTheme } = useTheme();
   const t = useTranslations();
   const pathname = usePathname();
   const isDashboard = pathname === "/";
-  const initials = user.fullName
-    .split(" ")
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2);
 
   // Dashboard-only live clock, shown in the topbar's left slot. Other pages
   // keep their own PageHeader.
@@ -62,19 +54,7 @@ export function Topbar() {
         </button>
         <LanguageMenu />
         <div className="h-6 w-px bg-border-primary" />
-        <Link
-          href="/settings"
-          className="flex h-10 items-center gap-2.5 rounded-lg py-1.5 pl-1.5 pr-2 transition-colors hover:bg-bg-tertiary"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">
-            {initials}
-          </div>
-          <div className="hidden text-left sm:block">
-            <p className="text-xs font-semibold leading-tight text-text-primary">{user.fullName}</p>
-            <p className="text-xs leading-tight text-text-tertiary">{t(roleLabelKeys[user.role])}</p>
-          </div>
-          <Icon name="chevron-down" size={14} className="text-text-quaternary" />
-        </Link>
+        <AccountMenu />
       </div>
     </header>
   );

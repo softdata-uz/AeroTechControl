@@ -8,13 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Pagination } from "@/components/ui/Pagination";
-import { airports } from "@/lib/mock-data";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import type { EquipmentStatus } from "@/lib/types";
 import { useEquipmentList } from "@/hooks/useEquipmentList";
-import { useAsync } from "@/hooks/useAsync";
-import { equipmentService } from "@/services";
+import { useLocations } from "@/hooks/useLocations";
+import { useEquipmentTypes } from "@/hooks/useEquipmentLookups";
 import { useTranslations } from "@/lib/locale-context";
+import { exportEquipment } from "@/services/equipment.service";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -22,6 +22,8 @@ export default function EquipmentRegistryPage() {
   const router = useRouter();
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
+  const { airports } = useLocations();
+  const { types: equipmentTypes } = useEquipmentTypes();
   const [airportFilter, setAirportFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | "">("");
@@ -41,12 +43,9 @@ export default function EquipmentRegistryPage() {
     setPage(1);
   }, [airportFilter, typeFilter, statusFilter, search, pageSize]);
 
-  const { data: typesData } = useAsync(() => equipmentService.listEquipmentTypes(), []);
-  const equipmentTypes = typesData ?? [];
-
   const { data, loading, error, refetch } = useEquipmentList({
-    airportId: airportFilter || undefined,
-    type: typeFilter || undefined,
+    airportId: airportFilter ? Number(airportFilter) : undefined,
+    equipmentTypeId: typeFilter ? Number(typeFilter) : undefined,
     status: statusFilter || undefined,
     search: search || undefined,
     page,
@@ -59,6 +58,21 @@ export default function EquipmentRegistryPage() {
   const rangeEnd = Math.min(page * pageSize, total);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  const [exporting, setExporting] = useState(false);
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportEquipment({
+        airportId: airportFilter ? Number(airportFilter) : undefined,
+        equipmentTypeId: typeFilter ? Number(typeFilter) : undefined,
+        status: statusFilter || undefined,
+        search: search || undefined,
+      });
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <PageHeader
@@ -66,7 +80,7 @@ export default function EquipmentRegistryPage() {
         context={`${t("equipment.totalRecords")} ${total}`}
         actions={
           <>
-            <Button hierarchy="secondary" icon="download" size="sm">
+            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
             <Button hierarchy="secondary" icon="printer" size="sm">
@@ -85,14 +99,14 @@ export default function EquipmentRegistryPage() {
           placeholder={t("common.allAirports")}
           value={airportFilter}
           onChange={setAirportFilter}
-          options={airports.map((a) => ({ value: a.id, label: a.city }))}
+          options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
         />
         <Dropdown
           className="w-56"
           placeholder={t("common.allTypes")}
           value={typeFilter}
           onChange={setTypeFilter}
-          options={equipmentTypes.map((et) => ({ value: et, label: et }))}
+          options={equipmentTypes.map((et) => ({ value: String(et.id), label: et.name }))}
         />
         <Dropdown
           className="w-56"

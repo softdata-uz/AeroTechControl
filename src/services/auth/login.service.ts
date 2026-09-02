@@ -1,3 +1,7 @@
+import { apiPost } from "../http-client";
+import { setTokens } from "@/lib/auth-token";
+import type { AppUser } from "@/lib/types";
+
 export type LoginPayload = {
   login: string;
   password: string;
@@ -6,21 +10,30 @@ export type LoginPayload = {
 
 export type LoginResult = {
   ok: true;
+  user: AppUser;
 };
 
-/**
- * Temporary integration boundary.
- *
- * Replace only this function when the real backend auth contract is ready.
- * The login UI does not need to change.
- */
+interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  user: AppUser;
+}
+
+// POST /auth/login
 export async function login(payload: LoginPayload): Promise<LoginResult> {
   if (!payload.login.trim() || !payload.password) {
     throw new Error("INVALID_LOGIN_PAYLOAD");
   }
 
-  // Demo-only delay to make the submitting state visible.
-  await new Promise((resolve) => setTimeout(resolve, 900));
+  const result = await apiPost<AuthResponse>("/auth/login", {
+    email: payload.login.trim(),
+    password: payload.password,
+  });
 
-  return { ok: true };
+  setTokens(
+    { accessToken: result.accessToken, refreshToken: result.refreshToken },
+    payload.rememberMe
+  );
+
+  return { ok: true, user: result.user };
 }
