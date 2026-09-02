@@ -1,5 +1,6 @@
-import type { Airport, Terminal, Zone } from "@/lib/types";
-import { apiGet, apiPost, apiPatch, apiDelete } from "./http-client";
+import type { Airport, Terminal, Floor, Zone } from "@/lib/types";
+import type { UzbekistanRegion } from "@/config/regions.config";
+import { apiGet, apiPost, apiPatch, apiDelete, apiUpload } from "./http-client";
 
 // GET /airports
 export function listAirports(): Promise<Airport[]> {
@@ -11,9 +12,19 @@ export function listTerminals(airportId: number): Promise<Terminal[]> {
   return apiGet<Terminal[]>(`/airports/${airportId}/terminals`);
 }
 
-// GET /terminals/:id/zones
-export function listZones(terminalId: number): Promise<Zone[]> {
-  return apiGet<Zone[]>(`/terminals/${terminalId}/zones`);
+// GET /terminals/:id/floors
+export function listFloors(terminalId: number): Promise<Floor[]> {
+  return apiGet<Floor[]>(`/terminals/${terminalId}/floors`);
+}
+
+// GET /floors (unfiltered — used to hydrate lookups)
+export function listAllFloors(): Promise<Floor[]> {
+  return apiGet<Floor[]>("/floors");
+}
+
+// GET /floors/:id/zones
+export function listZones(floorId: number): Promise<Zone[]> {
+  return apiGet<Zone[]>(`/floors/${floorId}/zones`);
 }
 
 // GET /zones (unfiltered — used to hydrate lookups)
@@ -29,7 +40,7 @@ export function listAllTerminals(): Promise<Terminal[]> {
 export interface AirportInput {
   name: string;
   code: string;
-  city: string;
+  region: UzbekistanRegion;
 }
 
 // POST /airports (administrator only)
@@ -67,8 +78,51 @@ export function deleteTerminal(id: number): Promise<void> {
   return apiDelete<void>(`/terminals/${id}`);
 }
 
-export interface ZoneInput {
+export interface FloorInput {
   terminalId: number;
+  name: string;
+  /** undefined = leave unchanged (edit only), File = replace/set */
+  mapImage?: File;
+}
+
+function buildFloorFormData(input: Partial<FloorInput>): FormData {
+  const formData = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    if (key === "mapImage") continue;
+    if (value === undefined || value === null || value === "") continue;
+    formData.set(key, String(value));
+  }
+  if (input.mapImage instanceof File) {
+    formData.set("mapImage", input.mapImage);
+  }
+  return formData;
+}
+
+// POST /floors (administrator only)
+export function createFloor(input: FloorInput): Promise<Floor> {
+  if (input.mapImage instanceof File) {
+    return apiUpload<Floor>("/floors", buildFloorFormData(input));
+  }
+  const { mapImage: _mapImage, ...rest } = input;
+  return apiPost<Floor>("/floors", rest);
+}
+
+// PATCH /floors/:id (administrator only)
+export function updateFloor(id: number, input: Partial<FloorInput>): Promise<Floor> {
+  if (input.mapImage instanceof File) {
+    return apiUpload<Floor>(`/floors/${id}`, buildFloorFormData(input), "PATCH");
+  }
+  const { mapImage: _mapImage, ...rest } = input;
+  return apiPatch<Floor>(`/floors/${id}`, rest);
+}
+
+// DELETE /floors/:id (administrator only)
+export function deleteFloor(id: number): Promise<void> {
+  return apiDelete<void>(`/floors/${id}`);
+}
+
+export interface ZoneInput {
+  floorId: number;
   name: string;
 }
 

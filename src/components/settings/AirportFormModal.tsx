@@ -4,8 +4,10 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { ApiException } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
+import { UZBEKISTAN_REGIONS, type UzbekistanRegion } from "@/config/regions.config";
 import type { Airport } from "@/lib/types";
 import type { AirportInput } from "@/services/airports.service";
 
@@ -22,19 +24,19 @@ export function AirportFormModal({ onClose, onSaved, initial, create, update }: 
   const t = useTranslations();
   const [name, setName] = useState(initial?.name ?? "");
   const [code, setCode] = useState(initial?.code ?? "");
-  const [city, setCity] = useState(initial?.city ?? "");
+  const [region, setRegion] = useState<UzbekistanRegion | "">(initial?.region ?? "");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit() {
-    if (!name.trim() || !code.trim() || !city.trim()) {
+    if (!name.trim() || !code.trim() || !region) {
       setError(t("settingsCrud.requiredError"));
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      const input = { name, code, city };
+      const input = { name, code, region };
       if (initial) {
         await update(initial.id, input);
       } else {
@@ -87,11 +89,12 @@ export function AirportFormModal({ onClose, onSaved, initial, create, update }: 
           value={code}
           onChange={(e) => setCode(e.target.value)}
         />
-        <Input
-          label={t("settingsCrud.cityFieldLabel")}
+        <Dropdown
+          label={t("settingsCrud.regionFieldLabel")}
           required
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
+          value={region}
+          onChange={(value) => setRegion(value as UzbekistanRegion)}
+          options={UZBEKISTAN_REGIONS}
         />
       </div>
     </Modal>

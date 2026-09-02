@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
-import { TerminalMap, loadMarkerOverrides } from "./TerminalMap";
+import { TerminalMap } from "./TerminalMap";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { useLocations } from "@/hooks/useLocations";
 import { useEquipmentList } from "@/hooks/useEquipmentList";
@@ -35,96 +35,77 @@ function countByStatus(items: Equipment[]) {
 
 export function LocationClient() {
   const t = useTranslations();
-  const { airports, terminals, zones } = useLocations();
-  const { data: equipmentPage } = useEquipmentList({ pageSize: 200 });
+  const { airports, terminals, floors, zones } = useLocations();
+  const { data: equipmentPage, refetch: refetchEquipment } = useEquipmentList({ pageSize: 200 });
   const equipment = useMemo(() => equipmentPage?.items ?? [], [equipmentPage]);
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const [viewMode, setViewMode] = useState<"list" | "map">("map");
   const [airportId, setAirportId] = useState<number | "">("");
   const [terminalId, setTerminalId] = useState<number | "">("");
-  const terminalZones = useMemo(
-    () => zones.filter((z) => z.terminalId === terminalId),
-    [zones, terminalId]
-  );
+  const [floorId, setFloorId] = useState<number | "">("");
+  const floorZones = useMemo(() => zones.filter((z) => z.floorId === floorId), [zones, floorId]);
 
   const [zoneId, setZoneId] = useState<number | null>(null);
 
-  // Seed the initial airport/terminal/zone selection once the directory
-  // data has loaded (it's empty on first render since useLocations fetches
-  // asynchronously — unlike the old mock arrays, which were available
-  // synchronously at import time).
+  // Seed the initial airport/terminal/floor/zone selection once the
+  // directory data has loaded (it's empty on first render since
+  // useLocations fetches asynchronously — unlike the old mock arrays,
+  // which were available synchronously at import time).
   const seeded = useRef(false);
   useEffect(() => {
     if (seeded.current || airports.length === 0) return;
     seeded.current = true;
     const firstAirport = airports[0];
     setAirportId(firstAirport.id);
-    const firstTerminal = terminals.find((t) => t.airportId === firstAirport.id) ?? null;
+    const firstTerminal = terminals.find((tm) => tm.airportId === firstAirport.id) ?? null;
     setTerminalId(firstTerminal?.id ?? "");
-    const firstZone = firstTerminal ? zones.find((z) => z.terminalId === firstTerminal.id) : null;
+    const firstFloor = firstTerminal ? floors.find((f) => f.terminalId === firstTerminal.id) : null;
+    setFloorId(firstFloor?.id ?? "");
+    const firstZone = firstFloor ? zones.find((z) => z.floorId === firstFloor.id) : null;
     setZoneId(firstZone?.id ?? null);
-  }, [airports, terminals, zones]);
-
-  // Equipment can be dragged to a different room/zone on the terminal map
-  // (see TerminalMap's zone auto-detection); this local override keeps the
-  // navigation counts, Zone Panel, and equipment table in sync with that
-  // reassignment without mutating the shared mock-data module. Seeded from
-  // the same localStorage record TerminalMap persists positions to, via a
-  // layout effect (SSR has no localStorage — hydration-safe, same pattern
-  // as locale-context.tsx).
-  const [zoneOverrides, setZoneOverrides] = useState<Record<number, number>>({});
-
-  useLayoutEffect(() => {
-    const stored = loadMarkerOverrides();
-    const overrides: Record<number, number> = {};
-    for (const [equipmentId, rec] of Object.entries(stored)) {
-      if (rec.zoneId) overrides[Number(equipmentId)] = rec.zoneId;
-    }
-    if (Object.keys(overrides).length > 0) setZoneOverrides(overrides);
-  }, []);
-
-  const resolvedEquipment = useMemo(
-    () =>
-      equipment.map((e) => {
-        const overrideZoneId = zoneOverrides[e.id];
-        if (!overrideZoneId) return e;
-        const zone = zones.find((z) => z.id === overrideZoneId);
-        return { ...e, zone: zone ? { id: zone.id, name: zone.name } : e.zone };
-      }),
-    [equipment, zoneOverrides, zones]
-  );
+  }, [airports, terminals, floors, zones]);
 
   function selectAirport(id: number) {
     setAirportId(id);
-    const firstTerminal = terminals.find((t) => t.airportId === id) ?? null;
+    const firstTerminal = terminals.find((tm) => tm.airportId === id) ?? null;
     setTerminalId(firstTerminal?.id ?? "");
-    const firstZone = firstTerminal ? zones.find((z) => z.terminalId === firstTerminal.id) : null;
+    const firstFloor = firstTerminal ? floors.find((f) => f.terminalId === firstTerminal.id) : null;
+    setFloorId(firstFloor?.id ?? "");
+    const firstZone = firstFloor ? zones.find((z) => z.floorId === firstFloor.id) : null;
     setZoneId(firstZone?.id ?? null);
   }
 
   function selectTerminal(id: number) {
     setTerminalId(id);
-    const firstZone = zones.find((z) => z.terminalId === id) ?? null;
+    const firstFloor = floors.find((f) => f.terminalId === id) ?? null;
+    setFloorId(firstFloor?.id ?? "");
+    const firstZone = firstFloor ? zones.find((z) => z.floorId === firstFloor.id) : null;
+    setZoneId(firstZone?.id ?? null);
+  }
+
+  function selectFloor(id: number) {
+    setFloorId(id);
+    const firstZone = zones.find((z) => z.floorId === id) ?? null;
     setZoneId(firstZone?.id ?? null);
   }
 
   const terminalEquipment = useMemo(
-    () => resolvedEquipment.filter((e) => e.terminal?.id === terminalId),
-    [resolvedEquipment, terminalId]
+    () => equipment.filter((e) => e.terminal?.id === terminalId),
+    [equipment, terminalId]
+  );
+  const floorEquipment = useMemo(
+    () => equipment.filter((e) => e.floor?.id === floorId),
+    [equipment, floorId]
   );
   const selectedZone = zones.find((z) => z.id === zoneId) ?? null;
   const zoneEquipment = useMemo(
-    () => (zoneId ? resolvedEquipment.filter((e) => e.zone?.id === zoneId) : []),
-    [resolvedEquipment, zoneId]
+    () => (zoneId ? equipment.filter((e) => e.zone?.id === zoneId) : []),
+    [equipment, zoneId]
   );
 
-  function handleEquipmentZoneChange(equipmentId: number, newZoneId: number) {
-    setZoneOverrides((prev) => ({ ...prev, [equipmentId]: newZoneId }));
-  }
-
-  const tableItems = zoneId ? zoneEquipment : terminalEquipment;
   const selectedAirport = airports.find((a) => a.id === airportId) ?? null;
-  const selectedTerminal = terminals.find((t) => t.id === terminalId) ?? null;
+  const selectedTerminal = terminals.find((tm) => tm.id === terminalId) ?? null;
+  const selectedFloor = floors.find((f) => f.id === floorId) ?? null;
 
   const [exporting, setExporting] = useState(false);
   async function handleExport() {
@@ -133,6 +114,7 @@ export function LocationClient() {
       await exportEquipment({
         airportId: airportId || undefined,
         terminalId: terminalId || undefined,
+        floorId: floorId || undefined,
         zoneId: zoneId || undefined,
       });
     } finally {
@@ -203,7 +185,7 @@ export function LocationClient() {
                   {isActiveAirport && (
                     <div className="ml-3 mt-0.5 border-l border-border-secondary pl-3">
                       {terminals
-                        .filter((t) => t.airportId === airport.id)
+                        .filter((tm) => tm.airportId === airport.id)
                         .map((terminal) => {
                           const isActiveTerminal = terminal.id === terminalId;
                           return (
@@ -223,23 +205,23 @@ export function LocationClient() {
 
                               {isActiveTerminal && (
                                 <div className="ml-3 border-l border-border-secondary pl-3">
-                                  {zones
-                                    .filter((z) => z.terminalId === terminal.id)
-                                    .map((zone) => {
-                                      const isActiveZone = zone.id === zoneId;
+                                  {floors
+                                    .filter((f) => f.terminalId === terminal.id)
+                                    .map((floor) => {
+                                      const isActiveFloor = floor.id === floorId;
                                       return (
                                         <button
-                                          key={zone.id}
-                                          onClick={() => setZoneId(zone.id)}
+                                          key={floor.id}
+                                          onClick={() => selectFloor(floor.id)}
                                           className={cn(
                                             "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors",
-                                            isActiveZone
+                                            isActiveFloor
                                               ? "bg-bg-tertiary text-text-primary"
                                               : "text-text-quaternary hover:text-text-primary"
                                           )}
                                         >
-                                          <Icon name="map-pin" size={12} className="shrink-0" />
-                                          <span className="min-w-0 flex-1 truncate">{zone.name}</span>
+                                          <Icon name="grid" size={12} className="shrink-0" />
+                                          <span className="min-w-0 flex-1 truncate">{floor.name}</span>
                                         </button>
                                       );
                                     })}
@@ -268,24 +250,26 @@ export function LocationClient() {
               <p className="text-sm font-semibold text-text-primary">
                 {selectedAirport?.name ?? "—"}
                 {selectedTerminal ? ` · ${selectedTerminal.name}` : ""}
+                {selectedFloor ? ` · ${selectedFloor.name}` : ""}
               </p>
               <p className="text-xs text-text-tertiary">{t("location.schematicPlan")}</p>
             </div>
           </div>
 
-          {terminalZones.length === 0 ? (
-            <p className="py-16 text-center text-sm text-text-tertiary">{t("location.noZones")}</p>
+          {!selectedFloor ? (
+            <p className="py-16 text-center text-sm text-text-tertiary">{t("location.noFloors")}</p>
           ) : viewMode === "map" ? (
             <TerminalMap
-              zones={terminalZones}
-              equipment={terminalEquipment}
+              zones={floorZones}
+              equipment={floorEquipment}
               selectedZoneId={zoneId}
               onSelectZone={setZoneId}
-              onEquipmentZoneChange={handleEquipmentZoneChange}
+              mapImageUrl={selectedFloor.mapImageUrl}
+              onPositionSaved={refetchEquipment}
               statusConfig={equipmentStatusConfig}
             />
           ) : (
-            <EquipmentTable items={terminalEquipment} />
+            <EquipmentTable items={floorEquipment} />
           )}
         </Card>
 
@@ -298,28 +282,6 @@ export function LocationClient() {
           t={t}
           statusConfig={equipmentStatusConfig}
         />
-      </div>
-
-      <div className="mt-4 px-6">
-        <Card className="overflow-hidden">
-          <div className="flex items-center justify-between border-b border-border-secondary px-4 py-3">
-            <p className="text-sm font-semibold text-text-primary">
-              {t("location.equipmentPrefix")}{" "}
-              {zoneId ? `— ${selectedZone?.name}` : `— ${selectedTerminal?.name ?? t("location.terminalFallback")}`}
-            </p>
-            <span className="text-xs text-text-quaternary">
-              {tableItems.length} {t("location.records")}
-            </span>
-          </div>
-          {tableItems.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-14 text-text-tertiary">
-              <Icon name="cpu" size={22} />
-              <p className="text-sm">{t("location.noEquipmentFound")}</p>
-            </div>
-          ) : (
-            <EquipmentTable items={tableItems} />
-          )}
-        </Card>
       </div>
     </div>
   );

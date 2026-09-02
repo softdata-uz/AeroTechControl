@@ -17,6 +17,7 @@ import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { formatDate } from "@/lib/format";
 import { useTranslations } from "@/lib/locale-context";
+import { REGION_NAME } from "@/config/regions.config";
 import { cn } from "@/lib/cn";
 
 const STATUS_CHART_COLOR: Record<string, string> = {
@@ -27,20 +28,6 @@ const STATUS_CHART_COLOR: Record<string, string> = {
   unsatisfactory: "var(--color-error-500)",
   overdue: "var(--color-error-500)",
   not_connected: "var(--color-gray-500)",
-};
-
-// Each airport's pin is anchored to a region/district shape in
-// `uzbekistanRegions.ts` — UzbekistanMap measures that shape's real centroid
-// via getBBox() rather than a hand-guessed percentage, so the pin always
-// lands exactly on the city regardless of the map's rendered size.
-// Keyed by the airport's human-facing `code` (stable across environments),
-// not its database id (a real UUID, not the mock's "air-tas"-style id).
-const AIRPORT_REGION_TYPE: Record<string, string> = {
-  TAS: "toshkent_sh",
-  SKD: "samarqand_sh",
-  BHK: "buxoro_sh",
-  NMA: "namangan",
-  UGC: "urganch_sh",
 };
 
 function pct(n: number, total: number) {
@@ -76,11 +63,14 @@ export default function DashboardPage() {
     not_connected: equipment.filter((e) => e.status === "not_connected").length,
   };
 
+  const [byTypeAirportId, setByTypeAirportId] = useState("");
   const byType = Object.entries(
-    equipment.reduce<Record<string, number>>((acc, e) => {
-      acc[e.equipmentType.name] = (acc[e.equipmentType.name] ?? 0) + 1;
-      return acc;
-    }, {})
+    equipment
+      .filter((e) => !byTypeAirportId || String(e.airport.id) === byTypeAirportId)
+      .reduce<Record<string, number>>((acc, e) => {
+        acc[e.equipmentType.name] = (acc[e.equipmentType.name] ?? 0) + 1;
+        return acc;
+      }, {})
   ).sort((a, b) => b[1] - a[1]);
 
   const byAirport = airports.map((a) => ({
@@ -156,7 +146,13 @@ export default function DashboardPage() {
         <Card className="flex h-full flex-col">
           <CardHeader>
             <CardTitle>{t("dashboard.equipmentByType")}</CardTitle>
-            <Dropdown className="w-40" placeholder={t("common.allAirports")} value="" onChange={() => {}} options={[]} />
+            <Dropdown
+              className="w-40"
+              placeholder={t("common.allAirports")}
+              value={byTypeAirportId}
+              onChange={setByTypeAirportId}
+              options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
+            />
           </CardHeader>
           <div className="flex-1 p-4">
             <BarChart
@@ -186,7 +182,6 @@ export default function DashboardPage() {
             <UzbekistanMap
               className="h-full min-h-[196px] w-full"
               markers={byAirport
-                .filter(({ airport }) => AIRPORT_REGION_TYPE[airport.code])
                 .map(({ airport, total: t2, operational, faulty, unsatisfactory, overdue }) => {
                   const dominant =
                     faulty > 0 || overdue > 0
@@ -198,8 +193,8 @@ export default function DashboardPage() {
                           : { dot: "bg-gray-500", ring: "ring-gray-500/30" };
                   return {
                     id: String(airport.id),
-                    regionType: AIRPORT_REGION_TYPE[airport.code],
-                    label: airport.city,
+                    regionType: airport.region,
+                    label: REGION_NAME[airport.region],
                     render: () => (
                       <div className="group flex flex-col items-center gap-1">
                         <div
@@ -212,7 +207,7 @@ export default function DashboardPage() {
                           {t2}
                         </div>
                         <span className="whitespace-nowrap rounded-full bg-bg-primary/80 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary shadow-sm backdrop-blur-sm">
-                          {airport.city}
+                          {REGION_NAME[airport.region]}
                         </span>
                       </div>
                     ),

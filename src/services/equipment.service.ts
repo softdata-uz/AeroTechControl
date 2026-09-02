@@ -9,6 +9,7 @@ import { apiGet, apiGetPage, apiPatch, apiPost, apiDelete, apiUpload, apiDownloa
 export interface EquipmentFilters {
   airportId?: number;
   terminalId?: number;
+  floorId?: number;
   zoneId?: number;
   equipmentTypeId?: number;
   equipmentModelId?: number;
@@ -39,6 +40,14 @@ export function exportEquipment(filters: EquipmentFilters = {}): Promise<void> {
 // PATCH /equipment/:id/status
 export function updateEquipmentStatus(id: number, status: EquipmentStatus): Promise<Equipment> {
   return apiPatch<Equipment>(`/equipment/${id}/status`, { status });
+}
+
+// PATCH /equipment/:id/position
+export function updateEquipmentPosition(
+  id: number,
+  input: { x: number; y: number; zoneId?: number }
+): Promise<Equipment> {
+  return apiPatch<Equipment>(`/equipment/${id}/position`, input);
 }
 
 // GET /equipment-types
@@ -97,6 +106,7 @@ export interface EquipmentInput {
   inventoryNumber?: string;
   airportId: number;
   terminalId?: number;
+  floorId?: number;
   zoneId?: number;
   location?: string;
   operatedById: number | "";

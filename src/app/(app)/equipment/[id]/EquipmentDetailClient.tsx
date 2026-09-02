@@ -160,6 +160,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
                   <div className="grid grid-cols-2 gap-x-6 gap-y-3 p-4 text-sm">
                     <Row label={t("equipment.detail.airport")} value={equipment.airport.name} />
                     <Row label={t("equipment.detail.terminal")} value={equipment.terminal?.name ?? "—"} />
+                    <Row label={t("equipment.detail.floor")} value={equipment.floor?.name ?? "—"} />
                     <Row label={t("equipment.detail.zone")} value={equipment.zone?.name ?? "—"} />
                     <Row label={t("equipment.detail.location")} value={equipment.location ?? "—"} />
                     <Row label={t("equipment.detail.operatedBy")} value={equipment.operatedBy.name} />

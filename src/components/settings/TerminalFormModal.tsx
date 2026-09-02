@@ -79,7 +79,7 @@ export function TerminalFormModal({ onClose, onSaved, airports, initial, create,
         <Dropdown
           label={t("equipment.form.airport")}
           required
-          options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
+          options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
           value={airportId}
           onChange={setAirportId}
         />

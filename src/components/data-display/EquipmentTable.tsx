@@ -86,6 +86,7 @@ export function EquipmentTable({ items, compact = false, full = false, scrollabl
               {full && (
                 <td className="px-4 py-2.5 text-text-secondary">
                   {eq.terminal?.name ?? "—"}
+                  {eq.floor && <span className="text-text-quaternary"> · {eq.floor.name}</span>}
                   {eq.zone && <span className="text-text-quaternary"> · {eq.zone.name}</span>}
                 </td>
               )}

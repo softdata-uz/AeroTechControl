@@ -207,7 +207,7 @@ export function FaultsClient() {
               placeholder={t("common.allAirports")}
               value={airportFilter}
               onChange={setAirportFilter}
-              options={airports.map((a) => ({ value: String(a.id), label: a.city }))}
+              options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
             />
             <Dropdown
               className="w-44"

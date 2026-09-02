@@ -75,7 +75,7 @@ export function CrudListPanel({ title, items, loading, addLabel, onAdd, onEdit, 
 
       <button
         onClick={onAdd}
-        className="flex shrink-0 items-center justify-center gap-1.5 border-t border-border-secondary bg-brand-600/10 px-4 py-3 text-sm font-medium text-brand-400 transition-colors hover:bg-brand-600/20"
+        className="flex shrink-0 items-center justify-center gap-1.5 border-t border-border-secondary bg-brand-600 px-4 py-3 text-sm font-medium text-white shadow-xs transition-colors hover:bg-brand-700"
       >
         <Icon name="plus" size={16} />
         {addLabel}

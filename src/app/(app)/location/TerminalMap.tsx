@@ -1,12 +1,14 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useTranslations } from "@/lib/locale-context";
 import type { Equipment, EquipmentStatus, Zone } from "@/lib/types";
 import type { StatusVisual } from "@/config/equipmentStatus.config";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import { updateEquipmentPosition } from "@/services/equipment.service";
 import { BuildingMap, BUILDING_MAP_VB_W, BUILDING_MAP_VB_H } from "./BuildingMap";
 
 /**
@@ -65,10 +67,6 @@ const STATUS_FILL: Record<EquipmentStatus, string> = {
 // render as raw SVG shapes, not <Icon>.
 const EQUIPMENT_ICON_PATH = "M8 3v2M12 3v2M8 15v2M12 15v2M3 8h2M3 12h2M15 8h2M15 12h2M7 7h6v6H7V7Z";
 
-// Bumped to v2 since zone/equipment ids switched from uuid strings to
-// ints — old v1 records would otherwise be misread as numbers.
-export const MARKER_STORAGE_KEY = "atz-location-marker-positions-v2";
-
 export interface MarkerRecord {
   x: number;
   y: number;
@@ -77,23 +75,6 @@ export interface MarkerRecord {
 }
 
 type Positions = Record<number, MarkerRecord>;
-
-export function loadMarkerOverrides(): Positions {
-  try {
-    const raw = window.localStorage.getItem(MARKER_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Positions) : {};
-  } catch {
-    return {};
-  }
-}
-
-function savePositions(positions: Positions) {
-  try {
-    window.localStorage.setItem(MARKER_STORAGE_KEY, JSON.stringify(positions));
-  } catch {
-    // localStorage unavailable — edits still apply for this session.
-  }
-}
 
 function clamp(v: number, min: number, max: number) {
   return Math.min(max, Math.max(min, v));
@@ -261,7 +242,14 @@ interface Props {
   equipment: Equipment[];
   selectedZoneId: number | null;
   onSelectZone: (id: number) => void;
-  onEquipmentZoneChange?: (equipmentId: number, zoneId: number) => void;
+  /** Set when the terminal has a custom uploaded map — swaps the background
+   * image and disables the default map's room-band overlay + auto zone
+   * detection (a fixed overlay tuned to the one built-in floor plan can't
+   * be trusted to line up with an arbitrary uploaded image). */
+  mapImageUrl?: string | null;
+  /** Called after a marker's position (and possibly zone) is saved to the
+   * backend, so the parent can refetch equipment with fresh data. */
+  onPositionSaved?: () => void;
   statusConfig: Record<EquipmentStatus, StatusVisual>;
 }
 
@@ -269,7 +257,8 @@ export function TerminalMap({
   zones,
   equipment,
   onSelectZone,
-  onEquipmentZoneChange,
+  mapImageUrl,
+  onPositionSaved,
   statusConfig,
 }: Props) {
   const t = useTranslations();
@@ -279,9 +268,6 @@ export function TerminalMap({
   const [zoomIndex, setZoomIndex] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [editMode, setEditMode] = useState(false);
-  // Empty on first render (matches SSR — localStorage doesn't exist
-  // server-side); a layout effect corrects from storage before paint,
-  // same hydration-safe pattern as locale-context.tsx.
   const [positions, setPositions] = useState<Positions>({});
   const [openMarkerId, setOpenMarkerId] = useState<number | null>(null);
 
@@ -290,10 +276,18 @@ export function TerminalMap({
   const panFrom = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [isPanning, setIsPanning] = useState(false);
 
-  useLayoutEffect(() => {
-    const stored = loadMarkerOverrides();
-    if (Object.keys(stored).length > 0) setPositions(stored);
-  }, []);
+  // Positions come from the backend now (each equipment's `position` field),
+  // not localStorage — reseed local drag state whenever the fetched
+  // equipment list changes (new terminal selected, refetch after a save).
+  useEffect(() => {
+    const next: Positions = {};
+    for (const eq of equipment) {
+      if (eq.position) {
+        next[eq.id] = { x: eq.position.x, y: eq.position.y, zoneId: eq.position.zoneId ?? undefined };
+      }
+    }
+    setPositions(next);
+  }, [equipment]);
 
   const scale = ZOOM_STEPS[zoomIndex] ?? 1;
 
@@ -310,7 +304,48 @@ export function TerminalMap({
     return { x: local.x, y: local.y };
   }
 
-  const lanes = buildLanes(zones, equipment);
+  // Inverse of toLocalPoint: SVG-space coordinates -> viewport pixels
+  // (client coordinates, same space as getBoundingClientRect/MouseEvent).
+  // Using the real screen CTM (rather than manually multiplying by `scale`)
+  // accounts for the browser's own viewBox-to-container fit, not just our
+  // pan/zoom state — the tooltip's pixel position must go through this, or
+  // it drifts off wherever the container's rendered size doesn't happen to
+  // match the viewBox 1:1. Returned as viewport coordinates (not relative
+  // to the map container) since the tooltip is portaled to <body> with
+  // `position: fixed`, to escape the map's `overflow-hidden` clipping.
+  function toScreenPoint(svgX: number, svgY: number) {
+    const svg = svgRef.current;
+    const g = gRef.current;
+    if (!svg || !g) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = svgX;
+    pt.y = svgY;
+    const ctm = g.getScreenCTM();
+    if (!ctm) return null;
+    const screenPt = pt.matrixTransform(ctm);
+    return { x: screenPt.x, y: screenPt.y };
+  }
+
+  // Room bands/lanes only apply to the default built-in map — a custom
+  // uploaded image has no matching geometry for them.
+  const lanes = mapImageUrl ? [] : buildLanes(zones, equipment);
+
+  // Shared by both the marker-rendering loop and the hover tooltip lookup —
+  // previously the tooltip used a narrower fallback that only worked for
+  // lane-matched markers, so it silently failed to show for anything on a
+  // custom map (no lanes at all).
+  function defaultPositionFor(eq: Equipment, eqIndex: number): { x: number; y: number } {
+    const lane = lanes.find((l) => l.zone.id === eq.zone?.id);
+    const idx = lane ? lane.items.indexOf(eq) : -1;
+    if (lane && idx >= 0) return defaultPosition(lane, idx);
+    // No lane match (either a custom map, or default-map equipment whose
+    // zone didn't land in any room) — spread unpositioned markers in a
+    // simple grid instead of stacking them all on the same point.
+    return {
+      x: VB_W * 0.2 + (eqIndex % 6) * (VB_W * 0.1),
+      y: VB_H * 0.2 + Math.floor(eqIndex / 6) * (VB_H * 0.12),
+    };
+  }
 
   function handleMarkerPointerDown(e: ReactPointerEvent<SVGGElement>, eq: Equipment, def: { x: number; y: number }) {
     e.stopPropagation();
@@ -359,23 +394,28 @@ export function TerminalMap({
       dragId.current = null;
       // Read from `positions` state (closure) rather than a setState
       // updater function — pointermove already committed the latest
-      // coordinates in an earlier render, and computing/side-effecting
-      // (localStorage write, calling the parent's setState for zone
-      // reassignment) here, outside any updater, avoids React's "cannot
-      // update a component while rendering a different component" error
-      // that calling `onEquipmentZoneChange` from inside a `setPositions`
-      // updater triggered during testing.
+      // coordinates in an earlier render, and side-effecting (the API
+      // call) here, outside any updater, avoids React's "cannot update a
+      // component while rendering a different component" error.
       const rec = positions[id];
       if (rec) {
-        // Zone auto-detection: whichever lane rectangle the drop point now
-        // falls inside becomes the marker's zone, regardless of which zone
-        // it started in.
-        const hit = laneAt(lanes, rec.x, rec.y);
+        // Zone auto-detection only applies to the default built-in map —
+        // a custom uploaded map has no room-band overlay to detect against,
+        // so dragging there only repositions the pin.
+        const hit = mapImageUrl ? null : laneAt(lanes, rec.x, rec.y);
         const nextZoneId = hit ? hit.zone.id : rec.zoneId;
         const next = { ...positions, [id]: { ...rec, zoneId: nextZoneId } };
         setPositions(next);
-        savePositions(next);
-        if (hit && hit.zone.id !== rec.zoneId) onEquipmentZoneChange?.(id, hit.zone.id);
+        updateEquipmentPosition(id, {
+          x: rec.x,
+          y: rec.y,
+          zoneId: mapImageUrl ? undefined : nextZoneId,
+        })
+          .then(() => onPositionSaved?.())
+          .catch(() => {
+            // Keep the optimistic local position even if the save failed —
+            // the next successful fetch will reconcile it.
+          });
       }
     }
     panFrom.current = null;
@@ -388,15 +428,12 @@ export function TerminalMap({
   }
 
   const gateXs = [0.18, 0.4, 0.62, 0.84].map((f) => CONTENT_X0 + (CONTENT_X1 - CONTENT_X0) * f);
-  const openMarker = openMarkerId ? equipment.find((e) => e.id === openMarkerId) : null;
-  const openMarkerLane = openMarker ? lanes.find((l) => l.zone.id === openMarker.zone?.id) : null;
-  const openMarkerIndex = openMarker && openMarkerLane ? openMarkerLane.items.indexOf(openMarker) : -1;
-  const openMarkerPos =
-    openMarker && openMarkerLane && openMarkerIndex >= 0
-      ? positions[openMarker.id] ?? defaultPosition(openMarkerLane, openMarkerIndex)
-      : openMarker
-        ? positions[openMarker.id]
-        : null;
+  const openMarkerIndex = openMarkerId ? equipment.findIndex((e) => e.id === openMarkerId) : -1;
+  const openMarker = openMarkerIndex >= 0 ? equipment[openMarkerIndex] : null;
+  const openMarkerSvgPos = openMarker
+    ? positions[openMarker.id] ?? defaultPositionFor(openMarker, openMarkerIndex)
+    : null;
+  const openMarkerPos = openMarkerSvgPos ? toScreenPoint(openMarkerSvgPos.x, openMarkerSvgPos.y) : null;
 
   return (
     <div className="flex flex-col">
@@ -456,10 +493,16 @@ export function TerminalMap({
           onPointerLeave={handlePointerUp}
         >
           <g ref={gRef} transform={`translate(${pan.x} ${pan.y}) scale(${scale})`}>
-            <BuildingMap />
+            {mapImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- SVG child, not an <img>; renders a backend-served map image at an arbitrary origin
+              <image href={mapImageUrl} x={0} y={0} width={VB_W} height={VB_H} preserveAspectRatio="xMidYMid meet" />
+            ) : (
+              <BuildingMap />
+            )}
 
-            {/* Gates */}
-            {gateXs.map((gx, i) => (
+            {/* Gates + room bands only make sense against the one default
+                built-in floor plan. */}
+            {!mapImageUrl && gateXs.map((gx, i) => (
               <g key={i}>
                 <text
                   x={gx}
@@ -475,7 +518,7 @@ export function TerminalMap({
 
             {/* Static architectural labels — one per room, always visible,
                 matching the approved reference. */}
-            {ROOMS.map((room) => (
+            {!mapImageUrl && ROOMS.map((room) => (
               <text
                 key={room.key}
                 x={room.x0 + (room.x1 - room.x0) / 2}
@@ -527,10 +570,8 @@ export function TerminalMap({
 
             {/* Equipment markers — square badges with the app's standard
                 equipment glyph, matching the reference's marker style. */}
-            {equipment.map((eq) => {
-              const lane = lanes.find((l) => l.zone.id === eq.zone?.id);
-              const idx = lane ? lane.items.indexOf(eq) : -1;
-              const def = lane && idx >= 0 ? defaultPosition(lane, idx) : { x: VB_W / 2, y: (SECURITY_Y0 + SECURITY_Y1) / 2 };
+            {equipment.map((eq, eqIndex) => {
+              const def = defaultPositionFor(eq, eqIndex);
               const pos = positions[eq.id] ?? def;
               const size = editMode ? 20 : 18;
               return (
@@ -538,10 +579,13 @@ export function TerminalMap({
                   key={eq.id}
                   transform={`translate(${pos.x} ${pos.y})`}
                   onPointerDown={(e) => handleMarkerPointerDown(e, eq, def)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!editMode) setOpenMarkerId((cur) => (cur === eq.id ? null : eq.id));
+                  onPointerEnter={() => {
+                    if (!editMode) setOpenMarkerId(eq.id);
                   }}
+                  onPointerLeave={() => {
+                    setOpenMarkerId((cur) => (cur === eq.id ? null : cur));
+                  }}
+                  onClick={(e) => e.stopPropagation()}
                   style={{ cursor: editMode ? "grab" : "pointer" }}
                 >
                   <rect
@@ -574,9 +618,10 @@ export function TerminalMap({
           <MarkerTooltip
             equipment={openMarker}
             statusLabel={statusConfig[openMarker.status].label}
-            x={(openMarkerPos.x + pan.x) * scale}
-            y={(openMarkerPos.y + pan.y) * scale}
-            onClose={() => setOpenMarkerId(null)}
+            x={openMarkerPos.x}
+            y={openMarkerPos.y}
+            onMouseEnter={() => setOpenMarkerId(openMarker.id)}
+            onMouseLeave={() => setOpenMarkerId(null)}
           />
         )}
       </div>
@@ -598,37 +643,44 @@ function MarkerTooltip({
   statusLabel,
   x,
   y,
-  onClose,
+  onMouseEnter,
+  onMouseLeave,
 }: {
   equipment: Equipment;
   statusLabel: string;
   x: number;
   y: number;
-  onClose: () => void;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
 }) {
-  const t = useTranslations();
-  return (
+  // Portaled to <body> with `position: fixed` (viewport coordinates) so it
+  // renders above everything and is never clipped by the map's
+  // `overflow-hidden` pan/zoom container.
+  return createPortal(
     <div
-      className="pointer-events-none absolute z-10 w-44 -translate-x-1/2 -translate-y-[calc(100%+14px)] rounded-lg border border-border-primary bg-bg-secondary p-2.5 shadow-lg"
+      className="pointer-events-auto fixed z-50 w-44 -translate-x-1/2 -translate-y-[calc(100%+8px)]"
       style={{ left: x, top: y }}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
-      <button
-        onClick={onClose}
-        className="pointer-events-auto absolute right-1.5 top-1.5 text-text-quaternary hover:text-text-primary"
-        aria-label={t("common.close")}
-      >
-        <Icon name="x" size={12} />
-      </button>
-      <p className="truncate pr-4 text-xs font-semibold text-text-primary">{equipment.name}</p>
-      <p className="mt-0.5 truncate text-[11px] text-text-tertiary">{equipment.code}</p>
-      <p className="mt-1 text-[11px] font-medium text-text-secondary">{statusLabel}</p>
-      <a
-        href={`/equipment/${equipment.id}`}
-        className="pointer-events-auto mt-1.5 block text-[11px] font-medium text-brand-400 hover:text-brand-300"
-      >
-        →
-      </a>
-    </div>
+      <div className="relative rounded-lg border border-border-primary bg-bg-secondary p-2.5 shadow-lg">
+        <p className="truncate text-xs font-semibold text-text-primary">{equipment.name}</p>
+        <p className="mt-0.5 truncate text-[11px] text-text-tertiary">{equipment.code}</p>
+        <p className="mt-1 text-[11px] font-medium text-text-secondary">{statusLabel}</p>
+        <a
+          href={`/equipment/${equipment.id}`}
+          className="mt-1.5 block text-[11px] font-medium text-brand-400 hover:text-brand-300"
+        >
+          →
+        </a>
+        {/* Pointer nub connecting the card to the marker it belongs to. */}
+        <span
+          className="absolute left-1/2 top-full -mt-px h-2.5 w-2.5 -translate-x-1/2 rotate-45 border-b border-r border-border-primary bg-bg-secondary"
+          aria-hidden
+        />
+      </div>
+    </div>,
+    document.body
   );
 }
 

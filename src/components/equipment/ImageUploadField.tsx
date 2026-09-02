@@ -5,8 +5,8 @@ import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useTranslations } from "@/lib/locale-context";
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const MAX_BYTES = 5 * 1024 * 1024;
+const DEFAULT_ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 
 export interface ImageUploadValue {
   /** Existing image URL (edit mode, untouched). */
@@ -22,6 +22,8 @@ interface Props {
   onChange: (value: ImageUploadValue) => void;
   label?: string;
   disabled?: boolean;
+  acceptedTypes?: string[];
+  maxBytes?: number;
 }
 
 /**
@@ -32,7 +34,14 @@ interface Props {
  * decides whether to submit multipart (new/changed image) or plain JSON
  * (unchanged) — this component never uploads on its own.
  */
-export function ImageUploadField({ value, onChange, label, disabled }: Props) {
+export function ImageUploadField({
+  value,
+  onChange,
+  label,
+  disabled,
+  acceptedTypes = DEFAULT_ACCEPTED_TYPES,
+  maxBytes = DEFAULT_MAX_BYTES,
+}: Props) {
   const t = useTranslations();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -52,10 +61,10 @@ export function ImageUploadField({ value, onChange, label, disabled }: Props) {
   const previewUrl = value.file ? objectUrl : !value.removed ? value.existingUrl : null;
 
   function validate(file: File): string | null {
-    if (!ACCEPTED_TYPES.includes(file.type)) {
+    if (!acceptedTypes.includes(file.type)) {
       return t("equipment.form.imageInvalidType");
     }
-    if (file.size > MAX_BYTES) {
+    if (file.size > maxBytes) {
       return t("equipment.form.imageTooLarge");
     }
     return null;
@@ -111,7 +120,7 @@ export function ImageUploadField({ value, onChange, label, disabled }: Props) {
         <input
           ref={inputRef}
           type="file"
-          accept={ACCEPTED_TYPES.join(",")}
+          accept={acceptedTypes.join(",")}
           disabled={disabled}
           className="hidden"
           onChange={(e) => {

@@ -2,6 +2,8 @@
 // Control and Maintenance System. Equipment is the central entity;
 // every other entity references it directly or indirectly.
 
+import type { UzbekistanRegion } from "@/config/regions.config";
+
 export type EquipmentStatus =
   | "faulty"
   | "operational"
@@ -53,7 +55,7 @@ export interface Airport {
   id: number;
   name: string;
   code: string;
-  city: string;
+  region: UzbekistanRegion;
 }
 
 export interface Terminal {
@@ -62,9 +64,16 @@ export interface Terminal {
   name: string;
 }
 
-export interface Zone {
+export interface Floor {
   id: number;
   terminalId: number;
+  name: string;
+  mapImageUrl: string | null;
+}
+
+export interface Zone {
+  id: number;
+  floorId: number;
   name: string;
 }
 
@@ -111,6 +120,7 @@ export interface Equipment {
   inventoryNumber: string | null;
   airport: Airport;
   terminal: LookupRef | null;
+  floor: LookupRef | null;
   zone: LookupRef | null;
   location: string | null;
   operatedBy: LookupRef;
@@ -124,6 +134,7 @@ export interface Equipment {
   image: string | null;
   imageUrl: string | null;
   notes: string | null;
+  position: { x: number; y: number; zoneId: number | null } | null;
 }
 
 export interface Inspection {

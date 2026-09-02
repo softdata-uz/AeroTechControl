@@ -52,6 +52,7 @@ interface FormState {
   inventoryNumber: string;
   airportId: string;
   terminalId: string;
+  floorId: string;
   zoneId: string;
   operatedById: string;
   status: EquipmentStatus;
@@ -73,6 +74,7 @@ function formFromEquipment(eq: Equipment): FormState {
     inventoryNumber: eq.inventoryNumber ?? "",
     airportId: String(eq.airport.id),
     terminalId: eq.terminal ? String(eq.terminal.id) : "",
+    floorId: eq.floor ? String(eq.floor.id) : "",
     zoneId: eq.zone ? String(eq.zone.id) : "",
     operatedById: String(eq.operatedBy.id),
     status: eq.status,
@@ -94,6 +96,7 @@ const emptyForm: FormState = {
   inventoryNumber: "",
   airportId: "",
   terminalId: "",
+  floorId: "",
   zoneId: "",
   operatedById: "",
   status: "operational",
@@ -106,7 +109,8 @@ const emptyForm: FormState = {
 
 export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = false }: Props) {
   const t = useTranslations();
-  const { airports, terminalsByAirport, zonesByTerminal, addTerminal, addZone } = useLocations();
+  const { airports, terminalsByAirport, floorsByTerminal, zonesByFloor, addTerminal, addFloor, addZone } =
+    useLocations();
   const {
     types,
     modelsByType,
@@ -127,15 +131,18 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
   });
   const [error, setError] = useState<string | null>(null);
 
-  const airportOptions = airports.map((a) => ({ value: String(a.id), label: a.city }));
+  const airportOptions = airports.map((a) => ({ value: String(a.id), label: a.name }));
   const terminalOptions = form.airportId
     ? terminalsByAirport(Number(form.airportId)).map((term) => ({
         value: String(term.id),
         label: term.name,
       }))
     : [];
-  const zoneOptions = form.terminalId
-    ? zonesByTerminal(Number(form.terminalId)).map((z) => ({ value: String(z.id), label: z.name }))
+  const floorOptions = form.terminalId
+    ? floorsByTerminal(Number(form.terminalId)).map((f) => ({ value: String(f.id), label: f.name }))
+    : [];
+  const zoneOptions = form.floorId
+    ? zonesByFloor(Number(form.floorId)).map((z) => ({ value: String(z.id), label: z.name }))
     : [];
 
   const typeOptions = types.map((ty) => ({ value: String(ty.id), label: ty.name }));
@@ -190,6 +197,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
         inventoryNumber: form.inventoryNumber || undefined,
         airportId: Number(form.airportId),
         terminalId: form.terminalId ? Number(form.terminalId) : undefined,
+        floorId: form.floorId ? Number(form.floorId) : undefined,
         zoneId: form.zoneId ? Number(form.zoneId) : undefined,
         operatedById: Number(form.operatedById),
         status: form.status,
@@ -311,13 +319,15 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
           <CardTitle>{t("equipment.form.location")}</CardTitle>
         </CardHeader>
         <div className="space-y-4 p-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
             <Dropdown
               label={t("equipment.form.airport")}
               required
               options={airportOptions}
               value={form.airportId}
-              onChange={(v) => setForm((f) => ({ ...f, airportId: v, terminalId: "", zoneId: "" }))}
+              onChange={(v) =>
+                setForm((f) => ({ ...f, airportId: v, terminalId: "", floorId: "", zoneId: "" }))
+              }
             />
             <SelectWithAddNew
               label={t("equipment.form.terminal")}
@@ -325,7 +335,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
               disabled={!form.airportId}
               options={terminalOptions}
               value={form.terminalId}
-              onChange={(v) => setForm((f) => ({ ...f, terminalId: v, zoneId: "" }))}
+              onChange={(v) => setForm((f) => ({ ...f, terminalId: v, floorId: "", zoneId: "" }))}
               create={(nameForm) =>
                 airportsService.createTerminal({
                   airportId: Number(form.airportId),
@@ -336,15 +346,31 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
               onCreated={(created) => addTerminal(created)}
             />
             <SelectWithAddNew
+              label={t("equipment.form.floor")}
+              entityLabel={t("equipment.form.floor")}
+              disabled={!form.terminalId}
+              options={floorOptions}
+              value={form.floorId}
+              onChange={(v) => setForm((f) => ({ ...f, floorId: v, zoneId: "" }))}
+              create={(nameForm) =>
+                airportsService.createFloor({
+                  terminalId: Number(form.terminalId),
+                  ...nameForm,
+                })
+              }
+              toOption={(created) => ({ value: String(created.id), label: created.name })}
+              onCreated={(created) => addFloor(created)}
+            />
+            <SelectWithAddNew
               label={t("equipment.form.zone")}
               entityLabel={t("equipment.form.zone")}
-              disabled={!form.terminalId}
+              disabled={!form.floorId}
               options={zoneOptions}
               value={form.zoneId}
               onChange={(v) => update("zoneId", v)}
               create={(nameForm) =>
                 airportsService.createZone({
-                  terminalId: Number(form.terminalId),
+                  floorId: Number(form.floorId),
                   ...nameForm,
                 })
               }
