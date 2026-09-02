@@ -20,11 +20,14 @@ const RoleContext = createContext<RoleContextValue | null>(null);
 const PLACEHOLDER_USER: AppUser = {
   id: 0,
   fullName: "",
-  email: "",
+  login: "",
+  email: null,
   role: "engineer",
   airportId: null,
   active: true,
   lastActiveAt: null,
+  image: null,
+  imageUrl: null,
 };
 
 export function RoleProvider({ children }: { children: ReactNode }) {

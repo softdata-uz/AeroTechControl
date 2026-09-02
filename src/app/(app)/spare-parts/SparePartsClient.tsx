@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import type { SparePartStatus } from "@/lib/types";
 import { useSparePartsList } from "@/hooks/useSparePartsList";
 import { useAsync } from "@/hooks/useAsync";
+import { usePermissions } from "@/hooks/usePermissions";
 import { sparePartsService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 
@@ -21,6 +22,7 @@ type PendingAction = "reserve" | "consume" | null;
 
 export function SparePartsClient() {
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const sparePartStatusConfig = getSparePartStatusConfig(t);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [warehouseFilter, setWarehouseFilter] = useState("");
@@ -126,9 +128,11 @@ export function SparePartsClient() {
             <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
-            <Button hierarchy="primary" icon="plus" size="sm">
-              {t("spareParts.addNomenclature")}
-            </Button>
+            {canWrite && (
+              <Button hierarchy="primary" icon="plus" size="sm">
+                {t("spareParts.addNomenclature")}
+              </Button>
+            )}
           </>
         }
       />
@@ -314,7 +318,7 @@ export function SparePartsClient() {
                     {t("common.cancel")}
                   </Button>
                 </div>
-              ) : (
+              ) : canWrite ? (
                 <>
                   <Button
                     hierarchy="secondary"
@@ -334,7 +338,7 @@ export function SparePartsClient() {
                     {t("spareParts.writeOff")}
                   </Button>
                 </>
-              )}
+              ) : null}
             </div>
           </Card>
         ) : (

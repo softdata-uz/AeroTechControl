@@ -6,7 +6,9 @@ export function formatDate(value: string | null | undefined) {
 
 export function formatDateTime(value: string | null | undefined) {
   if (!value) return "—";
-  return formatDate(value);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatDate(value);
+  return date.toLocaleString();
 }
 
 /** Russian comma-decimal hours, e.g. `formatHours(12.3)` -> "12,3 ч". */

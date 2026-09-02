@@ -18,11 +18,13 @@ import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
 import { useAsync } from "@/hooks/useAsync";
 import { repairsService, faultsService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const REPAIR_STATUS_ORDER: RepairStatus[] = ["planned", "in_progress", "waiting_parts", "completed", "verified"];
 
 export function RepairsSection() {
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const repairStatusConfig = getRepairStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
   const { equipmentById } = useEquipmentLookup();
@@ -111,9 +113,11 @@ export function RepairsSection() {
       </div>
 
       <div className="flex items-center justify-end px-6 pt-4">
-        <Button hierarchy="primary" icon="plus" size="sm">
-          {t("repairs.newRepair")}
-        </Button>
+        {canWrite && (
+          <Button hierarchy="primary" icon="plus" size="sm">
+            {t("repairs.newRepair")}
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[1fr_360px]">

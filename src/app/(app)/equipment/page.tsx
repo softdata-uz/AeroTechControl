@@ -15,12 +15,14 @@ import { useLocations } from "@/hooks/useLocations";
 import { useEquipmentTypes } from "@/hooks/useEquipmentLookups";
 import { useTranslations } from "@/lib/locale-context";
 import { exportEquipment } from "@/services/equipment.service";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export default function EquipmentRegistryPage() {
   const router = useRouter();
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const { airports } = useLocations();
   const { types: equipmentTypes } = useEquipmentTypes();
@@ -86,9 +88,11 @@ export default function EquipmentRegistryPage() {
             <Button hierarchy="secondary" icon="printer" size="sm">
               {t("common.print")}
             </Button>
-            <Button hierarchy="primary" icon="plus" size="sm" onClick={() => router.push("/equipment/new")}>
-              {t("equipment.addEquipment")}
-            </Button>
+            {canWrite && (
+              <Button hierarchy="primary" icon="plus" size="sm" onClick={() => router.push("/equipment/new")}>
+                {t("equipment.addEquipment")}
+              </Button>
+            )}
           </>
         }
       />

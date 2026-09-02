@@ -16,6 +16,8 @@ import { useAsync } from "@/hooks/useAsync";
 import { usersService } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 import { roleLabelKeys } from "@/config/roleAccess.config";
+import { UserFormModal } from "@/components/settings/UserFormModal";
+import type { AppUser } from "@/lib/types";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
@@ -37,6 +39,8 @@ export default function UsersPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [togglingId, setTogglingId] = useState<number | null>(null);
+  const [editingUser, setEditingUser] = useState<AppUser | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
@@ -102,7 +106,15 @@ export default function UsersPage() {
             <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
-            <Button hierarchy="primary" icon="plus" size="sm">
+            <Button
+              hierarchy="primary"
+              icon="plus"
+              size="sm"
+              onClick={() => {
+                setEditingUser(null);
+                setModalOpen(true);
+              }}
+            >
               {t("users.invite")}
             </Button>
           </>
@@ -181,12 +193,21 @@ export default function UsersPage() {
                     >
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">
-                            {initials}
-                          </div>
+                          {u.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={u.imageUrl}
+                              alt=""
+                              className="h-8 w-8 shrink-0 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-600 text-xs font-semibold text-white">
+                              {initials}
+                            </div>
+                          )}
                           <div className="min-w-0">
                             <p className="truncate font-medium text-text-primary">{u.fullName}</p>
-                            <p className="truncate text-xs text-text-tertiary">{u.email}</p>
+                            <p className="truncate text-xs text-text-tertiary">{u.email ?? u.login}</p>
                           </div>
                         </div>
                       </td>
@@ -221,6 +242,10 @@ export default function UsersPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             aria-label={t("common.edit")}
+                            onClick={() => {
+                              setEditingUser(u);
+                              setModalOpen(true);
+                            }}
                             className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                           >
                             <Icon name="edit" size={16} />
@@ -263,6 +288,17 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
+
+      {modalOpen && (
+        <UserFormModal
+          key={editingUser?.id ?? "new"}
+          onClose={() => setModalOpen(false)}
+          onSaved={refetch}
+          initial={editingUser}
+          create={usersService.createUser}
+          update={usersService.updateUser}
+        />
+      )}
     </div>
   );
 }

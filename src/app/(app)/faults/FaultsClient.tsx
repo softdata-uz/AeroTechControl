@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useFaultsList } from "@/hooks/useFaultsList";
 import { useAsync } from "@/hooks/useAsync";
 import { useLocations } from "@/hooks/useLocations";
@@ -34,6 +35,7 @@ const PAGE_SIZE = 10;
 
 export function FaultsClient() {
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const faultStatusConfig = getFaultStatusConfig(t);
   const faultPriorityConfig = getFaultPriorityConfig(t);
   const { airports, terminalsByAirport } = useLocations();
@@ -178,9 +180,11 @@ export function FaultsClient() {
             <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
               {t("common.export")}
             </Button>
-            <Button hierarchy="primary" icon="plus" size="sm" onClick={() => setAddOpen(true)}>
-              {t("faults.newFault")}
-            </Button>
+            {canWrite && (
+              <Button hierarchy="primary" icon="plus" size="sm" onClick={() => setAddOpen(true)}>
+                {t("faults.newFault")}
+              </Button>
+            )}
           </>
         }
       />

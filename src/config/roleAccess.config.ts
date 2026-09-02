@@ -19,11 +19,12 @@ const ALL_NAV_ROUTES = [
   "/notifications",
   "/users",
   "/settings",
+  "/settings/journal",
 ];
 
 export const roleNavAccess: Record<UserRole, string[]> = {
   king: ALL_NAV_ROUTES,
-  engineer: ["/", "/equipment", "/location", "/documents", "/faults"],
+  engineer: ["/equipment", "/location", "/documents", "/faults"],
   lead_engineer: [
     "/",
     "/equipment",
@@ -49,6 +50,7 @@ export const roleNavAccess: Record<UserRole, string[]> = {
     "/notifications",
     "/users",
     "/settings",
+    "/settings/journal",
   ],
   auditor: ["/", "/equipment", "/faults", "/documents", "/reports"],
 };

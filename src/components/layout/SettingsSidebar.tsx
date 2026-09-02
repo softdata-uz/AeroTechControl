@@ -6,6 +6,7 @@ import { Icon, type IconName } from "@/components/icons";
 import { useTranslations } from "@/lib/locale-context";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { cn } from "@/lib/cn";
+import { useRole } from "@/lib/role-context";
 
 const items: { href: string; icon: IconName; labelKey: TranslationKey }[] = [
   { href: "/settings/locations", icon: "map-pin", labelKey: "settingsCrud.locationsPageTitle" },
@@ -13,16 +14,24 @@ const items: { href: string; icon: IconName; labelKey: TranslationKey }[] = [
   { href: "/settings/manufacturers", icon: "building", labelKey: "settingsCrud.manufacturersPageTitle" },
 ];
 
+const journalItem: { href: string; icon: IconName; labelKey: TranslationKey } = {
+  href: "/settings/journal",
+  icon: "clock",
+  labelKey: "journal.title",
+};
+
 /** Settings-only sub-navigation, distinct from the main app Sidebar — lists the admin CRUD sections. */
 export function SettingsSidebar() {
   const pathname = usePathname();
   const t = useTranslations();
+  const { role } = useRole();
+  const visibleItems = ["administrator", "king"].includes(role) ? [...items, journalItem] : items;
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-border-primary bg-bg-secondary">
       <nav className="flex-1 overflow-y-auto px-2 py-3">
         <ul className="space-y-0.5">
-          {items.map((item) => {
+          {visibleItems.map((item) => {
             const active = pathname.startsWith(item.href);
             return (
               <li key={item.href}>

@@ -23,12 +23,14 @@ import type { InspectionStatus } from "@/lib/types";
 import { useInspectionsList } from "@/hooks/useInspectionsList";
 import { useAsync } from "@/hooks/useAsync";
 import { inspectionsService, repairsService, documentsService } from "@/services";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useTranslations } from "@/lib/locale-context";
 
 const PAGE_SIZE = 10;
 
 export function InspectionsSection() {
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const inspectionStatusConfig = getInspectionStatusConfig(t);
   const checklistResultConfig = getChecklistResultConfig(t);
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
@@ -218,9 +220,11 @@ export function InspectionsSection() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
-            <Button hierarchy="primary" icon="plus" size="sm">
-              {t("inspections.newInspection")}
-            </Button>
+            {canWrite && (
+              <Button hierarchy="primary" icon="plus" size="sm">
+                {t("inspections.newInspection")}
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 px-6 pt-4 2xl:grid-cols-[320px_1fr_380px]">

@@ -77,6 +77,7 @@ export function PieChart({
               ))}
             </Pie>
             <Tooltip
+              wrapperStyle={{ zIndex: 50 }}
               formatter={(value) => formatValue(Number(value))}
               contentStyle={{
                 background: tokens["--bg-tertiary"],

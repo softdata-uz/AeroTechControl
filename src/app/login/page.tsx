@@ -10,6 +10,7 @@ import { useTheme } from "@/lib/theme-context";
 import { useTranslations } from "@/lib/locale-context";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { login } from "@/services/auth/login.service";
+import { ApiException } from "@/services";
 
 const features: { icon: IconName; titleKey: TranslationKey; descKey: TranslationKey }[] = [
   { icon: "clipboard-check", titleKey: "login.feature.inspections", descKey: "login.feature.inspectionsDesc" },
@@ -42,8 +43,8 @@ export default function LoginPage() {
       // Full navigation (not router.push) so the auth provider remounts and
       // fetches the now-valid session from scratch.
       window.location.assign("/");
-    } catch {
-      setError(t("login.errorInvalid"));
+    } catch (err) {
+      setError(err instanceof ApiException && err.status === 403 ? err.message : t("login.errorInvalid"));
       setSubmitting(false);
     }
   }

@@ -21,6 +21,7 @@ import {
 import { useRepairsList } from "@/hooks/useRepairsList";
 import { useDocumentsList } from "@/hooks/useDocumentsList";
 import { useTranslations } from "@/lib/locale-context";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const tabKeys = ["info", "inspections", "repairs", "faults", "documents"] as const;
@@ -41,6 +42,7 @@ interface Props {
 export function EquipmentDetailClient({ equipmentId }: Props) {
   const router = useRouter();
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const inspectionStatusConfig = getInspectionStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
@@ -91,9 +93,11 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
             <Button hierarchy="secondary" icon="qr-code" size="sm">
               {t("equipment.detail.qr")}
             </Button>
-            <Button hierarchy="secondary" icon="edit" size="sm" onClick={() => router.push(`/equipment/${equipment.id}/edit`)}>
-              {t("equipment.detail.edit")}
-            </Button>
+            {canWrite && (
+              <Button hierarchy="secondary" icon="edit" size="sm" onClick={() => router.push(`/equipment/${equipment.id}/edit`)}>
+                {t("equipment.detail.edit")}
+              </Button>
+            )}
           </>
         }
       />

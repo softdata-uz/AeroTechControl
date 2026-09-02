@@ -230,9 +230,12 @@ export type UserRole =
 export interface AppUser {
   id: number;
   fullName: string;
-  email: string;
+  login: string;
+  email: string | null;
   role: UserRole;
   airportId: number | null;
   active: boolean;
   lastActiveAt: string | null;
+  image: string | null;
+  imageUrl: string | null;
 }

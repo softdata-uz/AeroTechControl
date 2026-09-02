@@ -18,6 +18,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { documentsService } from "@/services";
 import { UploadDocumentModal } from "./UploadDocumentModal";
 import { useTranslations } from "@/lib/locale-context";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
@@ -32,6 +33,7 @@ const typeMetaKeys: Record<EquipmentDocument["type"], { labelKey: TranslationKey
 
 export function DocumentsSection() {
   const t = useTranslations();
+  const { canWrite } = usePermissions();
   const { equipmentById } = useEquipmentLookup();
   const documentStatusConfig = getDocumentStatusConfig(t);
   const typeMeta: Record<EquipmentDocument["type"], { label: string; icon: IconName }> = Object.fromEntries(
@@ -123,9 +125,11 @@ export function DocumentsSection() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
         </div>
-        <Button hierarchy="primary" icon="upload" size="sm" onClick={() => setUploadOpen(true)}>
-          {t("documents.upload")}
-        </Button>
+        {canWrite && (
+          <Button hierarchy="primary" icon="upload" size="sm" onClick={() => setUploadOpen(true)}>
+            {t("documents.upload")}
+          </Button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col px-6 py-4">

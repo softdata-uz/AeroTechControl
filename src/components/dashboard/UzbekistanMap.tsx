@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import regions, { type UzRegion } from "@/data/uzbekistanRegions";
 import { REGION_NAME } from "@/config/regions.config";
@@ -26,6 +26,28 @@ export interface UzMapMarker {
 interface UzbekistanMapProps {
   markers?: UzMapMarker[];
   className?: string;
+}
+
+// Cheap, no-DOM bounding-box area estimate from an SVG path's `d` string —
+// used only to decide paint order (see `paintOrder` below), not for exact
+// geometry. Good enough to compare "how big is this region" at a glance.
+function estimateBBoxArea(d: string | undefined): number {
+  if (!d) return 0;
+  const nums = d.match(/-?\d+\.?\d*/g)?.map(Number) ?? [];
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i + 1 < nums.length; i += 2) {
+    const x = nums[i];
+    const y = nums[i + 1];
+    if (x < minX) minX = x;
+    if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  if (!Number.isFinite(minX) || !Number.isFinite(minY)) return 0;
+  return (maxX - minX) * (maxY - minY);
 }
 
 function findRegionByType(list: UzRegion[], type: string): UzRegion | null {
@@ -67,6 +89,22 @@ export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
   const pathRefs = useRef<Map<string, SVGPathElement>>(new Map());
   const [layout, setLayout] = useState<Layout | null>(null);
   const [centroids, setCentroids] = useState<Record<string, { x: number; y: number }>>({});
+
+  // SVG has no z-index — paint order is purely array order, and it also
+  // determines hit-testing (whichever shape is painted last wins pointer
+  // events wherever shapes overlap). Two geographically adjacent regions
+  // can have imprecise shared-border path data that genuinely overlaps
+  // (e.g. Toshkent viloyat's bounding box overlaps Namangan's along their
+  // real shared border) — painting smaller regions last/on top, the usual
+  // cartographic convention, keeps the smaller one hoverable instead of
+  // being silently swallowed by its larger neighbor.
+  const paintOrder = useMemo(
+    () =>
+      [...(regions as UzRegion[])].sort(
+        (a, b) => estimateBBoxArea(b.g[0]?.d) - estimateBBoxArea(a.g[0]?.d)
+      ),
+    []
+  );
 
   const uniqueTypes = Array.from(new Set(markers.map((m) => m.regionType)));
   const typesKey = uniqueTypes.join(",");
@@ -162,7 +200,7 @@ export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
       onMouseLeave={() => setHovered(null)}
     >
       <svg viewBox={`0 0 ${VB_W} ${VB_H}`} className="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {(regions as UzRegion[]).map((region) => renderRegion(region, hovered?.id === region.id))}
+        {paintOrder.map((region) => renderRegion(region, hovered?.id === region.id))}
 
         {/* SVG has no z-index — paint order is purely document order, so a
             later region can visually cover an earlier one's hover highlight

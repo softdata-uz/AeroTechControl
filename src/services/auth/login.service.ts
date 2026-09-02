@@ -26,7 +26,7 @@ export async function login(payload: LoginPayload): Promise<LoginResult> {
   }
 
   const result = await apiPost<AuthResponse>("/auth/login", {
-    email: payload.login.trim(),
+    login: payload.login.trim(),
     password: payload.password,
   });
 

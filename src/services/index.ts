@@ -9,6 +9,7 @@ export * as sparePartsService from "./spare-parts.service";
 export * as documentsService from "./documents.service";
 export * as notificationsService from "./notifications.service";
 export * as usersService from "./users.service";
+export * as journalService from "./journal.service";
 export * as authService from "./auth.service";
 export * as reportsService from "./reports.service";
 export * as faultIntelligenceService from "./fault-intelligence.service";
