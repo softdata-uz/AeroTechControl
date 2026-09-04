@@ -9,6 +9,7 @@ import { SelectWithAddNew } from "@/components/ui/SelectWithAddNew";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ImageUploadField, type ImageUploadValue } from "@/components/equipment/ImageUploadField";
 import { useLocations } from "@/hooks/useLocations";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useEquipmentLookups } from "@/hooks/useEquipmentLookups";
 import {
   equipmentService,
@@ -111,6 +112,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
   const t = useTranslations();
   const { airports, terminalsByAirport, floorsByTerminal, zonesByFloor, addTerminal, addFloor, addZone } =
     useLocations();
+  const { isAirportScoped, scopedAirportId } = usePermissions();
   const {
     types,
     modelsByType,
@@ -123,7 +125,10 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
     addManufacturerCountry,
     addEquipmentOperator,
   } = useEquipmentLookups();
-  const [form, setForm] = useState<FormState>(() => (initial ? formFromEquipment(initial) : emptyForm));
+  const [form, setForm] = useState<FormState>(() => {
+    if (initial) return formFromEquipment(initial);
+    return scopedAirportId ? { ...emptyForm, airportId: String(scopedAirportId) } : emptyForm;
+  });
   const [image, setImage] = useState<ImageUploadValue>({
     existingUrl: initial?.imageUrl ?? null,
     file: null,
@@ -323,6 +328,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
             <Dropdown
               label={t("equipment.form.airport")}
               required
+              disabled={isAirportScoped}
               options={airportOptions}
               value={form.airportId}
               onChange={(v) =>

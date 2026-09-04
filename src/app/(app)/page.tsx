@@ -21,6 +21,7 @@ import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { formatDate } from "@/lib/format";
 import { useTranslations } from "@/lib/locale-context";
 import { REGION_NAME } from "@/config/regions.config";
+import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/cn";
 
 const STATUS_CHART_COLOR: Record<string, string> = {
@@ -43,6 +44,7 @@ export default function DashboardPage() {
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
 
+  const { isAirportScoped } = usePermissions();
   const { data: equipmentPage } = useEquipmentList({ pageSize: 200 });
   const equipment = useMemo(() => equipmentPage?.items ?? [], [equipmentPage]);
   const { airports } = useLocations();
@@ -150,13 +152,15 @@ export default function DashboardPage() {
         <Card className="flex h-full flex-col">
           <CardHeader>
             <CardTitle>{t("dashboard.equipmentByType")}</CardTitle>
-            <Dropdown
-              className="w-40"
-              placeholder={t("common.allAirports")}
-              value={byTypeAirportId}
-              onChange={setByTypeAirportId}
-              options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
-            />
+            {!isAirportScoped && (
+              <Dropdown
+                className="w-40"
+                placeholder={t("common.allAirports")}
+                value={byTypeAirportId}
+                onChange={setByTypeAirportId}
+                options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
+              />
+            )}
           </CardHeader>
           <div className="flex-1 p-4">
             <BarChart
@@ -200,7 +204,10 @@ export default function DashboardPage() {
                     regionType: airport.region,
                     label: REGION_NAME[airport.region],
                     render: () => (
-                      <div className="group flex flex-col items-center gap-1">
+                      <div
+                        className="group flex flex-col items-center gap-1"
+                        title={REGION_NAME[airport.region]}
+                      >
                         <div
                           className={cn(
                             "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow-md ring-4 transition-transform group-hover:scale-110",
@@ -210,9 +217,6 @@ export default function DashboardPage() {
                         >
                           {t2}
                         </div>
-                        <span className="whitespace-nowrap rounded-full bg-bg-primary/80 px-1.5 py-0.5 text-[10px] font-medium text-text-secondary shadow-sm backdrop-blur-sm">
-                          {REGION_NAME[airport.region]}
-                        </span>
                       </div>
                     ),
                   };

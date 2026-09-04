@@ -1,6 +1,7 @@
 "use client";
 
 import { useRole } from "@/lib/role-context";
+import { ALL_AIRPORT_ROLES } from "@/config/roleAccess.config";
 
 const READ_ONLY_ROLES = ["lead_engineer", "central_office"];
 
@@ -9,6 +10,11 @@ const READ_ONLY_ROLES = ["lead_engineer", "central_office"];
  * inspections, faults, repairs, spare parts, documents). UI gating only;
  * the real boundary is server-side. */
 export function usePermissions() {
-  const { role } = useRole();
-  return { canWrite: !READ_ONLY_ROLES.includes(role) };
+  const { role, user } = useRole();
+  const isAirportScoped = !ALL_AIRPORT_ROLES.includes(role) && user.airportId != null;
+  return {
+    canWrite: !READ_ONLY_ROLES.includes(role),
+    isAirportScoped,
+    scopedAirportId: isAirportScoped ? user.airportId : null,
+  };
 }

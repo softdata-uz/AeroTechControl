@@ -35,7 +35,7 @@ const PAGE_SIZE = 10;
 
 export function FaultsClient() {
   const t = useTranslations();
-  const { canWrite } = usePermissions();
+  const { canWrite, isAirportScoped, scopedAirportId } = usePermissions();
   const faultStatusConfig = getFaultStatusConfig(t);
   const faultPriorityConfig = getFaultPriorityConfig(t);
   const { airports, terminalsByAirport } = useLocations();
@@ -49,7 +49,7 @@ export function FaultsClient() {
 
   const [addOpen, setAddOpen] = useState(false);
   const [view, setView] = useState<(typeof viewTabs)[number]["key"]>("list");
-  const [airportFilter, setAirportFilter] = useState("");
+  const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
   const [terminalFilter, setTerminalFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<FaultStage | "">("");
@@ -216,13 +216,15 @@ export function FaultsClient() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
-            <Dropdown
-              className="w-44"
-              placeholder={t("common.allAirports")}
-              value={airportFilter}
-              onChange={setAirportFilter}
-              options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
-            />
+            {!isAirportScoped && (
+              <Dropdown
+                className="w-44"
+                placeholder={t("common.allAirports")}
+                value={airportFilter}
+                onChange={setAirportFilter}
+                options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
+              />
+            )}
             <Dropdown
               className="w-44"
               placeholder={t("common.allTerminals")}

@@ -22,6 +22,12 @@ const ALL_NAV_ROUTES = [
   "/settings/journal",
 ];
 
+// Roles that span every airport — the airport picker is hidden and the
+// field stays unset for them, matching the backend's conditional validation.
+// Any role NOT in this list carries a single `user.airportId` and should be
+// scoped to that one airport everywhere in the UI (see usePermissions()).
+export const ALL_AIRPORT_ROLES: UserRole[] = ["central_office", "administrator", "king"];
+
 export const roleNavAccess: Record<UserRole, string[]> = {
   king: ALL_NAV_ROUTES,
   engineer: ["/equipment", "/location", "/documents", "/faults"],

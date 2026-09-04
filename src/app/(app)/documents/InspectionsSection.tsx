@@ -30,7 +30,7 @@ const PAGE_SIZE = 10;
 
 export function InspectionsSection() {
   const t = useTranslations();
-  const { canWrite } = usePermissions();
+  const { canWrite, isAirportScoped, scopedAirportId } = usePermissions();
   const inspectionStatusConfig = getInspectionStatusConfig(t);
   const checklistResultConfig = getChecklistResultConfig(t);
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
@@ -51,7 +51,7 @@ export function InspectionsSection() {
 
   const [view, setView] = useState<(typeof viewTabs)[number]["key"]>("inspections");
   const [detailTab, setDetailTab] = useState<(typeof detailTabs)[number]["key"]>("history");
-  const [airportFilter, setAirportFilter] = useState("");
+  const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
   const [statusFilter, setStatusFilter] = useState<InspectionStatus | "">("");
   const [dateFrom, setDateFrom] = useState<string | null>(null);
   const [dateTo, setDateTo] = useState<string | null>(null);
@@ -195,13 +195,15 @@ export function InspectionsSection() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
-            <Dropdown
-              className="w-52"
-              placeholder={t("common.allAirports")}
-              value={airportFilter}
-              onChange={setAirportFilter}
-              options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
-            />
+            {!isAirportScoped && (
+              <Dropdown
+                className="w-52"
+                placeholder={t("common.allAirports")}
+                value={airportFilter}
+                onChange={setAirportFilter}
+                options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
+              />
+            )}
             <Dropdown className="w-56" placeholder={t("common.allTypes")} value="" onChange={() => {}} options={[]} />
             <Dropdown
               className="w-52"

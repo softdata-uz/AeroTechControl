@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { airportsService } from "@/services";
+import { usePermissions } from "@/hooks/usePermissions";
 import type { Airport, Terminal, Floor, Zone } from "@/lib/types";
 
 // Airports/terminals/floors/zones are a small, bounded directory (a handful
@@ -9,12 +10,38 @@ import type { Airport, Terminal, Floor, Zone } from "@/lib/types";
 // cached here so every page that previously did a synchronous
 // `airportName(id)` lookup against mock-data can keep that same ergonomic,
 // just backed by real data loaded up front instead of a static import.
+//
+// For airport-scoped roles (see usePermissions()), the returned arrays are
+// narrowed down to just the user's own airport and its terminals/floors/
+// zones — every consumer (Location page, filter dropdowns, EquipmentForm's
+// cascading selects, the Dashboard map) automatically only ever sees that
+// one airport's data with no per-page filtering needed.
 export function useLocations() {
-  const [airports, setAirports] = useState<Airport[]>([]);
-  const [terminals, setTerminals] = useState<Terminal[]>([]);
-  const [floors, setFloors] = useState<Floor[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
+  const { isAirportScoped, scopedAirportId } = usePermissions();
+  const [allAirports, setAirports] = useState<Airport[]>([]);
+  const [allTerminals, setTerminals] = useState<Terminal[]>([]);
+  const [allFloors, setFloors] = useState<Floor[]>([]);
+  const [allZones, setZones] = useState<Zone[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const airports = useMemo(
+    () => (isAirportScoped ? allAirports.filter((a) => a.id === scopedAirportId) : allAirports),
+    [allAirports, isAirportScoped, scopedAirportId]
+  );
+  const terminals = useMemo(
+    () => (isAirportScoped ? allTerminals.filter((tm) => tm.airportId === scopedAirportId) : allTerminals),
+    [allTerminals, isAirportScoped, scopedAirportId]
+  );
+  const scopedTerminalIds = useMemo(() => new Set(terminals.map((tm) => tm.id)), [terminals]);
+  const floors = useMemo(
+    () => (isAirportScoped ? allFloors.filter((f) => scopedTerminalIds.has(f.terminalId)) : allFloors),
+    [allFloors, isAirportScoped, scopedTerminalIds]
+  );
+  const scopedFloorIds = useMemo(() => new Set(floors.map((f) => f.id)), [floors]);
+  const zones = useMemo(
+    () => (isAirportScoped ? allZones.filter((z) => scopedFloorIds.has(z.floorId)) : allZones),
+    [allZones, isAirportScoped, scopedFloorIds]
+  );
 
   const load = useCallback(() => {
     return Promise.all([

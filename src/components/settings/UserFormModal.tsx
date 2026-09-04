@@ -11,13 +11,10 @@ import type { ImageUploadValue } from "@/components/equipment/ImageUploadField";
 import { ApiException } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 import { useLocations } from "@/hooks/useLocations";
-import { roleLabelKeys, roleDescriptionKeys } from "@/config/roleAccess.config";
+import { roleLabelKeys, roleDescriptionKeys, ALL_AIRPORT_ROLES } from "@/config/roleAccess.config";
 import type { AppUser, UserRole } from "@/lib/types";
 import type { UserInput } from "@/services/users.service";
 
-// Roles that span every airport — the airport picker is hidden and the
-// field stays unset for them, matching the backend's conditional validation.
-const ALL_AIRPORT_ROLES: UserRole[] = ["central_office", "administrator", "king"];
 const ASSIGNABLE_ROLES: UserRole[] = [
   "engineer",
   "lead_engineer",

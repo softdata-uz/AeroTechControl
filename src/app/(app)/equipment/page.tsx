@@ -22,11 +22,11 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 export default function EquipmentRegistryPage() {
   const router = useRouter();
   const t = useTranslations();
-  const { canWrite } = usePermissions();
+  const { canWrite, isAirportScoped, scopedAirportId } = usePermissions();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const { airports } = useLocations();
   const { types: equipmentTypes } = useEquipmentTypes();
-  const [airportFilter, setAirportFilter] = useState("");
+  const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | "">("");
   const [searchInput, setSearchInput] = useState("");
@@ -98,13 +98,15 @@ export default function EquipmentRegistryPage() {
       />
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
-        <Dropdown
-          className="w-56"
-          placeholder={t("common.allAirports")}
-          value={airportFilter}
-          onChange={setAirportFilter}
-          options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
-        />
+        {!isAirportScoped && (
+          <Dropdown
+            className="w-56"
+            placeholder={t("common.allAirports")}
+            value={airportFilter}
+            onChange={setAirportFilter}
+            options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
+          />
+        )}
         <Dropdown
           className="w-56"
           placeholder={t("common.allTypes")}

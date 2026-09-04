@@ -18,15 +18,17 @@ import { useAsync } from "@/hooks/useAsync";
 import { calibrationService } from "@/services";
 import type { CalibrationStatus } from "@/services/calibration.service";
 import { useTranslations } from "@/lib/locale-context";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function CalibrationClient() {
   const t = useTranslations();
   const { airports, airportName } = useLocations();
+  const { isAirportScoped, scopedAirportId } = usePermissions();
   const calibrationStatusConfig = getCalibrationStatusConfig(t);
 
-  const [airportFilter, setAirportFilter] = useState("");
+  const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
   const [statusFilter, setStatusFilter] = useState<CalibrationStatus | "">("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -76,13 +78,15 @@ export function CalibrationClient() {
       <PageHeader title={t("calibration.title")} context={`${t("calibration.totalEquipmentSuffix")} ${kpi.total}`} />
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pt-5">
-        <Dropdown
-          className="w-52"
-          placeholder={t("common.allAirports")}
-          value={airportFilter}
-          onChange={setAirportFilter}
-          options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
-        />
+        {!isAirportScoped && (
+          <Dropdown
+            className="w-52"
+            placeholder={t("common.allAirports")}
+            value={airportFilter}
+            onChange={setAirportFilter}
+            options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
+          />
+        )}
         <Dropdown
           className="w-52"
           placeholder={t("common.allStatuses")}
