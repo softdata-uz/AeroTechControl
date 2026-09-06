@@ -5,7 +5,7 @@ import type { Equipment } from "@/lib/types";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Icon } from "@/components/icons";
-import { formatDate } from "@/lib/format";
+import { formatDate, resolveImageUrl } from "@/lib/format";
 import { useTranslations } from "@/lib/locale-context";
 
 interface EquipmentTableProps {
@@ -22,7 +22,7 @@ function Thumbnail({ equipment }: { equipment: Equipment }) {
     <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-bg-tertiary">
       {equipment.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element -- small backend-served thumbnail, arbitrary origin
-        <img src={equipment.imageUrl} alt="" className="h-full w-full object-cover" />
+        <img src={resolveImageUrl(equipment.imageUrl) ?? undefined} alt="" className="h-full w-full object-cover" />
       ) : (
         <Icon name="cpu" size={15} className="text-text-quaternary" />
       )}

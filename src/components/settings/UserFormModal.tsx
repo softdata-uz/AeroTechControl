@@ -8,6 +8,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
 import { AvatarUploadField } from "@/components/settings/AvatarUploadField";
 import type { ImageUploadValue } from "@/components/equipment/ImageUploadField";
+import { resolveImageUrl } from "@/lib/format";
 import { ApiException } from "@/services";
 import { useTranslations } from "@/lib/locale-context";
 import { useLocations } from "@/hooks/useLocations";
@@ -46,7 +47,7 @@ export function UserFormModal({ onClose, onSaved, initial, create, update }: Pro
   const [role, setRole] = useState<UserRole>(initial?.role ?? "engineer");
   const [airportId, setAirportId] = useState(initial?.airportId ? String(initial.airportId) : "");
   const [image, setImage] = useState<ImageUploadValue>({
-    existingUrl: initial?.imageUrl ?? null,
+    existingUrl: resolveImageUrl(initial?.imageUrl),
     file: null,
     removed: false,
   });

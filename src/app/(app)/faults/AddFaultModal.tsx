@@ -78,7 +78,6 @@ export function AddFaultModal({ open, onClose, onCreated }: Props) {
         dueAt: null,
         reportedBy: form.reportedBy,
         assignee: null,
-        attachmentCount: 0,
       });
       onCreated(newFault);
       reset();

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon } from "@/components/icons";
 import { Pagination } from "@/components/ui/Pagination";
-import { formatDate } from "@/lib/format";
+import { formatDate, resolveImageUrl } from "@/lib/format";
 import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { useUsersList } from "@/hooks/useUsersList";
@@ -196,7 +196,7 @@ export default function UsersPage() {
                           {u.imageUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
-                              src={u.imageUrl}
+                              src={resolveImageUrl(u.imageUrl) ?? undefined}
                               alt=""
                               className="h-8 w-8 shrink-0 rounded-full object-cover"
                             />

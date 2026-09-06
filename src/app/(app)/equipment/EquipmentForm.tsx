@@ -8,6 +8,7 @@ import { Dropdown } from "@/components/ui/Dropdown";
 import { SelectWithAddNew } from "@/components/ui/SelectWithAddNew";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ImageUploadField, type ImageUploadValue } from "@/components/equipment/ImageUploadField";
+import { resolveImageUrl } from "@/lib/format";
 import { useLocations } from "@/hooks/useLocations";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useEquipmentLookups } from "@/hooks/useEquipmentLookups";
@@ -130,7 +131,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
     return scopedAirportId ? { ...emptyForm, airportId: String(scopedAirportId) } : emptyForm;
   });
   const [image, setImage] = useState<ImageUploadValue>({
-    existingUrl: initial?.imageUrl ?? null,
+    existingUrl: resolveImageUrl(initial?.imageUrl),
     file: null,
     removed: false,
   });

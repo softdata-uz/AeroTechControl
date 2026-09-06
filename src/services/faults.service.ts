@@ -1,5 +1,17 @@
-import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
-import { apiGet, apiGetPage, apiPatch, apiPost, apiDownload, type Page } from "./http-client";
+import type { Fault, FaultAttachment, FaultPriority, FaultStage } from "@/lib/types";
+import {
+  apiDelete,
+  apiDownload,
+  apiGet,
+  apiGetPage,
+  apiPatch,
+  apiPost,
+  apiUpload,
+  type Page,
+} from "./http-client";
+
+/** Server-enforced; mirrors MAX_ATTACHMENTS_PER_FAULT in the backend. */
+export const MAX_FAULT_PHOTOS = 5;
 
 export interface FaultFilters {
   airportId?: number;
@@ -44,7 +56,11 @@ export function exportFaults(filters: FaultFilters = {}): Promise<void> {
 }
 
 // POST /faults
-export function createFault(input: Omit<Fault, "id" | "code" | "detectedAt">): Promise<Fault> {
+// attachmentCount is excluded: the backend maintains it from the attachment
+// endpoints and rejects the field outright (forbidNonWhitelisted).
+export function createFault(
+  input: Omit<Fault, "id" | "code" | "detectedAt" | "attachmentCount">
+): Promise<Fault> {
   return apiPost<Fault>("/faults", input);
 }
 
@@ -56,4 +72,21 @@ export function updateFaultStage(id: number, stage: FaultStage): Promise<Fault> 
 // PATCH /faults/:id/assignee
 export function assignFault(id: number, assignee: string): Promise<Fault> {
   return apiPatch<Fault>(`/faults/${id}/assignee`, { assignee });
+}
+
+// GET /faults/:id/attachments
+export function listFaultAttachments(id: number): Promise<FaultAttachment[]> {
+  return apiGet<FaultAttachment[]>(`/faults/${id}/attachments`);
+}
+
+// POST /faults/:id/attachments/batch — one request for up to MAX_FAULT_PHOTOS files.
+export function uploadFaultAttachments(id: number, files: File[]): Promise<FaultAttachment[]> {
+  const form = new FormData();
+  for (const file of files) form.append("files", file);
+  return apiUpload<FaultAttachment[]>(`/faults/${id}/attachments/batch`, form);
+}
+
+// DELETE /faults/:id/attachments/:attachmentId
+export function deleteFaultAttachment(id: number, attachmentId: number): Promise<void> {
+  return apiDelete<void>(`/faults/${id}/attachments/${attachmentId}`);
 }

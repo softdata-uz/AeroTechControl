@@ -12,7 +12,7 @@ import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getInspectionStatusConfig } from "@/config/inspectionStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
 import { getRepairStatusConfig, getDocumentStatusConfig } from "@/config/repairStatus.config";
-import { formatDate } from "@/lib/format";
+import { formatDate, resolveImageUrl } from "@/lib/format";
 import {
   useEquipmentDetail,
   useEquipmentInspectionHistory,
@@ -107,7 +107,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
           <div className="flex aspect-video items-center justify-center overflow-hidden rounded-t-xl border-b border-border-secondary bg-bg-tertiary">
             {equipment.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element -- backend-served image, arbitrary origin
-              <img src={equipment.imageUrl} alt={equipment.name} className="h-full w-full object-cover" />
+              <img src={resolveImageUrl(equipment.imageUrl) ?? undefined} alt={equipment.name} className="h-full w-full object-cover" />
             ) : (
               <Icon name="image" size={40} className="text-text-quaternary" />
             )}

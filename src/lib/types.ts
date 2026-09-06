@@ -168,6 +168,17 @@ export interface Fault {
   attachmentCount: number;
 }
 
+export interface FaultAttachment {
+  id: number;
+  faultId: number;
+  storageKey: string;
+  url: string;
+  mimeType: string;
+  sizeBytes: number;
+  originalName: string | null;
+  createdAt: string;
+}
+
 export interface Repair {
   id: number;
   faultId: number;

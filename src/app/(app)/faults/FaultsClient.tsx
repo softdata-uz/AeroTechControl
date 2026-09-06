@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { KPICard } from "@/components/data-display/KPICard";
@@ -14,9 +14,9 @@ import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { getFaultStatusConfig, getFaultPriorityConfig } from "@/config/faultStatus.config";
-import { formatDate } from "@/lib/format";
+import { formatDate, resolveImageUrl } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import type { Fault, FaultPriority, FaultStage } from "@/lib/types";
+import type { Fault, FaultAttachment, FaultPriority, FaultStage } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFaultsList } from "@/hooks/useFaultsList";
@@ -373,6 +373,7 @@ export function FaultsClient() {
               faultStatusConfig={faultStatusConfig}
               faultPriorityConfig={faultPriorityConfig}
               equipmentById={equipmentById}
+              canWrite={canWrite}
             />
           </div>
         </>
@@ -389,12 +390,14 @@ function FaultDetailPanel({
   faultStatusConfig,
   faultPriorityConfig,
   equipmentById,
+  canWrite,
 }: {
   fault: Fault | null;
   t: (key: TranslationKey) => string;
   faultStatusConfig: ReturnType<typeof getFaultStatusConfig>;
   faultPriorityConfig: ReturnType<typeof getFaultPriorityConfig>;
   equipmentById: ReturnType<typeof useEquipmentLookup>["equipmentById"];
+  canWrite: boolean;
 }) {
   if (!fault) {
     return (
@@ -470,27 +473,7 @@ function FaultDetailPanel({
           <p className="text-text-quaternary">—</p>
         </div>
 
-        <div>
-          <p className="mb-1.5 text-xs font-medium text-text-quaternary">{t("faults.filesAndPhotos")}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            {Array.from({ length: Math.min(fault.attachmentCount, 3) }).map((_, i) => (
-              <div
-                key={i}
-                className="flex h-14 w-14 items-center justify-center rounded-md border border-border-primary bg-bg-primary text-text-quaternary"
-              >
-                <Icon name="image" size={18} />
-              </div>
-            ))}
-            {fault.attachmentCount > 3 && (
-              <div className="flex h-14 w-14 items-center justify-center rounded-md border border-border-primary bg-bg-tertiary text-xs font-medium text-text-tertiary">
-                +{fault.attachmentCount - 3}
-              </div>
-            )}
-          </div>
-          <Button hierarchy="secondary" size="sm" icon="upload" className="mt-2 w-full justify-center">
-            {t("common.add")}
-          </Button>
-        </div>
+        <FaultAttachments faultId={fault.id} t={t} canWrite={canWrite} />
       </div>
     </Card>
   );
@@ -501,6 +484,157 @@ function Field({ label, value, children }: { label: string; value?: string; chil
     <div>
       <p className="mb-0.5 text-xs text-text-quaternary">{label}</p>
       {children ?? <p className="font-medium text-text-primary">{value}</p>}
+    </div>
+  );
+}
+
+/**
+ * Real photo evidence for a fault.
+ *
+ * This panel used to render one grey placeholder square per `attachmentCount`
+ * and an "add" button with no handler — so the photos an engineer took on the
+ * tablet were invisible here.
+ */
+function FaultAttachments({
+  faultId,
+  t,
+  canWrite,
+}: {
+  faultId: number;
+  t: (key: TranslationKey) => string;
+  canWrite: boolean;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [items, setItems] = useState<FaultAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    faultsService
+      .listFaultAttachments(faultId)
+      .then((list) => {
+        if (!cancelled) setItems(list);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [faultId]);
+
+  const remaining = faultsService.MAX_FAULT_PHOTOS - items.length;
+
+  async function upload(files: FileList | null) {
+    if (!files?.length || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const created = await faultsService.uploadFaultAttachments(
+        faultId,
+        Array.from(files).slice(0, Math.max(0, remaining))
+      );
+      setItems((prev) => [...prev, ...created]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(attachmentId: number) {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await faultsService.deleteFaultAttachment(faultId, attachmentId);
+      setItems((prev) => prev.filter((a) => a.id !== attachmentId));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-medium text-text-quaternary">
+        {t("faults.filesAndPhotos")} · {items.length}/{faultsService.MAX_FAULT_PHOTOS}
+      </p>
+
+      {loading ? (
+        <div className="flex flex-wrap gap-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-14 w-14 animate-pulse rounded-md bg-bg-tertiary" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <p className="text-xs text-text-quaternary">—</p>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2">
+          {items.map((a) => {
+            const src = resolveImageUrl(a.url);
+            return (
+              <div key={a.id} className="group relative h-14 w-14">
+                <a href={src ?? undefined} target="_blank" rel="noreferrer">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={src ?? undefined}
+                    alt={a.originalName ?? ""}
+                    className="h-14 w-14 rounded-md border border-border-primary object-cover"
+                  />
+                </a>
+                {canWrite && (
+                  <button
+                    type="button"
+                    onClick={() => void remove(a.id)}
+                    disabled={busy}
+                    aria-label={t("common.delete")}
+                    className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-error-600 text-white group-hover:flex"
+                  >
+                    <Icon name="x" size={12} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {error && <p className="mt-2 text-xs text-error-400">{error}</p>}
+
+      {canWrite && remaining > 0 && (
+        <>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={busy}
+            onChange={(e) => {
+              void upload(e.target.files);
+              e.target.value = "";
+            }}
+            className="hidden"
+          />
+          <Button
+            hierarchy="secondary"
+            size="sm"
+            icon="upload"
+            className="mt-2 w-full justify-center"
+            disabled={busy}
+            onClick={() => fileRef.current?.click()}
+          >
+            {t("common.add")}
+          </Button>
+        </>
+      )}
     </div>
   );
 }
