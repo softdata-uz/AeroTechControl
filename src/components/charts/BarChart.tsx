@@ -68,7 +68,7 @@ export function BarChart({
           />
           <YAxis hide domain={[0, max * 1.25 || "auto"]} />
           <Tooltip
-            cursor={{ fill: tokens["--bg-tertiary"], opacity: 0.5 }}
+            cursor={false}
             formatter={(value) => [formatValue(Number(value)), seriesName]}
             contentStyle={{
               background: tokens["--bg-tertiary"],

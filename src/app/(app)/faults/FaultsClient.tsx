@@ -425,7 +425,7 @@ function FaultDetailPanel({
       <div className="space-y-4 p-4 text-sm">
         {eq && (
           <Link
-            href={`/equipment/${eq.id}`}
+            href={`/equipment/view?id=${eq.id}`}
             className="flex items-center gap-3 rounded-lg border border-border-primary bg-bg-primary p-3 transition-colors hover:border-brand-600"
           >
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-bg-tertiary">

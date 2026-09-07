@@ -27,16 +27,22 @@ const API_ORIGIN = (() => {
 
 /**
  * The backend bakes its own host into `imageUrl` (e.g. `http://localhost:5000/uploads/x.jpg`)
- * via `PUBLIC_BASE_URL`, which won't match `NEXT_PUBLIC_API_URL` when the API is reached
- * through a different host/IP. Rewrite the origin so images follow wherever the frontend
- * is actually pointed, without needing the backend's env to match per deployment.
+ * via `PUBLIC_BASE_URL`, which won't match wherever this frontend is actually served from.
+ *
+ * Dev: rewrite to NEXT_PUBLIC_API_URL's origin, reached directly (no proxy in this repo's
+ * next.config.ts).
+ * Production: strip to a relative path instead — the production Express server
+ * (AeroTechProd/index.js) proxies /uploads to the real backend, so a relative path resolves
+ * against this app's own origin and never triggers CORS or points at the wrong host.
  */
 export function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
-  if (!API_ORIGIN) return url;
   try {
     const parsed = new URL(url);
-    return `${API_ORIGIN}${parsed.pathname}${parsed.search}`;
+    if (process.env.NODE_ENV === "production") {
+      return `${parsed.pathname}${parsed.search}`;
+    }
+    return API_ORIGIN ? `${API_ORIGIN}${parsed.pathname}${parsed.search}` : url;
   } catch {
     return url;
   }

@@ -188,7 +188,7 @@ export function DocumentsSection() {
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">
                         {eq ? (
-                          <Link href={`/equipment/${eq.id}`} className="hover:text-brand-400">
+                          <Link href={`/equipment/view?id=${eq.id}`} className="hover:text-brand-400">
                             {eq.code}
                           </Link>
                         ) : (

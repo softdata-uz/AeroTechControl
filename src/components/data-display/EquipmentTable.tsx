@@ -103,14 +103,14 @@ export function EquipmentTable({ items, compact = false, full = false, scrollabl
               <td className="px-4 py-2.5">
                 <div className="flex items-center justify-end gap-1">
                   <Link
-                    href={`/equipment/${eq.id}`}
+                    href={`/equipment/view?id=${eq.id}`}
                     aria-label={t("common.view")}
                     className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                   >
                     <Icon name="eye" size={16} />
                   </Link>
                   <Link
-                    href={`/equipment/${eq.id}/edit`}
+                    href={`/equipment/edit?id=${eq.id}`}
                     aria-label={t("common.edit")}
                     className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                   >

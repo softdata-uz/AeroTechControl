@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { KPICard } from "@/components/data-display/KPICard";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dropdown } from "@/components/ui/Dropdown";
@@ -40,6 +41,7 @@ function pct(n: number, total: number) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const t = useTranslations();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
@@ -208,15 +210,17 @@ export default function DashboardPage() {
                         className="group flex flex-col items-center gap-1"
                         title={REGION_NAME[airport.region]}
                       >
-                        <div
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/equipment?airportId=${airport.id}`)}
                           className={cn(
-                            "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow-md ring-4 transition-transform group-hover:scale-110",
+                            "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow-md ring-4 transition-transform group-hover:scale-110 cursor-pointer",
                             dominant.dot,
                             dominant.ring
                           )}
                         >
                           {t2}
-                        </div>
+                        </button>
                       </div>
                     ),
                   };
@@ -255,7 +259,7 @@ export default function DashboardPage() {
                   return (
                     <tr key={eq.id} className="border-b border-border-secondary transition-colors last:border-0 hover:bg-bg-tertiary">
                       <td className="px-4 py-2.5">
-                        <Link href={`/equipment/${eq.id}`} className="font-medium text-text-primary hover:text-brand-400">
+                        <Link href={`/equipment/view?id=${eq.id}`} className="font-medium text-text-primary hover:text-brand-400">
                           {eq.name}
                         </Link>
                       </td>

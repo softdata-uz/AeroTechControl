@@ -1,16 +1,16 @@
 "use client";
 
-import { useState, use } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { EquipmentForm } from "../../EquipmentForm";
+import { EquipmentForm } from "../EquipmentForm";
 import { equipmentService } from "@/services";
 import { useEquipmentDetail } from "@/hooks/useEquipmentDetail";
 import { useTranslations } from "@/lib/locale-context";
 
-export default function EditEquipmentPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: idParam } = use(params);
-  const id = Number(idParam);
+function EditEquipmentInner() {
+  const searchParams = useSearchParams();
+  const id = Number(searchParams.get("id"));
   const router = useRouter();
   const t = useTranslations();
   const { data: eq, loading, error } = useEquipmentDetail(id);
@@ -34,12 +34,12 @@ export default function EditEquipmentPage({ params }: { params: Promise<{ id: st
           mode="edit"
           initial={eq}
           submitting={submitting}
-          onCancel={() => router.push(`/equipment/${id}`)}
+          onCancel={() => router.push(`/equipment/view?id=${id}`)}
           onSubmit={async (values) => {
             setSubmitting(true);
             try {
               await equipmentService.updateEquipment(id, values);
-              router.push(`/equipment/${id}`);
+              router.push(`/equipment/view?id=${id}`);
             } finally {
               setSubmitting(false);
             }
@@ -47,5 +47,13 @@ export default function EditEquipmentPage({ params }: { params: Promise<{ id: st
         />
       </div>
     </div>
+  );
+}
+
+export default function EditEquipmentPage() {
+  return (
+    <Suspense fallback={null}>
+      <EditEquipmentInner />
+    </Suspense>
   );
 }

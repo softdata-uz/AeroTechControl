@@ -151,7 +151,7 @@ export function CalibrationClient() {
                     className="border-b border-border-secondary transition-colors last:border-0 hover:bg-bg-tertiary"
                   >
                     <td className="px-4 py-2.5">
-                      <Link href={`/equipment/${eq.id}`} className="font-medium text-text-primary hover:text-brand-400">
+                      <Link href={`/equipment/view?id=${eq.id}`} className="font-medium text-text-primary hover:text-brand-400">
                         {eq.name}
                       </Link>
                       <p className="text-xs text-text-tertiary">{eq.code}</p>

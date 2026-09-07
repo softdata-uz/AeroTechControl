@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { useTranslations } from "@/lib/locale-context";
@@ -273,6 +274,7 @@ export function TerminalMap({
   zoneHealth,
 }: Props) {
   const t = useTranslations();
+  const router = useRouter();
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
@@ -611,7 +613,13 @@ export function TerminalMap({
                   onPointerLeave={() => {
                     setOpenMarkerId((cur) => (cur === eq.id ? null : cur));
                   }}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Edit mode is for repositioning markers (drag), not
+                    // navigation — same distinction onPointerEnter already
+                    // makes for the hover tooltip above.
+                    if (!editMode) router.push(`/equipment/view?id=${eq.id}`);
+                  }}
                   style={{ cursor: editMode ? "grab" : "pointer" }}
                 >
                   <rect
@@ -694,7 +702,7 @@ function MarkerTooltip({
         <p className="mt-0.5 truncate text-[11px] text-text-tertiary">{equipment.code}</p>
         <p className="mt-1 text-[11px] font-medium text-text-secondary">{statusLabel}</p>
         <a
-          href={`/equipment/${equipment.id}`}
+          href={`/equipment/view?id=${equipment.id}`}
           className="mt-1.5 block text-[11px] font-medium text-brand-400 hover:text-brand-300"
         >
           →

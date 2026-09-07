@@ -14,8 +14,22 @@ import {
   clearTokens,
 } from "@/lib/auth-token";
 
+/**
+ * Dev (`next dev`, NODE_ENV=development): calls the backend directly via
+ * NEXT_PUBLIC_API_URL (no proxy configured in next.config.ts here) — this
+ * already works because the backend allows any private-LAN origin in
+ * non-production.
+ *
+ * Production (`next build`, NODE_ENV=production): the app is a static export
+ * with no server of its own, so the production Express server
+ * (AeroTechProd/index.js) proxies /api/v1 and /uploads to the real backend —
+ * every request stays same-origin, which avoids CORS entirely rather than
+ * depending on the backend's CORS config being right for this deployment.
+ */
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1";
+  process.env.NODE_ENV === "production"
+    ? "/api/v1"
+    : (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000/api/v1");
 const MAX_PAGE_SIZE = 200;
 
 export interface ApiError {

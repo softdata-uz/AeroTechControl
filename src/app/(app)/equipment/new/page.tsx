@@ -24,7 +24,7 @@ export default function NewEquipmentPage() {
             setSubmitting(true);
             try {
               const created = await equipmentService.createEquipment(values);
-              router.push(`/equipment/${created.id}`);
+              router.push(`/equipment/view?id=${created.id}`);
             } finally {
               setSubmitting(false);
             }

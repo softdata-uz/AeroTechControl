@@ -457,7 +457,7 @@ function ZonePanel({
             {items.map((eq) => (
               <Link
                 key={eq.id}
-                href={`/equipment/${eq.id}`}
+                href={`/equipment/view?id=${eq.id}`}
                 className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-bg-tertiary"
               >
                 <span className="min-w-0 truncate text-text-secondary">{eq.name}</span>

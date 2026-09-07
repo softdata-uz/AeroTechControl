@@ -94,7 +94,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
               {t("equipment.detail.qr")}
             </Button>
             {canWrite && (
-              <Button hierarchy="secondary" icon="edit" size="sm" onClick={() => router.push(`/equipment/${equipment.id}/edit`)}>
+              <Button hierarchy="secondary" icon="edit" size="sm" onClick={() => router.push(`/equipment/edit?id=${equipment.id}`)}>
                 {t("equipment.detail.edit")}
               </Button>
             )}

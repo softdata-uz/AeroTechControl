@@ -572,6 +572,16 @@ body {
   outline-offset: 2px;
 }
 
+/* Chart shapes (pie sectors, bars) are made keyboard-focusable by Recharts,
+   which triggers the global :focus-visible ring above on every mouse click —
+   a rectangle boxing a round/bar shape reads as a stray artifact, not an
+   interaction affordance, since clicking a chart segment does nothing. Hover
+   tooltips remain the only interaction on these charts. */
+.recharts-wrapper :focus,
+.recharts-wrapper :focus-visible {
+  outline: none;
+}
+
 @keyframes drawer-in {
   from {
     transform: translateX(24px);

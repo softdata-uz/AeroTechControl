@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { EquipmentTable } from "@/components/data-display/EquipmentTable";
 import { Button } from "@/components/ui/Button";
@@ -19,14 +19,19 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
-export default function EquipmentRegistryPage() {
+function EquipmentRegistryContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations();
   const { canWrite, isAirportScoped, scopedAirportId } = usePermissions();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const { airports } = useLocations();
   const { types: equipmentTypes } = useEquipmentTypes();
-  const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
+  // Seeded from ?airportId=, e.g. the Dashboard's equipment map count badge —
+  // scopedAirportId (a fixed permission, not a link target) still wins when set.
+  const [airportFilter, setAirportFilter] = useState(() =>
+    scopedAirportId ? String(scopedAirportId) : (searchParams.get("airportId") ?? ""),
+  );
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<EquipmentStatus | "">("");
   const [searchInput, setSearchInput] = useState("");
@@ -178,5 +183,13 @@ export default function EquipmentRegistryPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function EquipmentRegistryPage() {
+  return (
+    <Suspense>
+      <EquipmentRegistryContent />
+    </Suspense>
   );
 }
