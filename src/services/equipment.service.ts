@@ -1,8 +1,10 @@
 import type {
   Equipment,
+  EquipmentChangeLog,
   EquipmentModel,
   EquipmentStatus,
   EquipmentType,
+  Regulation,
 } from "@/lib/types";
 import { apiGet, apiGetPage, apiPatch, apiPost, apiDelete, apiUpload, apiDownload, type Page } from "./http-client";
 
@@ -30,6 +32,32 @@ export function listEquipment(filters: EquipmentFilters = {}): Promise<Page<Equi
 // GET /equipment/:id
 export function getEquipment(id: number): Promise<Equipment> {
   return apiGet<Equipment>(`/equipment/${id}`);
+}
+
+// GET /equipment/:id/qr-code
+export function getEquipmentQrCode(id: number): Promise<{ qrCodeUrl: string }> {
+  return apiGet<{ qrCodeUrl: string }>(`/equipment/${id}/qr-code`);
+}
+
+// GET /equipment/:id/change-history
+export function listEquipmentChangeHistory(
+  id: number,
+  filters: { page?: number; pageSize?: number } = {}
+): Promise<Page<EquipmentChangeLog>> {
+  return apiGetPage<EquipmentChangeLog>(`/equipment/${id}/change-history`, filters);
+}
+
+// PATCH /equipment/:id/location
+export function changeEquipmentLocation(
+  id: number,
+  input: { airportId: number; terminalId?: number; floorId?: number; zoneId?: number; location?: string }
+): Promise<Equipment> {
+  return apiPatch<Equipment>(`/equipment/${id}/location`, input);
+}
+
+// PATCH /equipment/:id/operated-by
+export function changeEquipmentOperatedBy(id: number, input: { operatedById: number }): Promise<Equipment> {
+  return apiPatch<Equipment>(`/equipment/${id}/operated-by`, input);
 }
 
 // GET /equipment/export
@@ -96,6 +124,32 @@ export function deleteEquipmentModel(id: number): Promise<void> {
   return apiDelete<void>(`/equipment-models/${id}`);
 }
 
+// GET /regulations?equipmentTypeId=
+export function listRegulations(equipmentTypeId?: number): Promise<Regulation[]> {
+  return apiGet<Regulation[]>("/regulations", { equipmentTypeId });
+}
+
+// POST /regulations
+export function createRegulation(input: {
+  equipmentTypeId: number;
+  name: string;
+}): Promise<Regulation> {
+  return apiPost<Regulation>("/regulations", input);
+}
+
+// PATCH /regulations/:id
+export function updateRegulation(
+  id: number,
+  input: { equipmentTypeId?: number; name?: string }
+): Promise<Regulation> {
+  return apiPatch<Regulation>(`/regulations/${id}`, input);
+}
+
+// DELETE /regulations/:id
+export function deleteRegulation(id: number): Promise<void> {
+  return apiDelete<void>(`/regulations/${id}`);
+}
+
 export interface EquipmentInput {
   name: string;
   equipmentTypeId: number | "";
@@ -104,12 +158,14 @@ export interface EquipmentInput {
   manufacturerCountryId: number | "";
   serialNumber?: string;
   inventoryNumber?: string;
-  airportId: number;
+  /** Creation only — changing it later goes through changeEquipmentLocation(). */
+  airportId?: number;
   terminalId?: number;
   floorId?: number;
   zoneId?: number;
   location?: string;
-  operatedById: number | "";
+  /** Creation only — changing it later goes through changeEquipmentOperatedBy(). */
+  operatedById?: number | "";
   status?: EquipmentStatus;
   manufactureYear: number | "";
   purchaseYear?: number | "";
@@ -118,6 +174,7 @@ export interface EquipmentInput {
   lastInspectionAt?: string | null;
   nextInspectionAt?: string | null;
   notes?: string;
+  regulationIds?: number[];
   /** undefined = leave unchanged (edit only), null = remove, File = replace/set */
   image?: File | null;
 }
@@ -125,12 +182,15 @@ export interface EquipmentInput {
 function buildFormData(input: Partial<EquipmentInput>): FormData {
   const formData = new FormData();
   for (const [key, value] of Object.entries(input)) {
-    if (key === "image") continue;
+    if (key === "image" || key === "regulationIds") continue;
     if (value === undefined || value === null || value === "") continue;
     formData.set(key, String(value));
   }
   if (input.image instanceof File) {
     formData.set("image", input.image);
+  }
+  if (input.regulationIds) {
+    for (const id of input.regulationIds) formData.append("regulationIds", String(id));
   }
   return formData;
 }

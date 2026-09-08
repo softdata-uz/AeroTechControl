@@ -7,7 +7,7 @@ import { EquipmentTable } from "@/components/data-display/EquipmentTable";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { Pagination } from "@/components/ui/Pagination";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import type { EquipmentStatus } from "@/lib/types";
 import { useEquipmentList } from "@/hooks/useEquipmentList";
@@ -61,9 +61,6 @@ function EquipmentRegistryContent() {
 
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
-  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, total);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const [exporting, setExporting] = useState(false);
   async function handleExport() {
@@ -163,23 +160,14 @@ function EquipmentRegistryContent() {
               <EquipmentTable items={items} full scrollable />
             )}
           </div>
-          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
-            <div className="flex items-center gap-2">
-              <span>{t("common.showingPerPage")}</span>
-              <Dropdown
-                className="w-20"
-                value={String(pageSize)}
-                onChange={(value) => setPageSize(Number(value))}
-                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span>
-                {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
-              </span>
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-            </div>
-          </div>
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
         </div>
       </div>
     </div>

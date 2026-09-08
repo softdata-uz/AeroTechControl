@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { MultiSelectDropdown } from "@/components/ui/MultiSelectDropdown";
 import { SelectWithAddNew } from "@/components/ui/SelectWithAddNew";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { ImageUploadField, type ImageUploadValue } from "@/components/equipment/ImageUploadField";
@@ -63,6 +64,7 @@ interface FormState {
   commissioningYear: string;
   serviceLifeExpiryYear: string;
   notes: string;
+  regulationIds: string[];
 }
 
 function formFromEquipment(eq: Equipment): FormState {
@@ -85,6 +87,7 @@ function formFromEquipment(eq: Equipment): FormState {
     commissioningYear: eq.commissioningYear != null ? String(eq.commissioningYear) : "",
     serviceLifeExpiryYear: eq.serviceLifeExpiryYear != null ? String(eq.serviceLifeExpiryYear) : "",
     notes: eq.notes ?? "",
+    regulationIds: eq.regulations.map((r) => String(r.id)),
   };
 }
 
@@ -107,6 +110,7 @@ const emptyForm: FormState = {
   commissioningYear: "",
   serviceLifeExpiryYear: "",
   notes: "",
+  regulationIds: [],
 };
 
 export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = false }: Props) {
@@ -120,6 +124,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
     manufacturerCompanies,
     manufacturerCountries,
     equipmentOperators,
+    regulationsByType,
     addType,
     addModel,
     addManufacturerCompany,
@@ -155,6 +160,9 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
   const modelOptions = form.equipmentTypeId
     ? modelsByType(Number(form.equipmentTypeId)).map((m) => ({ value: String(m.id), label: m.name }))
     : [];
+  const regulationOptions = form.equipmentTypeId
+    ? regulationsByType(Number(form.equipmentTypeId)).map((r) => ({ value: String(r.id), label: r.name }))
+    : [];
   const manufacturerCompanyOptions = manufacturerCompanies.map((mc) => ({
     value: String(mc.id),
     label: mc.name,
@@ -182,8 +190,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
       !form.equipmentModelId ||
       !form.manufacturerCompanyId ||
       !form.manufacturerCountryId ||
-      !form.airportId ||
-      !form.operatedById ||
+      (mode === "add" && (!form.airportId || !form.operatedById)) ||
       !form.serialNumber ||
       !form.status ||
       !form.manufactureYear
@@ -201,17 +208,27 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
         manufacturerCountryId: Number(form.manufacturerCountryId),
         serialNumber: form.serialNumber,
         inventoryNumber: form.inventoryNumber || undefined,
-        airportId: Number(form.airportId),
-        terminalId: form.terminalId ? Number(form.terminalId) : undefined,
-        floorId: form.floorId ? Number(form.floorId) : undefined,
-        zoneId: form.zoneId ? Number(form.zoneId) : undefined,
-        operatedById: Number(form.operatedById),
+        // Location (airport/terminal/floor/zone/location) and operatedBy are
+        // set only at creation — editing them later goes through the
+        // dedicated logged "Change Location"/"Change Operated By" actions on
+        // the detail page, and the backend rejects these fields on a normal
+        // update, so they're only included in the "add" payload.
+        ...(mode === "add"
+          ? {
+              airportId: Number(form.airportId),
+              terminalId: form.terminalId ? Number(form.terminalId) : undefined,
+              floorId: form.floorId ? Number(form.floorId) : undefined,
+              zoneId: form.zoneId ? Number(form.zoneId) : undefined,
+              operatedById: Number(form.operatedById),
+            }
+          : {}),
         status: form.status,
         manufactureYear: Number(form.manufactureYear),
         purchaseYear: form.purchaseYear ? Number(form.purchaseYear) : undefined,
         commissioningYear: form.commissioningYear ? Number(form.commissioningYear) : undefined,
         serviceLifeExpiryYear: form.serviceLifeExpiryYear ? Number(form.serviceLifeExpiryYear) : undefined,
         notes: form.notes || undefined,
+        regulationIds: form.regulationIds.map(Number),
         image: image.file ?? (image.removed ? null : undefined),
       });
     } catch (err) {
@@ -237,7 +254,15 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
         </CardHeader>
         <div className="space-y-4 p-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-[220px_1fr]">
-            <ImageUploadField label={t("equipment.form.image")} value={image} onChange={setImage} disabled={submitting} />
+            <div className="h-full">
+              <ImageUploadField
+                label={t("equipment.form.image")}
+                value={image}
+                onChange={setImage}
+                disabled={submitting}
+                fill
+              />
+            </div>
             <div className="space-y-4">
               <Input
                 label={t("equipment.form.name")}
@@ -253,7 +278,9 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
                   required
                   options={typeOptions}
                   value={form.equipmentTypeId}
-                  onChange={(v) => setForm((f) => ({ ...f, equipmentTypeId: v, equipmentModelId: "" }))}
+                  onChange={(v) =>
+                    setForm((f) => ({ ...f, equipmentTypeId: v, equipmentModelId: "", regulationIds: [] }))
+                  }
                   create={(nameForm) => equipmentService.createEquipmentType(nameForm)}
                   toOption={(created) => ({ value: String(created.id), label: created.name })}
                   onCreated={(created) => addType(created)}
@@ -276,6 +303,13 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
                   onCreated={(created) => addModel(created)}
                 />
               </div>
+              <MultiSelectDropdown
+                label={t("equipment.form.regulations")}
+                disabled={!form.equipmentTypeId}
+                options={regulationOptions}
+                values={form.regulationIds}
+                onChange={(v) => update("regulationIds", v)}
+              />
             </div>
           </div>
 
@@ -320,6 +354,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
         </div>
       </Card>
 
+      {mode === "add" && (
       <Card>
         <CardHeader>
           <CardTitle>{t("equipment.form.location")}</CardTitle>
@@ -398,6 +433,7 @@ export function EquipmentForm({ mode, initial, onSubmit, onCancel, submitting = 
           />
         </div>
       </Card>
+      )}
 
       <Card>
         <CardHeader>

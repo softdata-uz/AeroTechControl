@@ -23,22 +23,25 @@ export function Pagination({ page, totalPages, onChange, className }: Pagination
   }
 
   return (
-    <div className={cn("flex items-center gap-1.5", className)}>
+    <div className={cn("flex items-center gap-1", className)}>
       <IconBtn label={t("common.previousPage")} disabled={page <= 1} onClick={() => onChange(Math.max(1, page - 1))}>
         <Icon name="chevron-left" size={14} />
       </IconBtn>
       {pages.map((p, i) =>
         p === "…" ? (
-          <span key={`e${i}`} className="px-1 text-xs text-text-quaternary">
+          <span key={`e${i}`} className="flex h-9 w-6 items-center justify-center text-xs text-text-quaternary">
             …
           </span>
         ) : (
           <button
             key={p}
             onClick={() => onChange(p)}
+            aria-current={p === page ? "page" : undefined}
             className={cn(
-              "flex h-10 w-10 items-center justify-center rounded-md text-xs font-medium transition-colors",
-              p === page ? "bg-brand-600 text-white" : "text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary"
+              "flex h-9 w-9 items-center justify-center rounded-full text-xs font-medium transition-colors",
+              p === page
+                ? "bg-brand-600 text-white shadow-xs"
+                : "text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary"
             )}
           >
             {p}
@@ -68,7 +71,7 @@ function IconBtn({
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-10 w-10 items-center justify-center rounded-md border border-border-primary text-text-tertiary transition-colors hover:bg-bg-tertiary hover:text-text-primary disabled:opacity-30"
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-border-primary text-text-tertiary transition-colors hover:border-border-secondary hover:bg-bg-tertiary hover:text-text-primary disabled:pointer-events-none disabled:opacity-30"
     >
       {children}
     </button>

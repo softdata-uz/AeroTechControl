@@ -147,7 +147,7 @@ export default function DashboardPage() {
             />
           </div>
           <p className="border-t border-border-secondary px-4 py-2 text-xs text-text-quaternary">
-            {t("dashboard.updatedAt")} {now ? `${formatDate(now.toISOString().slice(0, 10))} ${now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })}` : ""}
+            {t("dashboard.updatedAt")} {now ? formatDate(now.toISOString()) : ""}
           </p>
         </Card>
 

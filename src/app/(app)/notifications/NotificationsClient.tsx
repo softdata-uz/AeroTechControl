@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Dropdown } from "@/components/ui/Dropdown";
-import { Pagination } from "@/components/ui/Pagination";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { Icon, type IconName } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
@@ -39,9 +38,6 @@ export function NotificationsClient() {
   const { data, loading, error, refetch } = useNotificationsList({ page, pageSize });
   const items = data?.items ?? [];
   const total = data?.total ?? 0;
-  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, total);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [markingAll, setMarkingAll] = useState(false);
 
   // Unread count reflects the full notification set, independent of the current page.
@@ -136,23 +132,14 @@ export function NotificationsClient() {
             </ul>
           )}
           </div>
-          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
-            <div className="flex items-center gap-2">
-              <span>{t("common.showingPerPage")}</span>
-              <Dropdown
-                className="w-20"
-                value={String(pageSize)}
-                onChange={(value) => setPageSize(Number(value))}
-                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span>
-                {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
-              </span>
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-            </div>
-          </div>
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
         </div>
       </div>
     </div>

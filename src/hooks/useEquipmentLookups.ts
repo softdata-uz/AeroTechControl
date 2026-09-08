@@ -13,6 +13,7 @@ import type {
   EquipmentType,
   ManufacturerCompany,
   ManufacturerCountry,
+  Regulation,
 } from "@/lib/types";
 
 // Equipment types/models and the manufacturer/operator lookups are all
@@ -28,6 +29,7 @@ export function useEquipmentLookups() {
   const [manufacturerCompanies, setManufacturerCompanies] = useState<ManufacturerCompany[]>([]);
   const [manufacturerCountries, setManufacturerCountries] = useState<ManufacturerCountry[]>([]);
   const [equipmentOperators, setEquipmentOperators] = useState<EquipmentOperator[]>([]);
+  const [regulations, setRegulations] = useState<Regulation[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -37,12 +39,14 @@ export function useEquipmentLookups() {
       manufacturerCompaniesApi.list(),
       manufacturerCountriesApi.list(),
       equipmentOperatorsApi.list(),
-    ]).then(([t, m, mc, mco, op]) => {
+      equipmentService.listRegulations(),
+    ]).then(([t, m, mc, mco, op, reg]) => {
       setTypes(t);
       setModels(m);
       setManufacturerCompanies(mc);
       setManufacturerCountries(mco);
       setEquipmentOperators(op);
+      setRegulations(reg);
     });
   }, []);
 
@@ -59,6 +63,11 @@ export function useEquipmentLookups() {
   const modelsByType = useCallback(
     (equipmentTypeId: number) => models.filter((m) => m.equipmentTypeId === equipmentTypeId),
     [models]
+  );
+
+  const regulationsByType = useCallback(
+    (equipmentTypeId: number) => regulations.filter((r) => r.equipmentTypeId === equipmentTypeId),
+    [regulations]
   );
 
   const addType = useCallback((type: EquipmentType) => {
@@ -81,6 +90,10 @@ export function useEquipmentLookups() {
     setEquipmentOperators((prev) => [...prev, operator]);
   }, []);
 
+  const addRegulation = useCallback((regulation: Regulation) => {
+    setRegulations((prev) => [...prev, regulation]);
+  }, []);
+
   return useMemo(
     () => ({
       types,
@@ -88,13 +101,16 @@ export function useEquipmentLookups() {
       manufacturerCompanies,
       manufacturerCountries,
       equipmentOperators,
+      regulations,
       loading,
       modelsByType,
+      regulationsByType,
       addType,
       addModel,
       addManufacturerCompany,
       addManufacturerCountry,
       addEquipmentOperator,
+      addRegulation,
       refetch: load,
     }),
     [
@@ -103,13 +119,16 @@ export function useEquipmentLookups() {
       manufacturerCompanies,
       manufacturerCountries,
       equipmentOperators,
+      regulations,
       loading,
       modelsByType,
+      regulationsByType,
       addType,
       addModel,
       addManufacturerCompany,
       addManufacturerCountry,
       addEquipmentOperator,
+      addRegulation,
       load,
     ]
   );

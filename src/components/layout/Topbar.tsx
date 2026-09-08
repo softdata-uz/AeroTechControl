@@ -29,9 +29,9 @@ export function Topbar() {
     <header className="flex h-[75px] shrink-0 items-center justify-between border-b border-border-primary bg-bg-secondary px-6">
       {isDashboard ? (
         <div className="text-left">
-          <p className="text-sm font-medium text-text-primary">{now ? formatDate(now.toISOString().slice(0, 10)) : ""}</p>
+          <p className="text-sm font-medium text-text-primary">{now ? formatDate(now.toISOString()).split(", ")[0] : ""}</p>
           <p className="font-mono text-xs text-text-tertiary">
-            {now ? now.toLocaleTimeString("ru-RU", { hour12: false }) : "--:--:--"}
+            {now ? formatDate(now.toISOString()).split(", ")[1] : "--:--:--"}
           </p>
         </div>
       ) : (

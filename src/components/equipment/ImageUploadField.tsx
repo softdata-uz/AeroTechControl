@@ -24,6 +24,8 @@ interface Props {
   disabled?: boolean;
   acceptedTypes?: string[];
   maxBytes?: number;
+  /** Stretch to the parent cell's full height instead of the default fixed 16:9 box — for grid rows where a sibling column is taller. */
+  fill?: boolean;
 }
 
 /**
@@ -41,6 +43,7 @@ export function ImageUploadField({
   disabled,
   acceptedTypes = DEFAULT_ACCEPTED_TYPES,
   maxBytes = DEFAULT_MAX_BYTES,
+  fill = false,
 }: Props) {
   const t = useTranslations();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -95,7 +98,7 @@ export function ImageUploadField({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={cn("flex flex-col gap-1.5", fill && "h-full")}>
       {label && <label className="text-sm font-medium text-text-secondary">{label}</label>}
 
       <div
@@ -112,7 +115,8 @@ export function ImageUploadField({
         onDragLeave={() => setDragActive(false)}
         onDrop={handleDrop}
         className={cn(
-          "relative flex aspect-video w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-dashed bg-bg-primary transition-colors",
+          "relative flex w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border border-dashed bg-bg-primary transition-colors",
+          fill ? "h-full min-h-[124px] flex-1" : "aspect-video",
           dragActive ? "border-brand-500 bg-bg-tertiary" : "border-border-secondary hover:border-border-primary",
           disabled && "pointer-events-none opacity-50"
         )}

@@ -4,9 +4,17 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { Button } from "@/components/ui/Button";
-import { formatDate } from "@/lib/format";
 import { useTranslations } from "@/lib/locale-context";
 import { cn } from "@/lib/cn";
+
+// Date-only by design (this is a date picker, not a date+time picker) — the
+// shared `formatDate` now appends a fixed time-of-day for consistency
+// elsewhere in the app, which would be misleading here since no time was
+// ever picked.
+function formatPickedDate(value: string) {
+  const [y, m, d] = value.split("-");
+  return `${d}.${m}.${y}`;
+}
 
 const WEEKDAY_KEYS = [
   "common.weekdayMon", "common.weekdayTue", "common.weekdayWed", "common.weekdayThu",
@@ -206,7 +214,7 @@ export function DatePicker({ value, onChange, placeholder, label, className }: D
       >
         <Icon name="calendar-date" size={16} className="shrink-0 text-text-quaternary" />
         <span className={cn("flex-1 truncate", value ? "text-text-primary" : "text-text-placeholder")}>
-          {value ? formatDate(value) : resolvedPlaceholder}
+          {value ? formatPickedDate(value) : resolvedPlaceholder}
         </span>
       </button>
 

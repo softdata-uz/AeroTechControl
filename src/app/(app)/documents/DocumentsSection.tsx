@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { Icon, type IconName } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { Pagination } from "@/components/ui/Pagination";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { getDocumentStatusConfig } from "@/config/repairStatus.config";
 import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
 import { formatDate } from "@/lib/format";
@@ -67,9 +67,6 @@ export function DocumentsSection() {
   const { data, loading, error, refetch } = useDocumentsList(filters);
   const documents = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
-  const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, total);
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   // KPI cards reflect the full document set, independent of the table filters.
   const { data: allDocsPage, refetch: refetchKpi } = useAsync(
@@ -225,23 +222,14 @@ export function DocumentsSection() {
           </div>
           )}
           </div>
-          <div className="flex shrink-0 items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
-            <div className="flex items-center gap-2">
-              <span>{t("common.showingPerPage")}</span>
-              <Dropdown
-                className="w-20"
-                value={String(pageSize)}
-                onChange={(value) => setPageSize(Number(value))}
-                options={PAGE_SIZE_OPTIONS.map((size) => ({ value: String(size), label: String(size) }))}
-              />
-            </div>
-            <div className="flex items-center gap-3">
-              <span>
-                {rangeStart}–{rangeEnd} {t("common.of")} {total} {t("common.records")}
-              </span>
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-            </div>
-          </div>
+          <PaginationBar
+            page={page}
+            pageSize={pageSize}
+            total={total}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+          />
         </div>
       </div>
 

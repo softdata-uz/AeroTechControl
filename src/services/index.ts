@@ -17,3 +17,4 @@ export * as settingsService from "./settings.service";
 export * from "./manufacturer-companies.service";
 export * from "./manufacturer-countries.service";
 export * from "./equipment-operators.service";
+export * as processSheetsApi from "./process-sheets.service";

@@ -108,6 +108,27 @@ export interface EquipmentOperator {
   name: string;
 }
 
+export interface Regulation {
+  id: number;
+  equipmentTypeId: number;
+  name: string;
+}
+
+export interface ProcessSheet {
+  id: number;
+  regulationId: number;
+  name: string;
+}
+
+export interface EquipmentChangeLog {
+  id: number;
+  field: "location" | "operated_by";
+  fromValue: string;
+  toValue: string;
+  changedBy: { id: number; name: string } | null;
+  changedAt: string;
+}
+
 export interface Equipment {
   id: number;
   code: string; // e.g. EQ-0001
@@ -133,7 +154,9 @@ export interface Equipment {
   nextInspectionAt: string | null;
   image: string | null;
   imageUrl: string | null;
+  qrCodeUrl: string | null;
   notes: string | null;
+  regulations: LookupRef[];
   position: { x: number; y: number; zoneId: number | null } | null;
 }
 

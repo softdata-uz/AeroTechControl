@@ -11,7 +11,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { Toggle } from "@/components/ui/Toggle";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { Pagination } from "@/components/ui/Pagination";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { getInspectionStatusConfig, getChecklistResultConfig } from "@/config/inspectionStatus.config";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getRepairStatusConfig } from "@/config/repairStatus.config";
@@ -26,7 +26,7 @@ import { inspectionsService, repairsService, documentsService } from "@/services
 import { usePermissions } from "@/hooks/usePermissions";
 import { useTranslations } from "@/lib/locale-context";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function InspectionsSection() {
   const t = useTranslations();
@@ -59,6 +59,7 @@ export function InspectionsSection() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [onlyNonCompliant, setOnlyNonCompliant] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -81,10 +82,9 @@ export function InspectionsSection() {
     refetch: refetchList,
   } = useInspectionsList(filters);
   const allInspections = useMemo(() => inspectionsPage?.items ?? [], [inspectionsPage]);
-  const totalPages = Math.max(1, Math.ceil(allInspections.length / PAGE_SIZE));
-  const inspections = allInspections.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const inspections = allInspections.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => setPage(1), [airportFilter, statusFilter, search]);
+  useEffect(() => setPage(1), [airportFilter, statusFilter, search, pageSize]);
 
   // KPI cards reflect overall operational state, independent of the list filters.
   const { data: allInspectionsPage, refetch: refetchKpi } = useAsync(
@@ -290,7 +290,15 @@ export function InspectionsSection() {
                   })}
                 </ul>
               )}
-              <Pagination page={page} totalPages={totalPages} onChange={setPage} className="justify-center pt-1" />
+              <PaginationBar
+                className="border-t-0 pt-1"
+                page={page}
+                pageSize={pageSize}
+                total={allInspections.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+              />
             </div>
 
             {/* CENTER: equipment summary + tabs */}

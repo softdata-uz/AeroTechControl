@@ -12,7 +12,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { Tabs } from "@/components/ui/Tabs";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
-import { Pagination } from "@/components/ui/Pagination";
+import { PaginationBar } from "@/components/ui/PaginationBar";
 import { getFaultStatusConfig, getFaultPriorityConfig } from "@/config/faultStatus.config";
 import { formatDate, resolveImageUrl } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -31,7 +31,7 @@ import { FaultTrendChart } from "@/components/dashboard/FaultTrendChart";
 import { useFaultIntelligence } from "@/hooks/useFaultIntelligence";
 import { useTranslations } from "@/lib/locale-context";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 
 export function FaultsClient() {
   const t = useTranslations();
@@ -59,6 +59,7 @@ export function FaultsClient() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -72,7 +73,7 @@ export function FaultsClient() {
 
   useEffect(() => {
     setPage(1);
-  }, [airportFilter, terminalFilter, typeFilter, statusFilter, priorityFilter, search]);
+  }, [airportFilter, terminalFilter, typeFilter, statusFilter, priorityFilter, search, pageSize]);
 
   const { data: typesData } = useAsync(() => equipmentService.listEquipmentTypes(), []);
   const equipmentTypes = typesData ?? [];
@@ -88,7 +89,7 @@ export function FaultsClient() {
     priority: priorityFilter || undefined,
     search: search || undefined,
     page: hasLocationFilters ? 1 : page,
-    pageSize: hasLocationFilters ? 200 : PAGE_SIZE,
+    pageSize: hasLocationFilters ? 200 : pageSize,
   };
 
   const { data, loading, error, refetch } = useFaultsList(filters);
@@ -120,9 +121,9 @@ export function FaultsClient() {
       if (typeFilter && String(eq.equipmentType.id) !== typeFilter) return false;
       return true;
     });
-    const pageResult = paginate(filtered, page, PAGE_SIZE);
+    const pageResult = paginate(filtered, page, pageSize);
     return { faults: pageResult.items, total: pageResult.total };
-  }, [data, hasLocationFilters, airportFilter, terminalFilter, typeFilter, page, equipmentById]);
+  }, [data, hasLocationFilters, airportFilter, terminalFilter, typeFilter, page, pageSize, equipmentById]);
 
   // KPI cards reflect overall operational state, independent of table filters/pagination.
   const { data: allFaultsPage, refetch: refetchKpiFaults } = useAsync(
@@ -161,9 +162,6 @@ export function FaultsClient() {
   const { data: faultIntel, loading: faultIntelLoading, error: faultIntelError } = useFaultIntelligence("30d");
 
   const selected = faults.find((f) => f.id === selectedId) ?? null;
-  const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
-  const rangeEnd = Math.min(page * PAGE_SIZE, total);
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   function handleFaultCreated(fault: Fault) {
     refetch();
@@ -356,15 +354,14 @@ export function FaultsClient() {
                 </table>
               </div>
               )}
-              <div className="flex items-center justify-between border-t border-border-primary px-4 py-3 text-xs text-text-tertiary">
-                <span>{t("common.showingPerPage")} {PAGE_SIZE}</span>
-                <div className="flex items-center gap-3">
-                  <span>
-                    {rangeStart}–{rangeEnd} {t("common.of")} {total}
-                  </span>
-                  <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-                </div>
-              </div>
+              <PaginationBar
+                page={page}
+                pageSize={pageSize}
+                total={total}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+                pageSizeOptions={PAGE_SIZE_OPTIONS}
+              />
             </div>
 
             <FaultDetailPanel

@@ -14,7 +14,11 @@ export default function NewEquipmentPage() {
 
   return (
     <div className="pb-8">
-      <PageHeader title={t("equipment.new.title")} context={t("equipment.new.context")} />
+      <PageHeader
+        title={t("equipment.new.title")}
+        context={t("equipment.new.context")}
+        onBack={() => router.push("/equipment")}
+      />
       <div className="mx-auto max-w-3xl px-6 pt-5">
         <EquipmentForm
           mode="add"

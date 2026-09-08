@@ -28,6 +28,7 @@ function EditEquipmentInner() {
       <PageHeader
         title={`${t("equipment.edit.titlePrefix")} ${eq.name}`}
         context={`${eq.code} · ${t("equipment.edit.contextSuffix")}`}
+        onBack={() => router.push(`/equipment/view?id=${id}`)}
       />
       <div className="mx-auto max-w-3xl px-6 pt-5">
         <EquipmentForm

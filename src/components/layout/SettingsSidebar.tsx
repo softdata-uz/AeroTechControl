@@ -12,6 +12,7 @@ const items: { href: string; icon: IconName; labelKey: TranslationKey }[] = [
   { href: "/settings/locations", icon: "map-pin", labelKey: "settingsCrud.locationsPageTitle" },
   { href: "/settings/equipment", icon: "cpu", labelKey: "settingsCrud.equipmentPageTitle" },
   { href: "/settings/manufacturers", icon: "building", labelKey: "settingsCrud.manufacturersPageTitle" },
+  { href: "/settings/regulations", icon: "file-text", labelKey: "settingsCrud.regulationsPageTitle" },
 ];
 
 const journalItem: { href: string; icon: IconName; labelKey: TranslationKey } = {
