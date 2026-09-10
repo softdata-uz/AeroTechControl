@@ -1,4 +1,4 @@
-import type { RepairStatus, SparePartStatus, DocumentStatus } from "@/lib/types";
+import type { RepairStatus, DocumentStatus } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import type { StatusVisual } from "./equipmentStatus.config";
 
@@ -50,49 +50,6 @@ export function getRepairStatusConfig(t: (key: TranslationKey) => string): Recor
       { ...visual, label: t(repairStatusLabelKeys[key as RepairStatus]) },
     ])
   ) as Record<RepairStatus, StatusVisual>;
-}
-
-const sparePartStatusVisuals: Record<SparePartStatus, Omit<StatusVisual, "label">> = {
-  available: {
-    dot: "bg-success-500",
-    badgeBg: "bg-(--chip-success-bg)",
-    badgeText: "text-(--chip-success-text)",
-    badgeBorder: "border-(--chip-success-border)",
-  },
-  low_stock: {
-    dot: "bg-warning-500",
-    badgeBg: "bg-(--chip-warning-bg)",
-    badgeText: "text-(--chip-warning-text)",
-    badgeBorder: "border-(--chip-warning-border)",
-  },
-  reserved: {
-    dot: "bg-brand-400",
-    badgeBg: "bg-(--chip-brand-bg)",
-    badgeText: "text-(--chip-brand-text)",
-    badgeBorder: "border-(--chip-brand-border)",
-  },
-  out_of_stock: {
-    dot: "bg-error-500",
-    badgeBg: "bg-(--chip-error-bg)",
-    badgeText: "text-(--chip-error-text)",
-    badgeBorder: "border-(--chip-error-border)",
-  },
-};
-
-export const sparePartStatusLabelKeys: Record<SparePartStatus, TranslationKey> = {
-  available: "status.sparePart.available",
-  low_stock: "status.sparePart.lowStock",
-  reserved: "status.sparePart.reserved",
-  out_of_stock: "status.sparePart.outOfStock",
-};
-
-export function getSparePartStatusConfig(t: (key: TranslationKey) => string): Record<SparePartStatus, StatusVisual> {
-  return Object.fromEntries(
-    Object.entries(sparePartStatusVisuals).map(([key, visual]) => [
-      key,
-      { ...visual, label: t(sparePartStatusLabelKeys[key as SparePartStatus]) },
-    ])
-  ) as Record<SparePartStatus, StatusVisual>;
 }
 
 const documentStatusVisuals: Record<DocumentStatus, Omit<StatusVisual, "label">> = {

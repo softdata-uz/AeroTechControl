@@ -24,7 +24,10 @@ const sectionTitleKey = {
 
 export function DocumentsClient() {
   const t = useTranslations();
-  const initialTab = useSearchParams().get("tab");
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
+  const equipmentIdParam = searchParams.get("equipmentId");
+  const equipmentId = equipmentIdParam ? Number(equipmentIdParam) : undefined;
   const [section, setSection] = useState<SectionKey>(isSectionKey(initialTab) ? initialTab : "documents");
 
   const sectionTabs = [
@@ -40,7 +43,7 @@ export function DocumentsClient() {
       <Tabs items={sectionTabs} value={section} onChange={setSection} className="shrink-0 px-6 pt-3" />
 
       <div className="flex min-h-0 flex-1 flex-col">
-        {section === "documents" && <DocumentsSection />}
+        {section === "documents" && <DocumentsSection equipmentId={equipmentId} />}
         {section === "inspections" && <InspectionsSection />}
         {section === "repairs" && <RepairsSection />}
       </div>

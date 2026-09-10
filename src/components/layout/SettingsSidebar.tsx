@@ -13,6 +13,8 @@ const items: { href: string; icon: IconName; labelKey: TranslationKey }[] = [
   { href: "/settings/equipment", icon: "cpu", labelKey: "settingsCrud.equipmentPageTitle" },
   { href: "/settings/manufacturers", icon: "building", labelKey: "settingsCrud.manufacturersPageTitle" },
   { href: "/settings/regulations", icon: "file-text", labelKey: "settingsCrud.regulationsPageTitle" },
+  { href: "/settings/protocol-templates", icon: "shield", labelKey: "settingsCrud.protocolTemplatesPageTitle" },
+  { href: "/settings/signatories", icon: "users", labelKey: "settingsCrud.signatoriesPageTitle" },
 ];
 
 const journalItem: { href: string; icon: IconName; labelKey: TranslationKey } = {

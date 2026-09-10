@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { KPICard } from "@/components/data-display/KPICard";
 import { Card, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { Toast } from "@/components/ui/Toast";
 import { Icon } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { PieChart } from "@/components/charts/PieChart";
@@ -54,6 +55,7 @@ export default function DashboardPage() {
   const faults = useMemo(() => faultsPage?.items ?? [], [faultsPage]);
   const { data: faultIntel, loading: faultIntelLoading, error: faultIntelError } = useFaultIntelligence("30d");
 
+  const [toast, setToast] = useState<string | null>(null);
   const [now, setNow] = useState<Date | null>(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow((d) => (d ? new Date(d.getTime() + 1000) : d)), 1000);
@@ -105,6 +107,7 @@ export default function DashboardPage() {
 
   return (
     <div className="pb-8">
+      <Toast message={toast} onDismiss={() => setToast(null)} />
       <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-3 xl:grid-cols-6">
         <KPICard label={t("dashboard.totalEquipment")} value={total} meta={t("dashboard.units")} icon="cpu" tone="neutral" />
         <KPICard label={t("dashboard.operational")} value={byStatus.operational} meta={pct(byStatus.operational, total)} icon="check-circle" tone="success" />
@@ -191,6 +194,18 @@ export default function DashboardPage() {
           <div className="relative min-h-[220px] flex-1 bg-bg-primary p-3">
             <UzbekistanMap
               className="h-full min-h-[196px] w-full"
+              onRegionClick={(regionType) => {
+                const matches = airports.filter((a) => a.region === regionType);
+                const totalForRegion = matches.reduce(
+                  (sum, a) => sum + (byAirport.find((b) => b.airport.id === a.id)?.total ?? 0),
+                  0
+                );
+                if (totalForRegion === 0) {
+                  setToast(t("dashboard.noEquipmentAtLocation"));
+                  return;
+                }
+                router.push(matches.length === 1 ? `/equipment?airportId=${matches[0].id}` : "/equipment");
+              }}
               markers={byAirport
                 .map(({ airport, total: t2, operational, faulty, unsatisfactory, overdue }) => {
                   const dominant =
@@ -212,9 +227,15 @@ export default function DashboardPage() {
                       >
                         <button
                           type="button"
-                          onClick={() => router.push(`/equipment?airportId=${airport.id}`)}
+                          onClick={() => {
+                            if (t2 === 0) {
+                              setToast(t("dashboard.noEquipmentAtLocation"));
+                              return;
+                            }
+                            router.push(`/equipment?airportId=${airport.id}`);
+                          }}
                           className={cn(
-                            "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow-md ring-4 transition-transform group-hover:scale-110 cursor-pointer",
+                            "flex h-6 min-w-6 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white shadow-md ring-4 transition-all group-hover:scale-110 group-hover:bg-brand-500 group-hover:ring-brand-500/30 cursor-pointer",
                             dominant.dot,
                             dominant.ring
                           )}

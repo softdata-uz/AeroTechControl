@@ -1,5 +1,5 @@
 import type { ChecklistItem, Inspection, InspectionStatus } from "@/lib/types";
-import { apiGet, apiGetPage, apiPatch, type Page } from "./http-client";
+import { apiGet, apiGetPage, apiPatch, apiPost, type Page } from "./http-client";
 
 export interface InspectionFilters {
   airportId?: number;
@@ -31,4 +31,16 @@ export function completeInspection(
   result: NonNullable<Inspection["result"]>
 ): Promise<Inspection> {
   return apiPatch<Inspection>(`/inspections/${id}/complete`, { result });
+}
+
+export interface CreatePlannedInspectionsInput {
+  equipmentIds: number[];
+  scheduledAt: string;
+  regulationId?: number;
+  protocolTemplateId?: number;
+}
+
+// POST /inspections
+export function createPlannedInspections(input: CreatePlannedInspectionsInput): Promise<Inspection[]> {
+  return apiPost<Inspection[]>("/inspections", input);
 }

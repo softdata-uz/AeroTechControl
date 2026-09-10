@@ -58,6 +58,7 @@ export default function JournalPage() {
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pt-5">
         <Dropdown
+          clearable
           className="w-56"
           placeholder={t("journal.filterAction")}
           value={actionFilter}

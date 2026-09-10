@@ -70,7 +70,9 @@ export function PieChart({
               paddingAngle={data.length > 1 ? 6 : 0}
               cornerRadius={8}
               stroke="none"
-              isAnimationActive={false}
+              isAnimationActive
+              animationDuration={500}
+              animationEasing="ease-out"
             >
               {data.map((d, i) => (
                 <Cell key={d.label} fill={resolveColor(d.color ?? categoricalColor(i))} />

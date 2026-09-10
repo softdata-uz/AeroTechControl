@@ -120,6 +120,7 @@ export default function UsersPage() {
 
       <div className="flex shrink-0 flex-wrap items-center gap-2 px-6 pt-5">
         <Dropdown
+          clearable
           className="w-56"
           placeholder={t("common.allRoles")}
           value={roleFilter}
@@ -127,6 +128,7 @@ export default function UsersPage() {
           options={Object.entries(roleLabelKeys).map(([key, labelKey]) => ({ value: key, label: t(labelKey) }))}
         />
         <Dropdown
+          clearable
           className="w-56"
           placeholder={t("common.allAirports")}
           value={airportFilter}
@@ -141,6 +143,20 @@ export default function UsersPage() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
+        {(roleFilter || airportFilter || searchInput) && (
+          <Button
+            hierarchy="secondary"
+            icon="x"
+            size="sm"
+            onClick={() => {
+              setRoleFilter("");
+              setAirportFilter("");
+              setSearchInput("");
+            }}
+          >
+            {t("common.clearFilters")}
+          </Button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col px-6 py-4">

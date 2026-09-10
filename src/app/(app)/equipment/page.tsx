@@ -50,6 +50,16 @@ function EquipmentRegistryContent() {
     setPage(1);
   }, [airportFilter, typeFilter, statusFilter, search, pageSize]);
 
+  const filtersActive =
+    !!(airportFilter && !isAirportScoped) || !!typeFilter || !!statusFilter || !!searchInput;
+
+  function clearFilters() {
+    if (!isAirportScoped) setAirportFilter("");
+    setTypeFilter("");
+    setStatusFilter("");
+    setSearchInput("");
+  }
+
   const { data, loading, error, refetch } = useEquipmentList({
     airportId: airportFilter ? Number(airportFilter) : undefined,
     equipmentTypeId: typeFilter ? Number(typeFilter) : undefined,
@@ -102,6 +112,7 @@ function EquipmentRegistryContent() {
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
         {!isAirportScoped && (
           <Dropdown
+            clearable
             className="w-56"
             placeholder={t("common.allAirports")}
             value={airportFilter}
@@ -110,6 +121,7 @@ function EquipmentRegistryContent() {
           />
         )}
         <Dropdown
+          clearable
           className="w-56"
           placeholder={t("common.allTypes")}
           value={typeFilter}
@@ -117,6 +129,7 @@ function EquipmentRegistryContent() {
           options={equipmentTypes.map((et) => ({ value: String(et.id), label: et.name }))}
         />
         <Dropdown
+          clearable
           className="w-56"
           placeholder={t("common.allStatuses")}
           value={statusFilter}
@@ -131,9 +144,11 @@ function EquipmentRegistryContent() {
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
         />
-        <Button hierarchy="secondary" icon="filter" size="sm">
-          {t("common.filters")}
-        </Button>
+        {filtersActive && (
+          <Button hierarchy="secondary" icon="x" size="sm" onClick={clearFilters}>
+            {t("common.clearFilters")}
+          </Button>
+        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col px-6 py-4">

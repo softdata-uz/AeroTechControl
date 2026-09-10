@@ -1,7 +1,6 @@
 import type { InspectionStatus, ChecklistResult } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import type { StatusVisual } from "./equipmentStatus.config";
-import type { CalibrationStatus } from "@/services/calibration.service";
 
 const inspectionStatusVisuals: Record<InspectionStatus, Omit<StatusVisual, "label">> = {
   planned: {
@@ -98,38 +97,3 @@ export function getChecklistResultConfig(t: (key: TranslationKey) => string): Re
   ) as Record<ChecklistResult, StatusVisual>;
 }
 
-const calibrationStatusVisuals: Record<CalibrationStatus, Omit<StatusVisual, "label">> = {
-  overdue: {
-    dot: "bg-error-500",
-    badgeBg: "bg-(--chip-error-bg)",
-    badgeText: "text-(--chip-error-text)",
-    badgeBorder: "border-(--chip-error-border)",
-  },
-  upcoming: {
-    dot: "bg-warning-500",
-    badgeBg: "bg-(--chip-warning-bg)",
-    badgeText: "text-(--chip-warning-text)",
-    badgeBorder: "border-(--chip-warning-border)",
-  },
-  planned: {
-    dot: "bg-brand-400",
-    badgeBg: "bg-(--chip-brand-bg)",
-    badgeText: "text-(--chip-brand-text)",
-    badgeBorder: "border-(--chip-brand-border)",
-  },
-};
-
-export const calibrationStatusLabelKeys: Record<CalibrationStatus, TranslationKey> = {
-  overdue: "status.calibration.overdue",
-  upcoming: "status.calibration.upcoming",
-  planned: "status.calibration.planned",
-};
-
-export function getCalibrationStatusConfig(t: (key: TranslationKey) => string): Record<CalibrationStatus, StatusVisual> {
-  return Object.fromEntries(
-    Object.entries(calibrationStatusVisuals).map(([key, visual]) => [
-      key,
-      { ...visual, label: t(calibrationStatusLabelKeys[key as CalibrationStatus]) },
-    ])
-  ) as Record<CalibrationStatus, StatusVisual>;
-}

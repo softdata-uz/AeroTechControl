@@ -80,13 +80,13 @@ export default function LoginPage() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <Icon name="shield" size={22} />
-            </div>
-            <div>
-              <p className="text-xl font-bold text-text-primary">
-                Aerotech<span className="text-brand-400">Control</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/airport-emblem-gold.png" alt="" className="h-14 w-14 shrink-0" />
+            <div className="leading-tight">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "#CEA53C" }}>
+                Uzbekistan
               </p>
+              <p className="text-2xl font-bold text-text-primary">Airports</p>
             </div>
           </div>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-text-tertiary">{t("login.tagline")}</p>

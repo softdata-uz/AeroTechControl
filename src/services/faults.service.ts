@@ -21,6 +21,9 @@ export interface FaultFilters {
   stage?: FaultStage;
   priority?: FaultPriority;
   search?: string;
+  /** Inclusive `detectedAt` bounds, ISO date (YYYY-MM-DD). */
+  detectedFrom?: string;
+  detectedTo?: string;
   page?: number;
   pageSize?: number;
 }
@@ -31,8 +34,17 @@ export interface FaultFilters {
 // entity doesn't denormalize location) — callers that need those should
 // filter the fetched equipment set first, or rely on useEquipmentLookup.
 export function listFaults(filters: FaultFilters = {}): Promise<Page<Fault>> {
-  const { equipmentId, stage, priority, search, page, pageSize } = filters;
-  return apiGetPage<Fault>("/faults", { equipmentId, stage, priority, search, page, pageSize });
+  const { equipmentId, stage, priority, search, detectedFrom, detectedTo, page, pageSize } = filters;
+  return apiGetPage<Fault>("/faults", {
+    equipmentId,
+    stage,
+    priority,
+    search,
+    detectedFrom,
+    detectedTo,
+    page,
+    pageSize,
+  });
 }
 
 // GET /equipment/:id/faults
@@ -47,10 +59,10 @@ export function getFault(id: number): Promise<Fault> {
 
 // GET /faults/export?format=xlsx
 export function exportFaults(filters: FaultFilters = {}): Promise<void> {
-  const { equipmentId, stage, priority, search } = filters;
+  const { equipmentId, stage, priority, search, detectedFrom, detectedTo } = filters;
   return apiDownload(
     "/faults/export",
-    { equipmentId, stage, priority, search, format: "xlsx" },
+    { equipmentId, stage, priority, search, detectedFrom, detectedTo, format: "xlsx" },
     "faults.xlsx"
   );
 }

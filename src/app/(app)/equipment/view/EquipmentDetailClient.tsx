@@ -14,29 +14,21 @@ import { StatusBadge } from "@/components/ui/Badge";
 import { ChangeLocationModal } from "@/components/equipment/ChangeLocationModal";
 import { ChangeOperatedByModal } from "@/components/equipment/ChangeOperatedByModal";
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
-import { getInspectionStatusConfig } from "@/config/inspectionStatus.config";
 import { getFaultStatusConfig } from "@/config/faultStatus.config";
-import { getRepairStatusConfig, getDocumentStatusConfig } from "@/config/repairStatus.config";
-import { formatDate, resolveImageUrl, downloadFile } from "@/lib/format";
-import {
-  useEquipmentDetail,
-  useEquipmentInspectionHistory,
-  useEquipmentFaultHistory,
-} from "@/hooks/useEquipmentDetail";
-import { useRepairsList } from "@/hooks/useRepairsList";
+import { getDocumentStatusConfig } from "@/config/repairStatus.config";
+import { formatDate, formatDateTime, resolveImageUrl, downloadFile } from "@/lib/format";
+import { useEquipmentDetail, useEquipmentFaultHistory } from "@/hooks/useEquipmentDetail";
 import { useDocumentsList } from "@/hooks/useDocumentsList";
 import { useTranslations } from "@/lib/locale-context";
 import { usePermissions } from "@/hooks/usePermissions";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import type { EquipmentChangeLog, ProcessSheet } from "@/lib/types";
 
-const tabKeys = ["info", "inspections", "repairs", "faults", "documents", "history"] as const;
+const tabKeys = ["info", "documents", "faults", "history"] as const;
 const tabLabelKeys: Record<(typeof tabKeys)[number], TranslationKey> = {
   info: "equipment.detail.tabInfo",
-  inspections: "equipment.detail.tabInspections",
-  repairs: "equipment.detail.tabRepairs",
-  faults: "equipment.detail.tabFaults",
   documents: "equipment.detail.tabDocuments",
+  faults: "equipment.detail.tabFaults",
   history: "equipment.detail.tabHistory",
 };
 
@@ -51,9 +43,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
   const t = useTranslations();
   const { canWrite } = usePermissions();
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
-  const inspectionStatusConfig = getInspectionStatusConfig(t);
   const faultStatusConfig = getFaultStatusConfig(t);
-  const repairStatusConfig = getRepairStatusConfig(t);
   const documentStatusConfig = getDocumentStatusConfig(t);
   const [tab, setTab] = useState<TabKey>("info");
   const [qrOpen, setQrOpen] = useState(false);
@@ -75,9 +65,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
   const [historyStale, setHistoryStale] = useState(true);
 
   const { data: equipment, loading, error, refetch } = useEquipmentDetail(equipmentId);
-  const { data: inspectionsData } = useEquipmentInspectionHistory(equipmentId);
   const { data: faultsData } = useEquipmentFaultHistory(equipmentId);
-  const { data: repairsPage } = useRepairsList({ equipmentId, pageSize: 100 });
   const { data: documentsPage } = useDocumentsList({ equipmentId, pageSize: 100 });
 
   useEffect(() => {
@@ -160,9 +148,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
     setHistoryStale(true);
   }
 
-  const inspections = inspectionsData ?? [];
   const faults = faultsData ?? [];
-  const repairs = repairsPage?.items ?? [];
   const documents = documentsPage?.items ?? [];
 
   if (loading) {
@@ -176,15 +162,11 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
     key,
     label: t(tabLabelKeys[key]),
     badge:
-      key === "inspections"
-        ? inspections.length
-        : key === "repairs"
-          ? repairs.length
-          : key === "faults"
-            ? faults.length
-            : key === "documents"
-              ? documents.length
-              : undefined,
+      key === "faults"
+        ? faults.length
+        : key === "documents"
+          ? documents.length
+          : undefined,
   }));
 
   return (
@@ -389,62 +371,6 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
               </>
             )}
 
-            {tab === "inspections" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("equipment.detail.inspectionHistory")}</CardTitle>
-                </CardHeader>
-                {inspections.length === 0 ? (
-                  <EmptyState label={t("equipment.detail.noInspections")} />
-                ) : (
-                  <ul className="divide-y divide-border-secondary">
-                    {inspections.map((ins) => (
-                      <li key={ins.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                        <div>
-                          <p className="font-medium text-text-primary">{ins.id}</p>
-                          <p className="text-xs text-text-tertiary">
-                            {ins.regulation} · {ins.inspector}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-text-tertiary">
-                            {formatDate(ins.completedAt ?? ins.scheduledAt)}
-                          </span>
-                          <StatusBadge status={inspectionStatusConfig[ins.status]} />
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            )}
-
-            {tab === "repairs" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("equipment.detail.maintenanceRepairs")}</CardTitle>
-                </CardHeader>
-                {repairs.length === 0 ? (
-                  <EmptyState label={t("equipment.detail.noRepairs")} />
-                ) : (
-                  <ul className="divide-y divide-border-secondary">
-                    {repairs.map((r) => (
-                      <li key={r.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                        <div>
-                          <p className="font-medium text-text-primary">{r.id}</p>
-                          <p className="text-xs text-text-tertiary">
-                            {t("equipment.detail.engineer")} {r.engineer} · {r.actualHours ?? r.estimatedHours}{" "}
-                            {t("equipment.detail.hoursSuffix")}
-                          </p>
-                        </div>
-                        <StatusBadge status={repairStatusConfig[r.status]} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            )}
-
             {tab === "faults" && (
               <Card>
                 <CardHeader>
@@ -486,7 +412,7 @@ export function EquipmentDetailClient({ equipmentId }: Props) {
                           <div>
                             <p className="font-medium text-text-primary">{d.title}</p>
                             <p className="text-xs text-text-tertiary">
-                              {d.author} · {formatDate(d.date)} · v{d.version}
+                              {d.author} · {formatDateTime(d.date)} · v{d.version}
                             </p>
                           </div>
                         </div>

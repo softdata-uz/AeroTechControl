@@ -94,11 +94,12 @@ export function getFaultStatusConfig(t: (key: TranslationKey) => string): Record
 }
 
 const faultPriorityVisuals: Record<FaultPriority, Omit<StatusVisual, "label">> = {
+  // Green → orange → red → dark red, matching the engineer app's severity ramp.
   low: {
-    dot: "bg-brand-400",
-    badgeBg: "bg-(--chip-brand-bg)",
-    badgeText: "text-(--chip-brand-text)",
-    badgeBorder: "border-(--chip-brand-border)",
+    dot: "bg-success-500",
+    badgeBg: "bg-(--chip-success-bg)",
+    badgeText: "text-(--chip-success-text)",
+    badgeBorder: "border-(--chip-success-border)",
   },
   medium: {
     dot: "bg-warning-500",
@@ -131,7 +132,7 @@ export const faultPriorityLabelKeys: Record<FaultPriority, TranslationKey> = {
  * above — for chart libraries (Recharts) that need a resolvable CSS value
  * rather than a Tailwind class. Keep in sync with `faultPriorityVisuals`. */
 export const faultPriorityChartColor: Record<FaultPriority, string> = {
-  low: "var(--color-brand-400)",
+  low: "var(--color-success-500)",
   medium: "var(--color-warning-500)",
   high: "var(--color-error-500)",
   critical: "var(--color-error-600)",

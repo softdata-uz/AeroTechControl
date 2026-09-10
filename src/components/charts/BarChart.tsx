@@ -79,7 +79,14 @@ export function BarChart({
             }}
             labelStyle={{ color: tokens["--text-secondary"] }}
           />
-          <Bar dataKey="value" radius={[10, 10, 0, 0]} maxBarSize={24} isAnimationActive={false}>
+          <Bar
+            dataKey="value"
+            radius={[10, 10, 0, 0]}
+            maxBarSize={24}
+            isAnimationActive
+            animationDuration={500}
+            animationEasing="ease-out"
+          >
             {data.map((d, i) => (
               <Cell key={d.label} fill={`url(#bar-gradient-${i})`} />
             ))}

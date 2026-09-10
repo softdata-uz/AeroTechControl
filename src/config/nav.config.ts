@@ -18,16 +18,10 @@ export interface NavItem {
 export const primaryNav: NavItem[] = [
   { labelKey: "nav.dashboard", href: "/", icon: "grid" },
   { labelKey: "nav.equipment", href: "/equipment", icon: "cpu" },
-  {
-    labelKey: "nav.location",
-    href: "/location",
-    icon: "map-pin",
-    children: [{ labelKey: "nav.locationHealth", href: "/location/health" }],
-  },
+  { labelKey: "nav.location", href: "/location", icon: "map-pin" },
   { labelKey: "nav.documents", href: "/documents", icon: "file-text" },
   { labelKey: "nav.faults", href: "/faults", icon: "alert-triangle", badgeKey: "openFaults" },
-  { labelKey: "nav.spareParts", href: "/spare-parts", icon: "package" },
-  { labelKey: "nav.calibration", href: "/calibration", icon: "gauge" },
+  { labelKey: "nav.plannedInspections", href: "/planned-inspections", icon: "gauge" },
   { labelKey: "nav.reports", href: "/reports", icon: "bar-chart" },
   { labelKey: "nav.notifications", href: "/notifications", icon: "bell", badgeKey: "unreadNotifications" },
   { labelKey: "nav.users", href: "/users", icon: "users" },

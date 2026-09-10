@@ -25,6 +25,10 @@ interface DropdownProps {
   className?: string;
   /** Shows an in-popover text filter above the option list — for pickers with more than a handful of options. */
   searchable?: boolean;
+  /** Filter-bar mode: prepends a reset row labelled with `placeholder` ("All
+   * airports", …) so a set filter can go back to unset. Forms leave this off —
+   * a required field has no "none" state to return to. */
+  clearable?: boolean;
   /** Rendered as a pinned row below the (filtered) option list, e.g. a "+ Add new" trigger. Receives a `close` callback so the trigger can dismiss the popover before opening something else (a modal). */
   footer?: (close: () => void) => ReactNode;
 }
@@ -53,6 +57,7 @@ export function Dropdown({
   error,
   className,
   searchable,
+  clearable,
   footer,
 }: DropdownProps) {
   const t = useTranslations();
@@ -182,6 +187,32 @@ export function Dropdown({
                   placeholder={t("common.searchPlaceholder")}
                   className="h-8 w-full rounded-md border border-border-primary bg-bg-primary pl-7 pr-2 text-xs text-text-primary outline-none placeholder:text-text-placeholder focus:border-brand-500"
                 />
+              </div>
+            )}
+            {/* Reset row — pinned above the list so it stays reachable in a long
+                one. Hidden while searching, where it has nothing to do with the
+                query. Uses `placeholder` as its label ("All airports"), which is
+                already the right word for "no filter". */}
+            {clearable && !query.trim() && (
+              <div className="mb-1 shrink-0 border-b border-border-secondary pb-1">
+                <button
+                  type="button"
+                  role="option"
+                  aria-selected={value === ""}
+                  onClick={() => {
+                    onChange("");
+                    setOpen(false);
+                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                    value === ""
+                      ? "bg-(--chip-brand-bg) text-(--chip-brand-text)"
+                      : "text-text-tertiary hover:bg-bg-tertiary hover:text-text-primary"
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate font-medium">{resolvedPlaceholder}</span>
+                  {value === "" && <Icon name="check" size={15} strokeWidth={2.2} className="shrink-0" />}
+                </button>
               </div>
             )}
             <div className="min-h-0 flex-1 overflow-y-auto">

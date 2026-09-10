@@ -16,16 +16,15 @@ import { PaginationBar } from "@/components/ui/PaginationBar";
 import { getFaultStatusConfig, getFaultPriorityConfig } from "@/config/faultStatus.config";
 import { formatDate, resolveImageUrl } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import type { Fault, FaultAttachment, FaultPriority, FaultStage } from "@/lib/types";
+import type { Fault, FaultAttachment, FaultPriority } from "@/lib/types";
 import type { TranslationKey } from "@/lib/i18n/translations";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useFaultsList } from "@/hooks/useFaultsList";
 import { useAsync } from "@/hooks/useAsync";
 import { useLocations } from "@/hooks/useLocations";
 import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
-import { faultsService, repairsService, equipmentService } from "@/services";
+import { faultsService, equipmentService } from "@/services";
 import { paginate } from "@/services/http-client";
-import { AddFaultModal } from "./AddFaultModal";
 import { FaultIntelligencePanel } from "@/components/dashboard/FaultIntelligencePanel";
 import { FaultTrendChart } from "@/components/dashboard/FaultTrendChart";
 import { useFaultIntelligence } from "@/hooks/useFaultIntelligence";
@@ -47,12 +46,10 @@ export function FaultsClient() {
     { key: "charts", label: t("faults.tabCharts") },
   ] as const;
 
-  const [addOpen, setAddOpen] = useState(false);
   const [view, setView] = useState<(typeof viewTabs)[number]["key"]>("list");
   const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
   const [terminalFilter, setTerminalFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState<FaultStage | "">("");
   const [priorityFilter, setPriorityFilter] = useState<FaultPriority | "">("");
   const [dateFrom, setDateFrom] = useState<string | null>(null);
   const [dateTo, setDateTo] = useState<string | null>(null);
@@ -73,7 +70,26 @@ export function FaultsClient() {
 
   useEffect(() => {
     setPage(1);
-  }, [airportFilter, terminalFilter, typeFilter, statusFilter, priorityFilter, search, pageSize]);
+  }, [airportFilter, terminalFilter, typeFilter, priorityFilter, dateFrom, dateTo, search, pageSize]);
+
+  const filtersActive =
+    !!(airportFilter && !isAirportScoped) ||
+    !!terminalFilter ||
+    !!typeFilter ||
+    !!priorityFilter ||
+    !!dateFrom ||
+    !!dateTo ||
+    !!searchInput;
+
+  function clearFilters() {
+    if (!isAirportScoped) setAirportFilter("");
+    setTerminalFilter("");
+    setTypeFilter("");
+    setPriorityFilter("");
+    setDateFrom(null);
+    setDateTo(null);
+    setSearchInput("");
+  }
 
   const { data: typesData } = useAsync(() => equipmentService.listEquipmentTypes(), []);
   const equipmentTypes = typesData ?? [];
@@ -85,9 +101,10 @@ export function FaultsClient() {
   // client-side using the equipment lookup below.
   const hasLocationFilters = !!(airportFilter || terminalFilter || typeFilter);
   const filters = {
-    stage: statusFilter || undefined,
     priority: priorityFilter || undefined,
     search: search || undefined,
+    detectedFrom: dateFrom || undefined,
+    detectedTo: dateTo || undefined,
     page: hasLocationFilters ? 1 : page,
     pageSize: hasLocationFilters ? 200 : pageSize,
   };
@@ -99,9 +116,10 @@ export function FaultsClient() {
     setExporting(true);
     try {
       await faultsService.exportFaults({
-        stage: statusFilter || undefined,
         priority: priorityFilter || undefined,
         search: search || undefined,
+        detectedFrom: dateFrom || undefined,
+        detectedTo: dateTo || undefined,
       });
     } finally {
       setExporting(false);
@@ -126,27 +144,22 @@ export function FaultsClient() {
   }, [data, hasLocationFilters, airportFilter, terminalFilter, typeFilter, page, pageSize, equipmentById]);
 
   // KPI cards reflect overall operational state, independent of table filters/pagination.
-  const { data: allFaultsPage, refetch: refetchKpiFaults } = useAsync(
+  const { data: allFaultsPage } = useAsync(
     () => faultsService.listFaults({ pageSize: 1000 }),
     []
   );
-  const { data: waitingPartsPage } = useAsync(
-    () => repairsService.listRepairs({ status: "waiting_parts", pageSize: 1000 }),
-    []
-  );
-
   const kpi = useMemo(() => {
     const allFaults = allFaultsPage?.items ?? [];
-    const total = allFaults.length;
-    const open = allFaults.filter((f) => f.stage === "detected" || f.stage === "registered").length;
-    const inProgress = allFaults.filter((f) => f.stage === "diagnosis" || f.stage === "repair" || f.stage === "assigned").length;
-    const waitingParts = waitingPartsPage?.total ?? 0;
-    const resolved = allFaults.filter((f) => f.stage === "verification").length;
-    const closed = allFaults.filter((f) => f.stage === "closed").length;
-    const today = new Date().toISOString().slice(0, 10);
-    const overdue = allFaults.filter((f) => f.dueAt && f.dueAt < today && f.stage !== "closed").length;
-    return { total, open, inProgress, waitingParts, resolved, closed, overdue };
-  }, [allFaultsPage, waitingPartsPage]);
+    const countBy = (priority: Fault["priority"]) =>
+      allFaults.filter((f) => f.priority === priority).length;
+    return {
+      total: allFaults.length,
+      low: countBy("low"),
+      medium: countBy("medium"),
+      high: countBy("high"),
+      critical: countBy("critical"),
+    };
+  }, [allFaultsPage]);
 
   useEffect(() => {
     if (faults.length === 0) {
@@ -163,38 +176,23 @@ export function FaultsClient() {
 
   const selected = faults.find((f) => f.id === selectedId) ?? null;
 
-  function handleFaultCreated(fault: Fault) {
-    refetch();
-    refetchKpiFaults();
-    setSelectedId(fault.id);
-  }
-
   return (
     <div className="pb-8">
       <PageHeader
         title={t("faults.title")}
         actions={
-          <>
-            <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
-              {t("common.export")}
-            </Button>
-            {canWrite && (
-              <Button hierarchy="primary" icon="plus" size="sm" onClick={() => setAddOpen(true)}>
-                {t("faults.newFault")}
-              </Button>
-            )}
-          </>
+          <Button hierarchy="secondary" icon="download" size="sm" disabled={exporting} onClick={handleExport}>
+            {t("common.export")}
+          </Button>
         }
       />
 
-      <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4 xl:grid-cols-7">
+      <div className="grid grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-3 xl:grid-cols-5">
         <KPICard label={t("faults.kpiTotal")} value={kpi.total} icon="layers" tone="neutral" />
-        <KPICard label={t("faults.kpiOpen")} value={kpi.open} icon="alert-triangle" tone="error" />
-        <KPICard label={t("faults.kpiInProgress")} value={kpi.inProgress} icon="wrench" tone="warning" />
-        <KPICard label={t("faults.kpiWaitingParts")} value={kpi.waitingParts} icon="package" tone="brand" />
-        <KPICard label={t("faults.kpiResolved")} value={kpi.resolved} icon="check-circle" tone="success" />
-        <KPICard label={t("faults.kpiClosed")} value={kpi.closed} icon="package" tone="neutral" />
-        <KPICard label={t("faults.kpiOverdue")} value={kpi.overdue} icon="clock" tone="error" />
+        <KPICard label={t("status.faultPriority.low")} value={kpi.low} icon="check-circle" tone="success" />
+        <KPICard label={t("status.faultPriority.medium")} value={kpi.medium} icon="clock" tone="warning" />
+        <KPICard label={t("status.faultPriority.high")} value={kpi.high} icon="alert-triangle" tone="error" />
+        <KPICard label={t("status.faultPriority.critical")} value={kpi.critical} icon="alert-triangle" tone="error" />
       </div>
 
       <Tabs items={viewTabs} value={view} onChange={setView} className="mt-5 px-6" />
@@ -216,6 +214,7 @@ export function FaultsClient() {
           <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
             {!isAirportScoped && (
               <Dropdown
+                clearable
                 className="w-44"
                 placeholder={t("common.allAirports")}
                 value={airportFilter}
@@ -224,6 +223,7 @@ export function FaultsClient() {
               />
             )}
             <Dropdown
+              clearable
               className="w-44"
               placeholder={t("common.allTerminals")}
               value={terminalFilter}
@@ -234,6 +234,7 @@ export function FaultsClient() {
               }))}
             />
             <Dropdown
+              clearable
               className="w-52"
               placeholder={t("common.allTypes")}
               value={typeFilter}
@@ -241,13 +242,7 @@ export function FaultsClient() {
               options={equipmentTypes.map((et) => ({ value: String(et.id), label: et.name }))}
             />
             <Dropdown
-              className="w-44"
-              placeholder={t("common.allStatuses")}
-              value={statusFilter}
-              onChange={(value) => setStatusFilter(value as FaultStage | "")}
-              options={Object.entries(faultStatusConfig).map(([key, cfg]) => ({ value: key, label: cfg.label }))}
-            />
-            <Dropdown
+              clearable
               className="w-40"
               placeholder={t("common.allPriorities")}
               value={priorityFilter}
@@ -264,9 +259,11 @@ export function FaultsClient() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
-            <Button hierarchy="secondary" icon="filter" size="sm">
-              {t("common.filters")}
-            </Button>
+            {filtersActive && (
+              <Button hierarchy="secondary" icon="x" size="sm" onClick={clearFilters}>
+                {t("common.clearFilters")}
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 px-6 pt-4 xl:grid-cols-[1fr_380px]">
@@ -296,11 +293,9 @@ export function FaultsClient() {
                       <th className="px-4 py-2.5">{t("faults.colId")}</th>
                       <th className="px-4 py-2.5">{t("faults.colEquipment")}</th>
                       <th className="px-4 py-2.5">{t("faults.colFault")}</th>
-                      <th className="px-4 py-2.5">{t("faults.colStatus")}</th>
                       <th className="px-4 py-2.5">{t("faults.colPriority")}</th>
                       <th className="px-4 py-2.5">{t("faults.colAirportLocation")}</th>
                       <th className="px-4 py-2.5">{t("faults.colDate")}</th>
-                      <th className="px-4 py-2.5">{t("faults.colAssignee")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -330,9 +325,6 @@ export function FaultsClient() {
                           </td>
                           <td className="max-w-[220px] truncate px-4 py-2.5 text-text-secondary">{f.title}</td>
                           <td className="px-4 py-2.5">
-                            <StatusBadge status={faultStatusConfig[f.stage]} />
-                          </td>
-                          <td className="px-4 py-2.5">
                             <StatusBadge status={faultPriorityConfig[f.priority]} />
                           </td>
                           <td className="px-4 py-2.5 text-text-secondary">
@@ -340,13 +332,6 @@ export function FaultsClient() {
                             <p className="text-xs text-text-tertiary">{eq?.location}</p>
                           </td>
                           <td className="px-4 py-2.5 text-text-secondary">{formatDate(f.detectedAt)}</td>
-                          <td className="px-4 py-2.5">
-                            {f.assignee ? (
-                              <span className="text-text-secondary">{f.assignee}</span>
-                            ) : (
-                              <span className="text-text-quaternary">{t("faults.notAssigned")}</span>
-                            )}
-                          </td>
                         </tr>
                       );
                     })}
@@ -375,8 +360,6 @@ export function FaultsClient() {
           </div>
         </>
       )}
-
-      <AddFaultModal open={addOpen} onClose={() => setAddOpen(false)} onCreated={handleFaultCreated} />
     </div>
   );
 }

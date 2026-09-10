@@ -10,15 +10,15 @@ import { Icon, type IconName } from "@/components/icons";
 import { StatusBadge } from "@/components/ui/Badge";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 import { getDocumentStatusConfig } from "@/config/repairStatus.config";
+import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
-import { formatDate } from "@/lib/format";
+import { formatDateTime, resolveImageUrl, downloadFile } from "@/lib/format";
+import { DocumentDetailModal } from "@/components/documents/DocumentDetailModal";
 import type { DocumentStatus, EquipmentDocument } from "@/lib/types";
 import { useDocumentsList } from "@/hooks/useDocumentsList";
 import { useAsync } from "@/hooks/useAsync";
 import { documentsService } from "@/services";
-import { UploadDocumentModal } from "./UploadDocumentModal";
 import { useTranslations } from "@/lib/locale-context";
-import { usePermissions } from "@/hooks/usePermissions";
 import type { TranslationKey } from "@/lib/i18n/translations";
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
@@ -31,11 +31,12 @@ const typeMetaKeys: Record<EquipmentDocument["type"], { labelKey: TranslationKey
   repair_report: { labelKey: "documents.type.repairReport", icon: "wrench" },
 };
 
-export function DocumentsSection() {
+export function DocumentsSection({ equipmentId }: { equipmentId?: number } = {}) {
   const t = useTranslations();
-  const { canWrite } = usePermissions();
   const { equipmentById } = useEquipmentLookup();
   const documentStatusConfig = getDocumentStatusConfig(t);
+  const equipmentStatusConfig = getEquipmentStatusConfig(t);
+  const [viewing, setViewing] = useState<EquipmentDocument | null>(null);
   const typeMeta: Record<EquipmentDocument["type"], { label: string; icon: IconName }> = Object.fromEntries(
     Object.entries(typeMetaKeys).map(([key, m]) => [key, { label: t(m.labelKey), icon: m.icon }])
   ) as Record<EquipmentDocument["type"], { label: string; icon: IconName }>;
@@ -43,7 +44,6 @@ export function DocumentsSection() {
   const [statusFilter, setStatusFilter] = useState<DocumentStatus | "">("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [uploadOpen, setUploadOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
 
@@ -57,6 +57,7 @@ export function DocumentsSection() {
   }, [typeFilter, statusFilter, search, pageSize]);
 
   const filters = {
+    equipmentId,
     type: typeFilter || undefined,
     status: statusFilter || undefined,
     search: search || undefined,
@@ -69,7 +70,7 @@ export function DocumentsSection() {
   const total = data?.total ?? 0;
 
   // KPI cards reflect the full document set, independent of the table filters.
-  const { data: allDocsPage, refetch: refetchKpi } = useAsync(
+  const { data: allDocsPage } = useAsync(
     () => documentsService.listDocuments({ pageSize: 1000 }),
     []
   );
@@ -84,11 +85,6 @@ export function DocumentsSection() {
     };
   }, [allDocsPage]);
 
-  function handleDocumentCreated() {
-    refetch();
-    refetchKpi();
-  }
-
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="grid shrink-0 grid-cols-2 gap-3 px-6 pt-5 sm:grid-cols-4">
@@ -101,6 +97,7 @@ export function DocumentsSection() {
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 px-6 pt-4">
         <div className="flex flex-wrap items-center gap-2">
           <Dropdown
+            clearable
             className="w-56"
             placeholder={t("documents.allTypes")}
             value={typeFilter}
@@ -108,6 +105,7 @@ export function DocumentsSection() {
             options={Object.entries(typeMeta).map(([key, m]) => ({ value: key, label: m.label, icon: m.icon }))}
           />
           <Dropdown
+            clearable
             className="w-56"
             placeholder={t("common.allStatuses")}
             value={statusFilter}
@@ -121,12 +119,21 @@ export function DocumentsSection() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
+          {(typeFilter || statusFilter || searchInput) && (
+            <Button
+              hierarchy="secondary"
+              icon="x"
+              size="sm"
+              onClick={() => {
+                setTypeFilter("");
+                setStatusFilter("");
+                setSearchInput("");
+              }}
+            >
+              {t("common.clearFilters")}
+            </Button>
+          )}
         </div>
-        {canWrite && (
-          <Button hierarchy="primary" icon="upload" size="sm" onClick={() => setUploadOpen(true)}>
-            {t("documents.upload")}
-          </Button>
-        )}
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col px-6 py-4">
@@ -151,14 +158,15 @@ export function DocumentsSection() {
             </div>
           ) : (
           <div className="h-full overflow-auto">
-            <table className="w-full min-w-[860px] border-collapse text-sm">
+            <table className="w-full min-w-[1180px] border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-bg-secondary">
                 <tr className="border-b border-border-primary text-left text-xs font-medium uppercase tracking-wide text-text-quaternary">
                   <th className="px-4 py-2.5">{t("documents.colDocument")}</th>
                   <th className="px-4 py-2.5">{t("documents.colEquipment")}</th>
                   <th className="px-4 py-2.5">{t("documents.colAuthor")}</th>
+                  <th className="px-4 py-2.5">{t("documents.colOperator")}</th>
+                  <th className="px-4 py-2.5">{t("documents.colCompanyRep")}</th>
                   <th className="px-4 py-2.5">{t("documents.colDate")}</th>
-                  <th className="px-4 py-2.5">{t("documents.colVersion")}</th>
                   <th className="px-4 py-2.5">{t("documents.colStatus")}</th>
                   <th className="px-4 py-2.5 text-right">{t("documents.colActions")}</th>
                 </tr>
@@ -193,21 +201,31 @@ export function DocumentsSection() {
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-text-secondary">{d.author}</td>
-                      <td className="px-4 py-2.5 text-text-secondary">{formatDate(d.date)}</td>
-                      <td className="px-4 py-2.5 text-text-secondary">v{d.version}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{d.operatorName ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{d.companyRepresentativeName ?? "—"}</td>
+                      <td className="px-4 py-2.5 text-text-secondary">{formatDateTime(d.date)}</td>
                       <td className="px-4 py-2.5">
-                        <StatusBadge status={documentStatusConfig[d.status]} />
+                        {eq ? (
+                          <StatusBadge status={equipmentStatusConfig[eq.status]} />
+                        ) : (
+                          <span className="text-text-quaternary">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             aria-label={t("documents.view")}
+                            onClick={() => setViewing(d)}
                             className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                           >
                             <Icon name="eye" size={16} />
                           </button>
                           <button
                             aria-label={t("documents.download")}
+                            onClick={() => {
+                              const url = resolveImageUrl(d.fileUrl);
+                              if (url) void downloadFile(url, d.title);
+                            }}
                             className="rounded-md p-1.5 text-text-quaternary hover:bg-bg-quaternary hover:text-text-primary"
                           >
                             <Icon name="download" size={16} />
@@ -233,12 +251,14 @@ export function DocumentsSection() {
         </div>
       </div>
 
-      <UploadDocumentModal
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onCreated={handleDocumentCreated}
-        typeMeta={typeMeta}
-      />
+      {viewing && (
+        <DocumentDetailModal
+          document={viewing}
+          equipment={viewing.equipmentId ? (equipmentById(viewing.equipmentId) ?? null) : null}
+          typeLabel={typeMeta[viewing.type].label}
+          onClose={() => setViewing(null)}
+        />
+      )}
     </div>
   );
 }

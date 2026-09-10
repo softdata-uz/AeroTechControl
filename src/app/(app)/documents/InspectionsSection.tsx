@@ -16,8 +16,9 @@ import { getInspectionStatusConfig, getChecklistResultConfig } from "@/config/in
 import { getEquipmentStatusConfig } from "@/config/equipmentStatus.config";
 import { getRepairStatusConfig } from "@/config/repairStatus.config";
 import { useEquipmentLookup } from "@/hooks/useEquipmentLookup";
+import { useEquipmentTypes } from "@/hooks/useEquipmentLookups";
 import { useLocations } from "@/hooks/useLocations";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { InspectionStatus } from "@/lib/types";
 import { useInspectionsList } from "@/hooks/useInspectionsList";
@@ -36,6 +37,7 @@ export function InspectionsSection() {
   const equipmentStatusConfig = getEquipmentStatusConfig(t);
   const repairStatusConfig = getRepairStatusConfig(t);
   const { equipmentById } = useEquipmentLookup();
+  const { types: equipmentTypes } = useEquipmentTypes();
   const { airports } = useLocations();
 
   const viewTabs = [
@@ -53,6 +55,7 @@ export function InspectionsSection() {
   const [detailTab, setDetailTab] = useState<(typeof detailTabs)[number]["key"]>("history");
   const [airportFilter, setAirportFilter] = useState(() => (scopedAirportId ? String(scopedAirportId) : ""));
   const [statusFilter, setStatusFilter] = useState<InspectionStatus | "">("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [dateFrom, setDateFrom] = useState<string | null>(null);
   const [dateTo, setDateTo] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState("");
@@ -82,9 +85,43 @@ export function InspectionsSection() {
     refetch: refetchList,
   } = useInspectionsList(filters);
   const allInspections = useMemo(() => inspectionsPage?.items ?? [], [inspectionsPage]);
-  const inspections = allInspections.slice((page - 1) * pageSize, page * pageSize);
 
-  useEffect(() => setPage(1), [airportFilter, statusFilter, search, pageSize]);
+  // Equipment type and the scheduled-date range aren't backend query params on
+  // /inspections, but the list is already fetched whole and paginated
+  // client-side below — so both filter here rather than being decorative.
+  const matchedInspections = useMemo(
+    () =>
+      allInspections.filter((i) => {
+        if (typeFilter) {
+          const eq = equipmentById(i.equipmentId);
+          if (!eq || String(eq.equipmentType.id) !== typeFilter) return false;
+        }
+        if (dateFrom && i.scheduledAt < dateFrom) return false;
+        if (dateTo && i.scheduledAt > dateTo) return false;
+        return true;
+      }),
+    [allInspections, typeFilter, dateFrom, dateTo, equipmentById]
+  );
+  const inspections = matchedInspections.slice((page - 1) * pageSize, page * pageSize);
+
+  useEffect(() => setPage(1), [airportFilter, statusFilter, typeFilter, dateFrom, dateTo, search, pageSize]);
+
+  const filtersActive =
+    !!(airportFilter && !isAirportScoped) ||
+    !!statusFilter ||
+    !!typeFilter ||
+    !!dateFrom ||
+    !!dateTo ||
+    !!searchInput;
+
+  function clearFilters() {
+    if (!isAirportScoped) setAirportFilter("");
+    setStatusFilter("");
+    setTypeFilter("");
+    setDateFrom(null);
+    setDateTo(null);
+    setSearchInput("");
+  }
 
   // KPI cards reflect overall operational state, independent of the list filters.
   const { data: allInspectionsPage, refetch: refetchKpi } = useAsync(
@@ -197,6 +234,7 @@ export function InspectionsSection() {
           <div className="flex flex-wrap items-center gap-2 border-b border-border-primary bg-bg-secondary px-6 py-3">
             {!isAirportScoped && (
               <Dropdown
+                clearable
                 className="w-52"
                 placeholder={t("common.allAirports")}
                 value={airportFilter}
@@ -204,8 +242,16 @@ export function InspectionsSection() {
                 options={airports.map((a) => ({ value: String(a.id), label: a.name }))}
               />
             )}
-            <Dropdown className="w-56" placeholder={t("common.allTypes")} value="" onChange={() => {}} options={[]} />
             <Dropdown
+              clearable
+              className="w-56"
+              placeholder={t("common.allTypes")}
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={equipmentTypes.map((et) => ({ value: String(et.id), label: et.name }))}
+            />
+            <Dropdown
+              clearable
               className="w-52"
               placeholder={t("common.allStatuses")}
               value={statusFilter}
@@ -222,6 +268,11 @@ export function InspectionsSection() {
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
+            {filtersActive && (
+              <Button hierarchy="secondary" icon="x" size="sm" onClick={clearFilters}>
+                {t("common.clearFilters")}
+              </Button>
+            )}
             {canWrite && (
               <Button hierarchy="primary" icon="plus" size="sm">
                 {t("inspections.newInspection")}
@@ -233,7 +284,7 @@ export function InspectionsSection() {
             {/* LEFT: inspection list */}
             <div className="flex flex-col gap-3">
               <p className="px-1 text-xs text-text-tertiary">
-                {t("inspections.totalCount")} {allInspections.length}
+                {t("inspections.totalCount")} {matchedInspections.length}
               </p>
               {listError ? (
                 <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-lg border border-border-primary bg-bg-secondary px-3 py-8 text-center">
@@ -294,7 +345,7 @@ export function InspectionsSection() {
                 className="border-t-0 pt-1"
                 page={page}
                 pageSize={pageSize}
-                total={allInspections.length}
+                total={matchedInspections.length}
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
                 pageSizeOptions={PAGE_SIZE_OPTIONS}
@@ -459,7 +510,7 @@ export function InspectionsSection() {
                           <Icon name="file-text" size={16} className="shrink-0 text-text-quaternary" />
                           <div className="min-w-0 flex-1">
                             <p className="truncate font-medium text-text-primary">{d.title}</p>
-                            <p className="text-xs text-text-tertiary">{formatDate(d.date)}</p>
+                            <p className="text-xs text-text-tertiary">{formatDateTime(d.date)}</p>
                           </div>
                         </li>
                       ))}

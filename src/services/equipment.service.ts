@@ -4,6 +4,7 @@ import type {
   EquipmentModel,
   EquipmentStatus,
   EquipmentType,
+  ProtocolTemplate,
   Regulation,
 } from "@/lib/types";
 import { apiGet, apiGetPage, apiPatch, apiPost, apiDelete, apiUpload, apiDownload, type Page } from "./http-client";
@@ -149,6 +150,35 @@ export function updateRegulation(
 export function deleteRegulation(id: number): Promise<void> {
   return apiDelete<void>(`/regulations/${id}`);
 }
+
+// GET /protocol-templates?equipmentTypeId=
+export function listProtocolTemplates(equipmentTypeId?: number): Promise<ProtocolTemplate[]> {
+  return apiGet<ProtocolTemplate[]>("/protocol-templates", { equipmentTypeId });
+}
+
+// POST /protocol-templates
+export function createProtocolTemplate(input: {
+  equipmentTypeId: number;
+  name: string;
+  kind: ProtocolTemplate["kind"];
+}): Promise<ProtocolTemplate> {
+  return apiPost<ProtocolTemplate>("/protocol-templates", input);
+}
+
+// PATCH /protocol-templates/:id
+export function updateProtocolTemplate(
+  id: number,
+  input: { equipmentTypeId?: number; name?: string; kind?: ProtocolTemplate["kind"] }
+): Promise<ProtocolTemplate> {
+  return apiPatch<ProtocolTemplate>(`/protocol-templates/${id}`, input);
+}
+
+// DELETE /protocol-templates/:id
+export function deleteProtocolTemplate(id: number): Promise<void> {
+  return apiDelete<void>(`/protocol-templates/${id}`);
+}
+
+export type { ProtocolTemplate };
 
 export interface EquipmentInput {
   name: string;

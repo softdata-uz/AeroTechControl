@@ -13,6 +13,7 @@ import type {
   EquipmentType,
   ManufacturerCompany,
   ManufacturerCountry,
+  ProtocolTemplate,
   Regulation,
 } from "@/lib/types";
 
@@ -30,23 +31,36 @@ export function useEquipmentLookups() {
   const [manufacturerCountries, setManufacturerCountries] = useState<ManufacturerCountry[]>([]);
   const [equipmentOperators, setEquipmentOperators] = useState<EquipmentOperator[]>([]);
   const [regulations, setRegulations] = useState<Regulation[]>([]);
+  const [protocolTemplates, setProtocolTemplates] = useState<ProtocolTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    return Promise.all([
+    // Promise.allSettled, not Promise.all: each lookup is independent, so one
+    // endpoint failing (e.g. a pending migration breaking /protocol-templates)
+    // must not blank every other picker fed by this hook.
+    return Promise.allSettled([
       equipmentService.listEquipmentTypes(),
       equipmentService.listEquipmentModels(),
       manufacturerCompaniesApi.list(),
       manufacturerCountriesApi.list(),
       equipmentOperatorsApi.list(),
       equipmentService.listRegulations(),
-    ]).then(([t, m, mc, mco, op, reg]) => {
-      setTypes(t);
-      setModels(m);
-      setManufacturerCompanies(mc);
-      setManufacturerCountries(mco);
-      setEquipmentOperators(op);
-      setRegulations(reg);
+      equipmentService.listProtocolTemplates(),
+    ]).then(([t, m, mc, mco, op, reg, protocols]) => {
+      if (t.status === "fulfilled") setTypes(t.value);
+      else console.error("Failed to load equipment types", t.reason);
+      if (m.status === "fulfilled") setModels(m.value);
+      else console.error("Failed to load equipment models", m.reason);
+      if (mc.status === "fulfilled") setManufacturerCompanies(mc.value);
+      else console.error("Failed to load manufacturer companies", mc.reason);
+      if (mco.status === "fulfilled") setManufacturerCountries(mco.value);
+      else console.error("Failed to load manufacturer countries", mco.reason);
+      if (op.status === "fulfilled") setEquipmentOperators(op.value);
+      else console.error("Failed to load equipment operators", op.reason);
+      if (reg.status === "fulfilled") setRegulations(reg.value);
+      else console.error("Failed to load regulations", reg.reason);
+      if (protocols.status === "fulfilled") setProtocolTemplates(protocols.value);
+      else console.error("Failed to load protocol templates", protocols.reason);
     });
   }, []);
 
@@ -68,6 +82,11 @@ export function useEquipmentLookups() {
   const regulationsByType = useCallback(
     (equipmentTypeId: number) => regulations.filter((r) => r.equipmentTypeId === equipmentTypeId),
     [regulations]
+  );
+
+  const protocolTemplateByType = useCallback(
+    (equipmentTypeId: number) => protocolTemplates.find((p) => p.equipmentTypeId === equipmentTypeId) ?? null,
+    [protocolTemplates]
   );
 
   const addType = useCallback((type: EquipmentType) => {
@@ -94,6 +113,10 @@ export function useEquipmentLookups() {
     setRegulations((prev) => [...prev, regulation]);
   }, []);
 
+  const addProtocolTemplate = useCallback((template: ProtocolTemplate) => {
+    setProtocolTemplates((prev) => [...prev, template]);
+  }, []);
+
   return useMemo(
     () => ({
       types,
@@ -102,15 +125,18 @@ export function useEquipmentLookups() {
       manufacturerCountries,
       equipmentOperators,
       regulations,
+      protocolTemplates,
       loading,
       modelsByType,
       regulationsByType,
+      protocolTemplateByType,
       addType,
       addModel,
       addManufacturerCompany,
       addManufacturerCountry,
       addEquipmentOperator,
       addRegulation,
+      addProtocolTemplate,
       refetch: load,
     }),
     [
@@ -120,15 +146,18 @@ export function useEquipmentLookups() {
       manufacturerCountries,
       equipmentOperators,
       regulations,
+      protocolTemplates,
       loading,
       modelsByType,
       regulationsByType,
+      protocolTemplateByType,
       addType,
       addModel,
       addManufacturerCompany,
       addManufacturerCountry,
       addEquipmentOperator,
       addRegulation,
+      addProtocolTemplate,
       load,
     ]
   );

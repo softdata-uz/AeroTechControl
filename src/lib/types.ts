@@ -40,8 +40,6 @@ export type RepairStatus =
 
 export type DocumentStatus = "draft" | "active" | "expiring" | "expired" | "archived";
 
-export type SparePartStatus = "available" | "low_stock" | "reserved" | "out_of_stock";
-
 export type ChecklistResult = "compliant" | "non_compliant" | "not_applicable" | "pending";
 
 export interface ChecklistItem {
@@ -118,6 +116,25 @@ export interface ProcessSheet {
   id: number;
   regulationId: number;
   name: string;
+}
+
+export type ProtocolTemplateKind = "chart" | "table";
+
+export interface ProtocolTemplate {
+  id: number;
+  equipmentTypeId: number;
+  name: string;
+  kind: ProtocolTemplateKind;
+}
+
+export type SignatoryType = "operator" | "company_representative";
+
+export interface Signatory {
+  id: number;
+  airportId: number;
+  fullName: string;
+  type: SignatoryType;
+  createdAt: string;
 }
 
 export interface EquipmentChangeLog {
@@ -216,18 +233,6 @@ export interface Repair {
   verificationResult: "passed" | "failed" | null;
 }
 
-export interface SparePart {
-  id: number;
-  name: string;
-  sku: string;
-  warehouse: string;
-  stock: number;
-  minStock: number;
-  reserved: number;
-  status: SparePartStatus;
-  compatibleEquipmentTypes: string[];
-}
-
 export interface EquipmentDocument {
   id: string;
   code: string; // e.g. doc-001
@@ -237,6 +242,8 @@ export interface EquipmentDocument {
   status: DocumentStatus;
   author: string;
   date: string;
+  operatorName: string | null;
+  companyRepresentativeName: string | null;
   version: string;
   fileUrl: string;
 }

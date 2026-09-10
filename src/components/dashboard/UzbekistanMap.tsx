@@ -26,6 +26,8 @@ export interface UzMapMarker {
 interface UzbekistanMapProps {
   markers?: UzMapMarker[];
   className?: string;
+  /** Fires when a region shape (not a marker) is clicked, with that region's `type` key. */
+  onRegionClick?: (regionType: string) => void;
 }
 
 // Cheap, no-DOM bounding-box area estimate from an SVG path's `d` string —
@@ -82,7 +84,7 @@ interface Layout {
  * the map's aspect ratio rarely matches its card's). That keeps every pin
  * exactly on its city regardless of the card's width, height, or resizing.
  */
-export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
+export function UzbekistanMap({ markers = [], className, onRegionClick }: UzbekistanMapProps) {
   const [hovered, setHovered] = useState<{ id: number; type: string } | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -178,6 +180,7 @@ export function UzbekistanMap({ markers = [], className }: UzbekistanMapProps) {
             className="cursor-pointer transition-colors"
             onMouseEnter={() => setHovered({ id: region.id, type: region.type })}
             onMouseLeave={() => setHovered((h) => (h?.id === region.id ? null : h))}
+            onClick={() => onRegionClick?.(region.type)}
           />
         )}
       </g>
